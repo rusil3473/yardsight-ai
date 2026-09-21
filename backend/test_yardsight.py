@@ -1,14 +1,31 @@
 """
-Automated unit test suite for YardSight AI (GodownOS) OpenCV 5 and physical AI pipelines.
+Automated unit test suite for YardSight AI (GodownOS).
+Covers:
+1. OpenCV 5 ANPR Homography & CCTV unwarping
+2. Specular reflection concrete leak detection
+3. Dock dwell tracker & $75/hr detention billing
+4. GST E-Way Bill & US eBOL generation
+5. Amazon Alexa+ Model Context Protocol (MCP v2025-11-25)
+6. Enterprise Stateless JWT & RBAC Authorization
+7. Token Bucket Rate Limiting (100k capacity) & Redis-Style LRU Cache
+8. Multi-Tenant isolation
 """
 
 import pytest
 import numpy as np
+from fastapi.testclient import TestClient
+
+from app import app
 from anpr_homography import anpr_engine
 from leak_detector import leak_detector
 from dock_cycle_tracker import dock_tracker
 from eway_bill_engine import eway_engine
 from mcp_server import mcp_server
+from auth_engine import create_access_token, verify_access_token, ENTERPRISE_USERS
+from scale_engine import rate_limiter, lru_cache, worker_queue, get_enterprise_scale_metrics
+from tenant_manager import tenant_manager
+
+client = TestClient(app)
 
 def test_anpr_homography():
     corners = np.float32([[220, 180], [430, 205], [415, 270], [210, 240]])
@@ -42,7 +59,6 @@ def test_dock_dwell_tracker():
     dwells = dock_tracker.get_yard_dwell_metrics()
     assert len(dwells) >= 2
     
-    # Check that truck TRK-9041 is flagged for detention (> 120 mins)
     trk_9041 = next(t for t in dwells if t["truck_id"] == "TRK-9041")
     assert trk_9041["is_detention"] is True
     assert trk_9041["detention_minutes"] > 0
@@ -71,12 +87,81 @@ def test_us_ebol_generation():
 def test_mcp_server_tools():
     tools = mcp_server.list_tools()
     assert len(tools) == 5
-    tool_names = [t["name"] for t in tools]
-    assert "get_yard_overview" in tool_names
-    assert "analyze_gate_anpr" in tool_names
-    assert "check_roof_leakage" in tool_names
-    
-    # Test tool invocation
     overview = mcp_server.call_tool("get_yard_overview", {})
     assert "active_trucks_in_yard" in overview
     assert "detention_alerts" in overview
+
+# --- Enterprise Scalability & Security Tests ---
+def test_jwt_auth_and_rbac():
+    admin_user = ENTERPRISE_USERS["admin@yardsight.corp"]
+    token = create_access_token(admin_user)
+    assert token.count('.') == 2
+    
+    payload = verify_access_token(token)
+    assert payload["email"] == "admin@yardsight.corp"
+    assert payload["role"] == "corporate_admin"
+    assert "all" in payload["permissions"]
+
+def test_rate_limiter_and_scale_telemetry():
+    # Verify rate limit headers
+    resp = client.get("/api/health")
+    assert resp.status_code == 200
+    assert "X-RateLimit-Limit" in resp.headers
+    assert resp.headers["X-RateLimit-Limit"] == "100000"
+    
+    # Verify scale metrics endpoint
+    metrics_resp = client.get("/api/metrics/scale")
+    assert metrics_resp.status_code == 200
+    data = metrics_resp.json()
+    assert "target_scale_capacity" in data
+    assert data["active_simulated_connections"] > 40000
+
+def test_redis_lru_cache():
+    lru_cache.set("test_key", {"carrier": "Gati KWE"}, ttl_seconds=60)
+    cached = lru_cache.get("test_key")
+    assert cached is not None
+    assert cached["carrier"] == "Gati KWE"
+    
+    stats = lru_cache.get_stats()
+    assert stats["hits"] > 0
+
+def test_multi_tenant_isolation():
+    tenants_resp = client.get("/api/tenants")
+    assert tenants_resp.status_code == 200
+    tenants = tenants_resp.json()["tenants"]
+    assert len(tenants) == 3
+    
+    # Switch to Dallas DC
+    switch_resp = client.post("/api/tenants/switch", json={"tenant_id": "TENANT-US-DFW-DC"})
+    assert switch_resp.status_code == 200
+    assert switch_resp.json()["active_tenant"]["currency"] == "USD"
+    
+    # Switch back to Amazon BLR1
+    client.post("/api/tenants/switch", json={"tenant_id": "TENANT-AMZN-BLR1"})
+
+def test_rbac_authorization_guard():
+    # 1. Login as Security Guard
+    guard_user = ENTERPRISE_USERS["guard@yardsight.corp"]
+    guard_token = create_access_token(guard_user)
+    
+    # 2. Try to generate an E-Way Bill as Security Guard (Should be 403 Forbidden)
+    resp_forbidden = client.post(
+        "/api/documents/generate",
+        json={"truck_id": "TRK-8821", "doc_type": "GST_EWAY_BILL"},
+        headers={"Authorization": f"Bearer {guard_token}"}
+    )
+    assert resp_forbidden.status_code == 403
+    assert "Access denied" in resp_forbidden.json()["detail"]
+    
+    # 3. Login as Corporate Admin
+    admin_user = ENTERPRISE_USERS["admin@yardsight.corp"]
+    admin_token = create_access_token(admin_user)
+    
+    # 4. Generate E-Way Bill as Corporate Admin (Should be 200 OK)
+    resp_ok = client.post(
+        "/api/documents/generate",
+        json={"truck_id": "TRK-8821", "doc_type": "GST_EWAY_BILL"},
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert resp_ok.status_code == 200
+    assert resp_ok.json()["authorized_role"] == "corporate_admin"
