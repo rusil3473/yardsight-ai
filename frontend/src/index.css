@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 :root {
   --font-heading: 'Outfit', sans-serif;
   --font-body: 'Plus Jakarta Sans', sans-serif;
