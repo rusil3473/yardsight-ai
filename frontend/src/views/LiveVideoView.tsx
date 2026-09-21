@@ -1,5 +1,5 @@
 import React from 'react';
-import { Camera, RefreshCw } from 'lucide-react';
+import { Camera, RefreshCw, Radio, Maximize2 } from 'lucide-react';
 import { CCTVStreamGrid } from '../components/CCTVStreamGrid';
 import { ANPRInspector } from '../components/ANPRInspector';
 import { useAuth } from '../context/AuthContext';
@@ -26,29 +26,35 @@ export const LiveVideoView: React.FC<LiveVideoViewProps> = ({
   return (
     <div className="space-y-6">
       {/* Video Hub Top Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-slate-800/50">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-ping" />
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-              Live RTSP Video Surveillance Grid
+          <div className="flex items-center gap-2.5 mb-1">
+            <span className="flex items-center gap-1.5 rounded-lg bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-400 border border-emerald-500/20">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Live Stream Active
             </span>
-            <span className="rounded bg-slate-800 px-2 py-0.5 text-[10px] text-slate-300 font-mono">
-              OpenCV 5.0 Vision Core
+            <span className="rounded-lg bg-slate-800/60 px-2.5 py-1 text-[10px] text-slate-400 font-mono border border-slate-700/40">
+              OpenCV 5.0
             </span>
           </div>
-          <h2 className="mt-1 text-xl sm:text-2xl font-black text-white tracking-tight">
-            Multi-Camera Industrial Video Feeds
+          <h2 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight" style={{ fontFamily: 'var(--font-heading)' }}>
+            Video Surveillance Matrix
           </h2>
-          <p className="text-xs text-slate-400">
-            {tenant.name} • 4 High-Resolution Streams with Real-Time Perspective Homography & Thermal Telemetry
+          <p className="text-xs text-slate-500 mt-0.5">
+            {tenant.name} • {tenant.cameras_online} cameras with real-time homography & thermal analysis
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <button
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-700/50 bg-slate-800/40 px-3.5 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition-all"
+          >
+            <Maximize2 className="h-3.5 w-3.5" />
+            <span>Full Screen</span>
+          </button>
+          <button
             onClick={() => onRefreshPlate('MH-12-RN-4819', 'IN')}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-700 transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-cyan-500/25 bg-cyan-500/8 px-3.5 py-2 text-xs font-semibold text-cyan-400 hover:bg-cyan-500/15 transition-all"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${isLoadingANPR ? 'animate-spin' : ''}`} />
             <span>Resync RTSP</span>
@@ -57,7 +63,10 @@ export const LiveVideoView: React.FC<LiveVideoViewProps> = ({
       </div>
 
       {/* CCTV 4-Camera Grid */}
-      <div className="rounded-3xl bg-slate-900 border border-slate-800 p-5 shadow-2xl">
+      <div
+        className="rounded-2xl bg-slate-900/30 border border-slate-800/50 p-5 backdrop-blur-sm"
+        style={{ boxShadow: '0 8px 30px -10px rgba(0,0,0,0.4)' }}
+      >
         <CCTVStreamGrid
           anprData={anprData}
           leakData={leakData}
@@ -67,17 +76,23 @@ export const LiveVideoView: React.FC<LiveVideoViewProps> = ({
       </div>
 
       {/* OpenCV 5 Homography ANPR Inspector */}
-      <div className="mt-8">
+      <div className="mt-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <Camera className="h-5 w-5 text-cyan-400" />
-              OpenCV 5 Perspective Homography & Gate ANPR Unwarper
+            <h3 className="text-base font-bold text-white flex items-center gap-2" style={{ fontFamily: 'var(--font-heading)' }}>
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-500/10 border border-cyan-500/20">
+                <Camera className="h-3.5 w-3.5 text-cyan-400" />
+              </div>
+              Gate ANPR & Plate Recognition
             </h3>
-            <p className="text-xs text-slate-400">
-              Four-point homography unwarps 25° oblique gate camera angles into planar 400x120 OCR rectangles.
+            <p className="text-[11px] text-slate-500 mt-1 ml-9">
+              Perspective homography unwarps oblique camera angles for high-accuracy OCR scanning.
             </p>
           </div>
+          <span className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-mono font-semibold">
+            <Radio className="h-3 w-3" />
+            Processing
+          </span>
         </div>
 
         <ANPRInspector

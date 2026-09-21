@@ -5,7 +5,7 @@ import {
   Truck,
   FileText,
   CloudRain,
-  Cpu,
+  Settings,
   Lock
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -23,18 +23,19 @@ interface TabDef {
   icon: React.ElementType;
   requiredRole?: string[];
   badge?: string;
+  badgeType?: 'info' | 'warning' | 'live';
 }
 
 export const CorporateTabNav: React.FC<CorporateTabNavProps> = ({ activeTab, setActiveTab }) => {
   const { user } = useAuth();
 
   const TABS: TabDef[] = [
-    { id: 'home', label: 'Home Overview', icon: LayoutDashboard },
-    { id: 'video', label: 'Live Video (CCTV)', icon: Video, badge: '4 LIVE' },
-    { id: 'track', label: 'Fleet & Dock Track', icon: Truck, badge: '1 DETENTION' },
-    { id: 'eway_bills', label: 'E-Way Bills & eBOL', icon: FileText, requiredRole: ['corporate_admin', 'yard_master'] },
-    { id: 'leak', label: 'Roof Leak AI', icon: CloudRain, badge: 'HAZARD' },
-    { id: 'scale', label: 'Scale & Settings', icon: Cpu, requiredRole: ['corporate_admin'], badge: '100k OPS' },
+    { id: 'home', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'video', label: 'Live Video', icon: Video, badge: '4 LIVE', badgeType: 'live' },
+    { id: 'track', label: 'Fleet & Dock', icon: Truck, badge: '1 ALERT', badgeType: 'warning' },
+    { id: 'eway_bills', label: 'E-Way Bills', icon: FileText, requiredRole: ['corporate_admin', 'yard_master'] },
+    { id: 'leak', label: 'Roof Leak AI', icon: CloudRain, badge: 'HAZARD', badgeType: 'warning' },
+    { id: 'scale', label: 'Settings', icon: Settings, requiredRole: ['corporate_admin'] },
   ];
 
   const canAccessTab = (tab: TabDef): boolean => {
@@ -44,9 +45,9 @@ export const CorporateTabNav: React.FC<CorporateTabNavProps> = ({ activeTab, set
   };
 
   return (
-    <div className="border-b border-slate-800 bg-slate-950/60 backdrop-blur-sm sticky top-[61px] z-30">
+    <div className="border-b border-slate-800/50 bg-slate-950/70 backdrop-blur-md sticky top-[61px] z-30">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
-        <nav className="flex space-x-1 sm:space-x-4 overflow-x-auto py-2 no-scrollbar">
+        <nav className="flex space-x-1 overflow-x-auto py-1.5 no-scrollbar">
           {TABS.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -60,28 +61,32 @@ export const CorporateTabNav: React.FC<CorporateTabNavProps> = ({ activeTab, set
                     setActiveTab(tab.id);
                   }
                 }}
-                className={`relative flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-xl transition-all whitespace-nowrap ${
+                className={`relative flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg transition-all duration-200 whitespace-nowrap ${
                   isActive
-                    ? 'bg-slate-900 text-cyan-400 border border-cyan-500/40 shadow-sm'
+                    ? 'bg-slate-800/60 text-white border border-slate-700/50 shadow-sm'
                     : isAccessible
-                    ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'
-                    : 'text-slate-600 cursor-not-allowed opacity-60'
+                    ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/30'
+                    : 'text-slate-600 cursor-not-allowed opacity-50'
                 }`}
                 title={!isAccessible ? `Restricted to ${tab.requiredRole?.join(', ')}` : undefined}
               >
-                <Icon className={`h-4 w-4 ${isActive ? 'text-cyan-400' : isAccessible ? 'text-slate-400' : 'text-slate-600'}`} />
+                <Icon className={`h-3.5 w-3.5 ${
+                  isActive ? 'text-cyan-400' : isAccessible ? 'text-slate-500' : 'text-slate-600'
+                }`} />
                 <span>{tab.label}</span>
 
                 {!isAccessible && (
-                  <Lock className="h-3 w-3 text-amber-500/70 ml-0.5" />
+                  <Lock className="h-3 w-3 text-amber-500/60" />
                 )}
 
                 {tab.badge && isAccessible && (
                   <span
-                    className={`rounded px-1.5 py-0.2 text-[9px] font-extrabold ${
-                      tab.badge.includes('DETENTION') || tab.badge.includes('HAZARD')
-                        ? 'bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse'
-                        : 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
+                    className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold border ${
+                      tab.badgeType === 'warning'
+                        ? 'bg-red-500/10 text-red-400 border-red-500/25'
+                        : tab.badgeType === 'live'
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25'
+                        : 'bg-cyan-500/10 text-cyan-400 border-cyan-500/25'
                     }`}
                   >
                     {tab.badge}
@@ -89,7 +94,13 @@ export const CorporateTabNav: React.FC<CorporateTabNavProps> = ({ activeTab, set
                 )}
 
                 {isActive && (
-                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 h-0.5 w-8 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
+                  <div
+                    className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 h-0.5 w-8 rounded-full"
+                    style={{
+                      background: 'linear-gradient(90deg, transparent, hsl(199,89%,48%), transparent)',
+                      boxShadow: '0 0 8px hsla(199,89%,48%,0.5)'
+                    }}
+                  />
                 )}
               </button>
             );

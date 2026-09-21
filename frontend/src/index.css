@@ -3,36 +3,41 @@
   --font-body: 'Plus Jakarta Sans', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
-  --bg-dark: hsl(215, 35%, 8%);
-  --bg-card: hsla(215, 30%, 13%, 0.75);
-  --bg-card-hover: hsla(215, 30%, 17%, 0.9);
-  --border-subtle: hsla(215, 20%, 25%, 0.4);
-  --border-accent: hsla(158, 64%, 52%, 0.5);
+  --bg-dark: hsl(220, 30%, 6%);
+  --bg-card: hsla(220, 25%, 11%, 0.75);
+  --bg-card-hover: hsla(220, 25%, 15%, 0.9);
+  --border-subtle: hsla(220, 18%, 22%, 0.45);
+  --border-accent: hsla(199, 89%, 48%, 0.5);
 
   --text-primary: hsl(210, 40%, 98%);
-  --text-secondary: hsl(215, 25%, 72%);
-  --text-muted: hsl(215, 16%, 50%);
+  --text-secondary: hsl(220, 20%, 72%);
+  --text-muted: hsl(220, 14%, 46%);
 
-  --primary: hsl(158, 64%, 52%);
-  --primary-glow: hsla(158, 64%, 52%, 0.25);
+  --primary: hsl(199, 89%, 48%);
+  --primary-glow: hsla(199, 89%, 48%, 0.2);
   --cyan: hsl(187, 85%, 53%);
   --warning: hsl(38, 92%, 50%);
-  --warning-glow: hsla(38, 92%, 50%, 0.25);
+  --warning-glow: hsla(38, 92%, 50%, 0.2);
   --danger: hsl(0, 84%, 60%);
-  --danger-glow: hsla(0, 84%, 60%, 0.25);
+  --danger-glow: hsla(0, 84%, 60%, 0.2);
 
-  --radius-sm: 6px;
+  --radius-sm: 8px;
   --radius-md: 12px;
-  --radius-lg: 18px;
+  --radius-lg: 20px;
   --radius-full: 9999px;
 
-  --shadow-card: 0 10px 30px -10px rgba(0, 0, 0, 0.6);
+  --shadow-card: 0 8px 30px -10px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.15);
+  --shadow-glow: 0 0 40px -10px hsla(199, 89%, 48%, 0.15);
 }
 
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
@@ -43,32 +48,37 @@ body {
   line-height: 1.6;
   overflow-x: hidden;
   background-image: 
-    radial-gradient(at 15% 15%, hsla(158, 60%, 15%, 0.25) 0px, transparent 50%),
-    radial-gradient(at 85% 85%, hsla(215, 60%, 15%, 0.3) 0px, transparent 50%);
+    radial-gradient(ellipse 900px 500px at 10% -5%, hsla(199, 80%, 20%, 0.18) 0%, transparent 60%),
+    radial-gradient(ellipse 700px 400px at 90% 100%, hsla(260, 60%, 15%, 0.15) 0%, transparent 60%),
+    radial-gradient(circle at 50% 50%, hsla(220, 25%, 8%, 1) 0%, hsla(220, 30%, 5%, 1) 100%);
   background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
 }
 
+/* ── Premium Glassmorphism Panels ──────────────────────────── */
 .glass-panel {
   background: var(--bg-card);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
-  transition: all 0.25s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .glass-panel:hover {
-  border-color: hsla(215, 20%, 35%, 0.6);
+  border-color: hsla(220, 18%, 30%, 0.6);
+  box-shadow: var(--shadow-card), var(--shadow-glow);
 }
 
-/* CCTV Stream Box */
+/* ── CCTV Stream Box ──────────────────────────────────────── */
 .cctv-box {
   position: relative;
   background: #000;
@@ -76,6 +86,12 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: var(--radius-md);
   overflow: hidden;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  transition: all 0.3s ease;
+}
+
+.cctv-box:hover {
+  border-color: var(--border-accent);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 30px hsla(199, 89%, 48%, 0.08);
 }
 
 .cctv-header {
@@ -90,11 +106,10 @@ h1, h2, h3, h4, h5, h6 {
   pointer-events: none;
 }
 
-/* Pulsing Red REC indicator */
+/* ── Pulsing Red REC Indicator ───────────────────────────── */
 @keyframes pulseRec {
-  0% { opacity: 1; }
-  50% { opacity: 0.3; }
-  100% { opacity: 1; }
+  0%, 100% { opacity: 1; box-shadow: 0 0 6px var(--danger-glow); }
+  50% { opacity: 0.2; box-shadow: 0 0 2px var(--danger-glow); }
 }
 
 .rec-dot {
@@ -103,11 +118,11 @@ h1, h2, h3, h4, h5, h6 {
   background-color: var(--danger);
   border-radius: 50%;
   display: inline-block;
-  animation: pulseRec 1.5s infinite;
+  animation: pulseRec 1.8s ease-in-out infinite;
   box-shadow: 0 0 8px var(--danger-glow);
 }
 
-/* Badges */
+/* ── Badges ──────────────────────────────────────────────── */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -117,87 +132,167 @@ h1, h2, h3, h4, h5, h6 {
   font-size: 0.76rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
 }
 
 .badge-primary {
-  background: hsla(158, 64%, 52%, 0.15);
+  background: hsla(199, 89%, 48%, 0.1);
   color: var(--primary);
-  border: 1px solid hsla(158, 64%, 52%, 0.35);
+  border: 1px solid hsla(199, 89%, 48%, 0.3);
 }
 
 .badge-warning {
-  background: hsla(38, 92%, 50%, 0.15);
+  background: hsla(38, 92%, 50%, 0.1);
   color: var(--warning);
-  border: 1px solid hsla(38, 92%, 50%, 0.35);
+  border: 1px solid hsla(38, 92%, 50%, 0.3);
 }
 
 .badge-critical {
-  background: hsla(0, 84%, 60%, 0.15);
+  background: hsla(0, 84%, 60%, 0.1);
   color: var(--danger);
-  border: 1px solid hsla(0, 84%, 60%, 0.35);
+  border: 1px solid hsla(0, 84%, 60%, 0.3);
   box-shadow: 0 0 10px var(--danger-glow);
 }
 
 .badge-cyan {
-  background: hsla(187, 85%, 53%, 0.15);
+  background: hsla(187, 85%, 53%, 0.1);
   color: var(--cyan);
-  border: 1px solid hsla(187, 85%, 53%, 0.35);
+  border: 1px solid hsla(187, 85%, 53%, 0.3);
 }
 
-/* Buttons */
+/* ── Buttons ─────────────────────────────────────────────── */
 .btn-primary {
-  background: linear-gradient(135deg, hsl(158, 64%, 48%), hsl(165, 75%, 40%));
+  background: linear-gradient(135deg, hsl(199, 89%, 44%), hsl(217, 91%, 55%));
   color: #fff;
   border: none;
-  padding: 9px 18px;
+  padding: 10px 20px;
   border-radius: var(--radius-md);
   font-family: var(--font-heading);
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 4px 15px var(--primary-glow);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, hsla(0, 0%, 100%, 0.12), transparent);
+  transition: left 0.5s ease;
+}
+
+.btn-primary:hover::before {
+  left: 100%;
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px hsla(158, 64%, 52%, 0.4);
+  box-shadow: 0 8px 25px hsla(199, 89%, 48%, 0.35);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
 }
 
 .btn-secondary {
-  background: hsla(215, 30%, 18%, 0.8);
+  background: hsla(220, 25%, 16%, 0.8);
   color: var(--text-primary);
   border: 1px solid var(--border-subtle);
-  padding: 9px 16px;
+  padding: 10px 18px;
   border-radius: var(--radius-md);
   font-family: var(--font-heading);
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
 }
 
 .btn-secondary:hover {
-  background: hsla(215, 30%, 23%, 0.9);
+  background: hsla(220, 25%, 21%, 0.9);
   border-color: var(--primary);
+  box-shadow: 0 0 20px var(--primary-glow);
 }
 
-/* Monospace Telemetry Box */
+/* ── Monospace Telemetry Box ─────────────────────────────── */
 .telemetry-code {
   font-family: var(--font-mono);
-  background: #050811;
+  background: hsla(220, 30%, 5%, 0.9);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
-  padding: 10px 14px;
+  padding: 12px 16px;
   color: #a7f3d0;
   font-size: 0.82rem;
-  line-height: 1.5;
+  line-height: 1.6;
   overflow-x: auto;
+}
+
+/* ── Scrollbar Styling ───────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsla(220, 18%, 30%, 0.5);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsla(220, 18%, 40%, 0.7);
+}
+
+/* ── No Scrollbar Utility ────────────────────────────────── */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ── Animate In ──────────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-in {
+  animation: fadeIn 0.25s ease-out forwards;
+}
+
+/* ── Selection ───────────────────────────────────────────── */
+::selection {
+  background: hsla(199, 89%, 48%, 0.3);
+  color: white;
+}
+
+/* ── Focus Ring Utility ──────────────────────────────────── */
+*:focus-visible {
+  outline: 2px solid hsla(199, 89%, 48%, 0.5);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── Smooth Transitions on Cards ─────────────────────────── */
+[class*="rounded-2xl"],
+[class*="rounded-xl"],
+[class*="rounded-3xl"] {
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }

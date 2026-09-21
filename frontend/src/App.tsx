@@ -243,19 +243,16 @@ const MainAppContent: React.FC = () => {
       <CorporateLoginModal />
 
       {/* Enterprise Footer */}
-      <footer className="mx-auto max-w-7xl px-4 mt-16 pt-6 border-t border-slate-800 text-center text-xs text-slate-500">
-        <div className="flex flex-wrap items-center justify-center gap-4 text-slate-400 font-semibold mb-2">
-          <span>Amazon Developer Hackathon ($138k)</span>
-          <span>•</span>
-          <span>Nebius x NVIDIA ($50k)</span>
-          <span>•</span>
-          <span>OpenCV AI AWS ($20.25k)</span>
-          <span>•</span>
-          <span>Galuxium Nexus ($14.9k)</span>
+      <footer className="mx-auto max-w-7xl px-4 mt-16 pt-6 pb-8 border-t border-slate-800/60 text-center text-xs text-slate-500">
+        <div className="flex flex-wrap items-center justify-center gap-6 mb-3">
+          <a href="#" className="text-slate-400 hover:text-slate-200 transition-colors font-medium">Documentation</a>
+          <a href="#" className="text-slate-400 hover:text-slate-200 transition-colors font-medium">API Reference</a>
+          <a href="#" className="text-slate-400 hover:text-slate-200 transition-colors font-medium">Privacy Policy</a>
+          <a href="#" className="text-slate-400 hover:text-slate-200 transition-colors font-medium">Terms of Service</a>
+          <a href="#" className="text-slate-400 hover:text-slate-200 transition-colors font-medium">Support</a>
         </div>
-        <p>
-          YardSight AI (GodownOS) Enterprise v2.0 • Engineered for 100,000 Concurrent Logistics Operators.
-          Stateless JWT, Multi-Tenant Isolation & OpenCV 5 Perspective Homography.
+        <p className="text-slate-500">
+          © 2026 YardSight AI (GodownOS) • Enterprise Logistics Intelligence Platform • All rights reserved.
         </p>
       </footer>
     </div>

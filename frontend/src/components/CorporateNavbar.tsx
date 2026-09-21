@@ -59,7 +59,7 @@ export const CorporateNavbar: React.FC<CorporateNavbarProps> = ({
                   GodownOS Enterprise
                 </span>
                 <span className="hidden lg:inline rounded bg-emerald-500/20 px-1.5 py-0.5 text-[9px] font-bold text-emerald-400 border border-emerald-500/30">
-                  100k SCALE READY
+                  v2.0
                 </span>
               </div>
               <p className="text-xs text-slate-400 hidden sm:block">
