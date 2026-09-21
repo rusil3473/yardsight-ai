@@ -11,6 +11,8 @@ export interface EnterpriseUser {
   tenant_id: string;
   permissions: string[];
   avatar: string;
+  phone?: string;
+  department?: string;
 }
 
 export interface TenantInfo {
@@ -41,6 +43,9 @@ interface AuthContextType {
   login: (email: string, role?: UserRole) => Promise<void>;
   logout: () => void;
   hasPermission: (permission: string) => boolean;
+  updateProfile: (name: string, email: string, phone?: string, department?: string) => Promise<{ success: boolean; message: string }>;
+  updateTenantSettings: (settings: Partial<TenantInfo>) => Promise<{ success: boolean; message: string }>;
+  refreshData: () => Promise<void>;
 }
 
 const DEFAULT_USER: EnterpriseUser = {
@@ -51,7 +56,9 @@ const DEFAULT_USER: EnterpriseUser = {
   role_label: 'Corporate Operations VP & Admin',
   tenant_id: 'TENANT-AMZN-BLR1',
   permissions: ['all', 'read:video', 'read:track', 'write:dock', 'write:eway_bill', 'write:scale', 'admin:mcp'],
-  avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'
+  avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+  phone: '+91-98765-43210',
+  department: 'Corporate Operations'
 };
 
 const DEFAULT_TENANT: TenantInfo = {
@@ -204,6 +211,78 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return user.permissions.includes(permission);
   };
 
+  const refreshData = async () => {
+    try {
+      const tenantsRes = await fetch('http://127.0.0.1:8001/api/tenants');
+      if (tenantsRes.ok) {
+        const tData = await tenantsRes.json();
+        setAvailableTenants(tData.tenants);
+        const active = tData.tenants.find((t: TenantInfo) => t.tenant_id === tData.active_tenant_id);
+        if (active) setTenant(active);
+      }
+    } catch (e) {
+      console.warn('Failed to refresh tenants', e);
+    }
+  };
+
+  const updateProfile = async (name: string, email: string, phone?: string, department?: string) => {
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch('http://127.0.0.1:8001/api/user/profile', {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({ name, email, phone, department })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setUser(prev => ({
+          ...prev,
+          name: data.user.name,
+          email: data.user.email,
+          phone: data.user.phone,
+          department: data.user.department
+        }));
+        if (data.access_token) setToken(data.access_token);
+        return { success: true, message: 'Profile saved to SQLite database.' };
+      } else {
+        const err = await res.json().catch(() => ({ detail: 'Failed to update' }));
+        return { success: false, message: err.detail || 'Update failed' };
+      }
+    } catch {
+      // Offline fallback: update local state
+      setUser(prev => ({ ...prev, name, email, phone, department }));
+      return { success: true, message: 'Profile updated locally (offline mode).' };
+    }
+  };
+
+  const updateTenantSettings = async (settings: Partial<TenantInfo>) => {
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch('http://127.0.0.1:8001/api/tenant/settings', {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(settings)
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setTenant(data.tenant);
+        return { success: true, message: 'Facility settings saved to SQLite database.' };
+      } else {
+        const err = await res.json().catch(() => ({ detail: 'Failed to update' }));
+        return { success: false, message: err.detail || 'Settings update failed' };
+      }
+    } catch {
+      setTenant(prev => ({ ...prev, ...settings }));
+      return { success: true, message: 'Facility settings updated locally (offline mode).' };
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -218,6 +297,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         logout,
         hasPermission,
+        updateProfile,
+        updateTenantSettings,
+        refreshData
       }}
     >
       {children}

@@ -160,8 +160,34 @@ def test_rbac_authorization_guard():
     # 4. Generate E-Way Bill as Corporate Admin (Should be 200 OK)
     resp_ok = client.post(
         "/api/documents/generate",
-        json={"truck_id": "TRK-8821", "doc_type": "GST_EWAY_BILL"},
+        json={"truck_id": "TRK-9041", "doc_type": "GST_EWAY_BILL"},
         headers={"Authorization": f"Bearer {admin_token}"}
     )
     assert resp_ok.status_code == 200
     assert resp_ok.json()["authorized_role"] == "corporate_admin"
+
+def test_database_persistence():
+    # 1. Verify health endpoint reports SQLite WAL persistence
+    health_resp = client.get("/api/health")
+    assert health_resp.status_code == 200
+    db_info = health_resp.json()["database"]
+    assert "SQLite" in db_info["engine"]
+    assert db_info["stats"]["tenants"] >= 3
+    assert db_info["stats"]["users"] >= 3
+
+    # 2. Test profile update persistence
+    admin_user = ENTERPRISE_USERS["admin@yardsight.corp"]
+    admin_token = create_access_token(admin_user)
+    update_resp = client.put(
+        "/api/user/profile",
+        json={"name": "Vikramaditya Singhania (VP)", "email": "admin@yardsight.corp", "phone": "+91-99999-88888"},
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert update_resp.status_code == 200
+    assert update_resp.json()["user"]["name"] == "Vikramaditya Singhania (VP)"
+
+    # 3. Test document list from SQLite
+    docs_resp = client.get("/api/documents/list")
+    assert docs_resp.status_code == 200
+    docs = docs_resp.json()["documents"]
+    assert len(docs) >= 1

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { FileText, QrCode, Printer } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { FileText, QrCode, Printer, Database } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 interface EWayBillsViewProps {
@@ -8,18 +8,35 @@ interface EWayBillsViewProps {
 
 export const EWayBillsView: React.FC<EWayBillsViewProps> = ({ marketMode }) => {
   const { user, token } = useAuth();
-  const [selectedTruckId, setSelectedTruckId] = useState('TRK-8821');
+  const [selectedTruckId, setSelectedTruckId] = useState('TRK-9041');
   const [docType, setDocType] = useState<'GST_EWAY_BILL' | 'US_EBOL'>(
     marketMode === 'IN_GST' ? 'GST_EWAY_BILL' : 'US_EBOL'
   );
   const [generatedDoc, setGeneratedDoc] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [savedDocuments, setSavedDocuments] = useState<any[]>([]);
 
   const TRUCKS = [
-    { id: 'TRK-8821', plate: 'MH-12-RN-4819', carrier: 'Tata Logistics Express', goods: '24 Pallets FMCG / Electronics', dock: 'Dock 01' },
-    { id: 'TRK-9041', plate: 'KA-04-E-7721', carrier: 'BlueDart Intermodal', goods: '18 Pallets Industrial Spares', dock: 'Dock 02' },
-    { id: 'TRK-7719', plate: 'TX-49-B219', carrier: 'Schneider National US', goods: '30 Pallets Retail Dry Freight', dock: 'Dock 04' }
+    { id: 'TRK-9041', plate: 'MH-12-RN-4819', carrier: 'Tata Logistics Express', goods: '24 Pallets FMCG / Electronics', dock: 'Dock 02' },
+    { id: 'TRK-8820', plate: 'KA-04-AK-2201', carrier: 'BlueDart Surface Prime', goods: '18 Pallets Apparel & Footwear', dock: 'Dock 05' },
+    { id: 'TRK-7731', plate: 'DL-01-EE-9912', carrier: 'Delhivery Heavy Freight', goods: '30 Pallets Industrial Spares', dock: 'Bay 01' }
   ];
+
+  useEffect(() => {
+    fetchDocuments();
+  }, []);
+
+  const fetchDocuments = async () => {
+    try {
+      const res = await fetch('http://127.0.0.1:8001/api/documents/list');
+      if (res.ok) {
+        const data = await res.json();
+        setSavedDocuments(data.documents || []);
+      }
+    } catch {
+      // Fallback
+    }
+  };
 
   const handleGenerateDoc = async (truckId: string, type: 'GST_EWAY_BILL' | 'US_EBOL') => {
     setIsLoading(true);
@@ -39,6 +56,7 @@ export const EWayBillsView: React.FC<EWayBillsViewProps> = ({ marketMode }) => {
       if (res.ok) {
         const data = await res.json();
         setGeneratedDoc(data);
+        fetchDocuments();
       } else {
         throw new Error('API restricted or failed');
       }
@@ -313,6 +331,55 @@ export const EWayBillsView: React.FC<EWayBillsViewProps> = ({ marketMode }) => {
           </p>
         </div>
       )}
+
+      {/* SQLite Persisted Documents Archive */}
+      <div className="rounded-2xl bg-slate-900/50 border border-slate-800/60 p-5 backdrop-blur-md shadow-xl">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-800/50">
+          <div className="flex items-center gap-2">
+            <Database className="h-4 w-4 text-cyan-400" />
+            <h3 className="text-sm font-bold text-white">Saved Transport Documents Archive</h3>
+            <span className="rounded bg-cyan-500/10 px-2 py-0.5 text-[10px] font-mono text-cyan-400 border border-cyan-500/20">
+              SQLite WAL Persisted
+            </span>
+          </div>
+          <span className="text-xs text-slate-400 font-mono">
+            {savedDocuments.length} Documents Recorded
+          </span>
+        </div>
+
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="text-[10px] uppercase font-bold text-slate-400 border-b border-slate-800/60">
+              <tr>
+                <th className="py-2.5 px-3">Doc Number</th>
+                <th className="py-2.5 px-3">Vehicle Plate</th>
+                <th className="py-2.5 px-3">Transporter</th>
+                <th className="py-2.5 px-3">Type</th>
+                <th className="py-2.5 px-3">Status</th>
+                <th className="py-2.5 px-3">Timestamp</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800/40">
+              {savedDocuments.map((doc, idx) => (
+                <tr key={idx} className="hover:bg-slate-800/30 transition-colors">
+                  <td className="py-2.5 px-3 font-mono font-bold text-cyan-400">{doc.ewb_number}</td>
+                  <td className="py-2.5 px-3 font-mono text-slate-200">{doc.truck_plate}</td>
+                  <td className="py-2.5 px-3 text-slate-300">{doc.transporter}</td>
+                  <td className="py-2.5 px-3 text-slate-400">{doc.doc_type}</td>
+                  <td className="py-2.5 px-3">
+                    <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-400 border border-emerald-500/20">
+                      {doc.status}
+                    </span>
+                  </td>
+                  <td className="py-2.5 px-3 font-mono text-[10px] text-slate-500">
+                    {doc.generated_at ? new Date(doc.generated_at).toLocaleString() : 'Recent'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 };

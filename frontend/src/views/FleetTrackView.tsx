@@ -1,5 +1,5 @@
 import React from 'react';
-import { Truck, Clock, AlertTriangle } from 'lucide-react';
+import { Clock, AlertTriangle } from 'lucide-react';
 import { DockTurnaroundTracker } from '../components/DockTurnaroundTracker';
 import { useAuth } from '../context/AuthContext';
 
