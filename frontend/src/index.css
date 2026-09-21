@@ -1,0 +1,203 @@
+:root {
+  --font-heading: 'Outfit', sans-serif;
+  --font-body: 'Plus Jakarta Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --bg-dark: hsl(215, 35%, 8%);
+  --bg-card: hsla(215, 30%, 13%, 0.75);
+  --bg-card-hover: hsla(215, 30%, 17%, 0.9);
+  --border-subtle: hsla(215, 20%, 25%, 0.4);
+  --border-accent: hsla(158, 64%, 52%, 0.5);
+
+  --text-primary: hsl(210, 40%, 98%);
+  --text-secondary: hsl(215, 25%, 72%);
+  --text-muted: hsl(215, 16%, 50%);
+
+  --primary: hsl(158, 64%, 52%);
+  --primary-glow: hsla(158, 64%, 52%, 0.25);
+  --cyan: hsl(187, 85%, 53%);
+  --warning: hsl(38, 92%, 50%);
+  --warning-glow: hsla(38, 92%, 50%, 0.25);
+  --danger: hsl(0, 84%, 60%);
+  --danger-glow: hsla(0, 84%, 60%, 0.25);
+
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-full: 9999px;
+
+  --shadow-card: 0 10px 30px -10px rgba(0, 0, 0, 0.6);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--bg-dark);
+  color: var(--text-primary);
+  min-height: 100vh;
+  line-height: 1.6;
+  overflow-x: hidden;
+  background-image: 
+    radial-gradient(at 15% 15%, hsla(158, 60%, 15%, 0.25) 0px, transparent 50%),
+    radial-gradient(at 85% 85%, hsla(215, 60%, 15%, 0.3) 0px, transparent 50%);
+  background-attachment: fixed;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.glass-panel {
+  background: var(--bg-card);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  transition: all 0.25s ease;
+}
+
+.glass-panel:hover {
+  border-color: hsla(215, 20%, 35%, 0.6);
+}
+
+/* CCTV Stream Box */
+.cctv-box {
+  position: relative;
+  background: #000;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.cctv-header {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  justifyContent: space-between;
+  align-items: center;
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* Pulsing Red REC indicator */
+@keyframes pulseRec {
+  0% { opacity: 1; }
+  50% { opacity: 0.3; }
+  100% { opacity: 1; }
+}
+
+.rec-dot {
+  width: 10px;
+  height: 10px;
+  background-color: var(--danger);
+  border-radius: 50%;
+  display: inline-block;
+  animation: pulseRec 1.5s infinite;
+  box-shadow: 0 0 8px var(--danger-glow);
+}
+
+/* Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 0.76rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.badge-primary {
+  background: hsla(158, 64%, 52%, 0.15);
+  color: var(--primary);
+  border: 1px solid hsla(158, 64%, 52%, 0.35);
+}
+
+.badge-warning {
+  background: hsla(38, 92%, 50%, 0.15);
+  color: var(--warning);
+  border: 1px solid hsla(38, 92%, 50%, 0.35);
+}
+
+.badge-critical {
+  background: hsla(0, 84%, 60%, 0.15);
+  color: var(--danger);
+  border: 1px solid hsla(0, 84%, 60%, 0.35);
+  box-shadow: 0 0 10px var(--danger-glow);
+}
+
+.badge-cyan {
+  background: hsla(187, 85%, 53%, 0.15);
+  color: var(--cyan);
+  border: 1px solid hsla(187, 85%, 53%, 0.35);
+}
+
+/* Buttons */
+.btn-primary {
+  background: linear-gradient(135deg, hsl(158, 64%, 48%), hsl(165, 75%, 40%));
+  color: #fff;
+  border: none;
+  padding: 9px 18px;
+  border-radius: var(--radius-md);
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 15px var(--primary-glow);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px hsla(158, 64%, 52%, 0.4);
+}
+
+.btn-secondary {
+  background: hsla(215, 30%, 18%, 0.8);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  padding: 9px 16px;
+  border-radius: var(--radius-md);
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background: hsla(215, 30%, 23%, 0.9);
+  border-color: var(--primary);
+}
+
+/* Monospace Telemetry Box */
+.telemetry-code {
+  font-family: var(--font-mono);
+  background: #050811;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  color: #a7f3d0;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  overflow-x: auto;
+}
