@@ -166,7 +166,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       if (res.ok) {
         const data = await res.json();
-        setTenant(data.active_tenant);
+        const nextTenant = data.active_tenant || data.tenant;
+        if (nextTenant && nextTenant.name) {
+          setTenant(nextTenant);
+        } else {
+          const found = availableTenants.find((t) => t.tenant_id === tenantId);
+          if (found) setTenant(found);
+        }
+      } else {
+        const found = availableTenants.find((t) => t.tenant_id === tenantId);
+        if (found) setTenant(found);
       }
     } catch {
       const found = availableTenants.find((t) => t.tenant_id === tenantId);

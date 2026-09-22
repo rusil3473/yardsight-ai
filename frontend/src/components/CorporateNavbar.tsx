@@ -112,14 +112,14 @@ export const CorporateNavbar: React.FC<CorporateNavbarProps> = ({
           <div className="relative hidden lg:block">
             <button
               onClick={() => setIsTenantMenuOpen(!isTenantMenuOpen)}
-              className="flex items-center gap-2 rounded-xl bg-slate-900/90 border border-slate-800 px-2.5 py-1.5 text-xs text-slate-200 hover:border-cyan-500/40 hover:bg-slate-800/60 transition-all cursor-pointer"
+              className="flex items-center gap-2.5 rounded-xl bg-slate-900/90 border border-slate-800 px-3 py-2 text-xs text-slate-200 hover:border-cyan-500/40 hover:bg-slate-800/70 transition-all cursor-pointer active:scale-95"
             >
-              <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+              <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
               <div className="text-left">
-                <div className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Facility Hub</div>
-                <div className="font-bold text-white text-[11px] truncate max-w-[130px]">{tenant.name.split(' ')[0]}</div>
+                <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider leading-none">Facility Hub</div>
+                <div className="font-bold text-white text-xs truncate max-w-[130px] mt-0.5 leading-tight">{tenant?.name ? tenant.name.split(' ')[0] : 'Bengaluru'}</div>
               </div>
-              <ChevronDown className="h-3 w-3 text-slate-400 ml-0.5" />
+              <ChevronDown className="h-3.5 w-3.5 text-slate-400 ml-0.5 shrink-0" />
             </button>
 
             {isTenantMenuOpen && (
@@ -137,24 +137,22 @@ export const CorporateNavbar: React.FC<CorporateNavbarProps> = ({
                         setIsTenantMenuOpen(false);
                       }}
                       className={`w-full flex items-start gap-2.5 rounded-xl p-2 text-left text-xs transition-colors cursor-pointer ${
-                        tenant.tenant_id === t.tenant_id
+                        tenant?.tenant_id === t.tenant_id
                           ? 'bg-cyan-500/15 border border-cyan-500/30 text-white'
                           : 'hover:bg-slate-800/80 text-slate-300'
                       }`}
                     >
-                      <Building2 className={`h-4 w-4 mt-0.5 ${tenant.tenant_id === t.tenant_id ? 'text-cyan-400' : 'text-slate-500'}`} />
+                      <Building2 className={`h-4 w-4 mt-0.5 ${tenant?.tenant_id === t.tenant_id ? 'text-cyan-400' : 'text-slate-500'}`} />
                       <div className="flex-1">
                         <div className="font-bold text-white flex items-center justify-between">
                           <span>{t.name}</span>
-                          {tenant.tenant_id === t.tenant_id && <Check className="h-3.5 w-3.5 text-cyan-400" />}
+                          {tenant?.tenant_id === t.tenant_id && <Check className="h-3.5 w-3.5 text-cyan-400" />}
                         </div>
                         <div className="text-[11px] text-slate-400">{t.location}</div>
                         <div className="mt-1 flex items-center gap-2 text-[10px] text-cyan-400 font-mono">
                           <span>{t.active_docks} Docks</span>
                           <span>•</span>
                           <span>{t.cameras_online} Cameras</span>
-                          <span>•</span>
-                          <span>{t.currency} ({t.currency_symbol})</span>
                         </div>
                       </div>
                     </button>
@@ -166,7 +164,7 @@ export const CorporateNavbar: React.FC<CorporateNavbarProps> = ({
         </div>
 
         {/* Center: Integrated Navigation Tabs (Unified Header Experience) */}
-        <nav className="flex items-center gap-1 overflow-x-auto no-scrollbar rounded-xl bg-slate-900/70 border border-slate-800/80 p-1 backdrop-blur-md">
+        <nav className="flex items-center gap-1.5 overflow-x-auto no-scrollbar rounded-xl bg-slate-900/80 border border-slate-800/90 p-1.5 backdrop-blur-md">
           {TABS.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -177,20 +175,23 @@ export const CorporateNavbar: React.FC<CorporateNavbarProps> = ({
                 key={tab.id}
                 onClick={() => {
                   if (isAccessible) {
+                    setIsTenantMenuOpen(false);
+                    setIsNotificationsOpen(false);
+                    setIsRoleMenuOpen(false);
                     setActiveTab(tab.id);
                   }
                 }}
-                className={`relative flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 whitespace-nowrap cursor-pointer ${
+                className={`relative flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg transition-all duration-200 whitespace-nowrap cursor-pointer active:scale-95 ${
                   isActive
-                    ? 'bg-slate-800 text-white shadow-sm border border-slate-700/60'
+                    ? 'bg-slate-800 text-white shadow-sm border border-slate-700/70 font-bold'
                     : isAccessible
-                    ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+                    ? 'text-slate-300 hover:text-white hover:bg-slate-800/60'
                     : 'text-slate-600 cursor-not-allowed opacity-50'
                 }`}
                 title={!isAccessible ? `Restricted to ${tab.requiredRole?.join(', ')}` : undefined}
               >
                 <Icon className={`h-3.5 w-3.5 ${
-                  isActive ? 'text-cyan-400' : isAccessible ? 'text-slate-400' : 'text-slate-600'
+                  isActive ? 'text-cyan-400' : isAccessible ? 'text-slate-300' : 'text-slate-600'
                 }`} />
                 <span className="hidden sm:inline">{tab.label}</span>
 
@@ -200,7 +201,7 @@ export const CorporateNavbar: React.FC<CorporateNavbarProps> = ({
 
                 {tab.badge && isAccessible && (
                   <span
-                    className={`rounded px-1.5 py-0.2 text-[9px] font-bold border leading-tight ${
+                    className={`rounded px-1.5 py-0.5 text-[9px] font-bold border leading-tight ${
                       tab.badgeType === 'warning'
                         ? 'bg-red-500/10 text-red-400 border-red-500/25'
                         : tab.badgeType === 'live'
@@ -214,10 +215,10 @@ export const CorporateNavbar: React.FC<CorporateNavbarProps> = ({
 
                 {isActive && (
                   <div
-                    className="absolute -bottom-1 left-1/2 -translate-x-1/2 h-0.5 w-6 rounded-full"
+                    className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 h-0.5 w-7 rounded-full"
                     style={{
                       background: 'linear-gradient(90deg, transparent, hsl(199,89%,48%), transparent)',
-                      boxShadow: '0 0 6px hsla(199,89%,48%,0.7)'
+                      boxShadow: '0 0 8px hsla(199,89%,48%,0.8)'
                     }}
                   />
                 )}
@@ -227,11 +228,11 @@ export const CorporateNavbar: React.FC<CorporateNavbarProps> = ({
         </nav>
 
         {/* Right: Actions, Market Switcher, Notifications & Profile */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2.5 shrink-0">
           {/* Amazon Alexa+ MCP Button */}
           <button
             onClick={onOpenMCP}
-            className="hidden sm:inline-flex items-center gap-1.5 rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-2.5 py-1.5 text-xs font-bold text-cyan-300 hover:bg-cyan-500/20 transition-all shadow-sm cursor-pointer"
+            className="hidden sm:inline-flex items-center gap-2 rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-3 py-2 text-xs font-bold text-cyan-300 hover:bg-cyan-500/20 hover:border-cyan-400/60 transition-all shadow-sm cursor-pointer active:scale-95"
             title="Open Alexa+ Model Context Protocol Console"
           >
             <Sparkles className="h-3.5 w-3.5 text-cyan-400 animate-pulse" />
@@ -239,13 +240,13 @@ export const CorporateNavbar: React.FC<CorporateNavbarProps> = ({
           </button>
 
           {/* Market Mode Switcher */}
-          <div className="flex items-center rounded-xl bg-slate-900 border border-slate-800 p-0.5 text-xs">
+          <div className="flex items-center rounded-xl bg-slate-900/90 border border-slate-800 p-1 text-xs gap-1">
             <button
               onClick={() => setMarketMode('IN_GST')}
-              className={`rounded-lg px-2 py-1 text-[11px] font-bold transition-all cursor-pointer ${
+              className={`rounded-lg px-2.5 py-1.5 text-xs font-bold transition-all cursor-pointer active:scale-95 ${
                 marketMode === 'IN_GST'
-                  ? 'bg-cyan-500 text-slate-950 shadow'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
               }`}
               title="Indian GST E-Way Bill Mode"
             >
@@ -253,10 +254,10 @@ export const CorporateNavbar: React.FC<CorporateNavbarProps> = ({
             </button>
             <button
               onClick={() => setMarketMode('US_FREIGHT')}
-              className={`rounded-lg px-2 py-1 text-[11px] font-bold transition-all cursor-pointer ${
+              className={`rounded-lg px-2.5 py-1.5 text-xs font-bold transition-all cursor-pointer active:scale-95 ${
                 marketMode === 'US_FREIGHT'
-                  ? 'bg-cyan-500 text-slate-950 shadow'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
               }`}
               title="US Electronic Bill of Lading (eBOL) Mode"
             >
@@ -268,7 +269,7 @@ export const CorporateNavbar: React.FC<CorporateNavbarProps> = ({
           <div className="relative">
             <button
               onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-              className="relative rounded-xl border border-slate-800 bg-slate-900 p-2 text-slate-300 hover:bg-slate-800 hover:text-white transition-colors cursor-pointer"
+              className="relative rounded-xl border border-slate-800 bg-slate-900/90 p-2.5 text-slate-300 hover:bg-slate-800 hover:text-white hover:border-slate-700 transition-colors cursor-pointer active:scale-95"
               title="Real-Time Yard Alerts"
             >
               <Bell className="h-4 w-4" />
@@ -383,6 +384,18 @@ export const CorporateNavbar: React.FC<CorporateNavbarProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Click-outside backdrop for dropdown menus */}
+      {(isTenantMenuOpen || isNotificationsOpen || isRoleMenuOpen) && (
+        <div
+          className="fixed inset-0 z-40 bg-black/10 backdrop-blur-[1px]"
+          onClick={() => {
+            setIsTenantMenuOpen(false);
+            setIsNotificationsOpen(false);
+            setIsRoleMenuOpen(false);
+          }}
+        />
+      )}
     </header>
   );
 };

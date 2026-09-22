@@ -21,8 +21,9 @@ class EWayBillEngine:
         """
         Generates official Indian GST Form EWB-01 structure.
         """
+        import secrets
         now = int(time.time())
-        ewb_number = f"1912{int(time.time()) % 100000000:08d}"
+        ewb_number = f"1912{secrets.randbelow(90000000) + 10000000}"
         
         # Cryptographic verification signature
         signature_raw = f"{ewb_number}:{vehicle_number}:{invoice_value_inr}:{now}"
@@ -50,7 +51,7 @@ class EWayBillEngine:
                 "driver_declaration": "Camera auto-verified at Gate North Bay 03"
             },
             "digital_signature": digital_signature,
-            "qr_verification_code": f"EWB://{ewb_number}/{vehicle_number}/{digital_signature}"
+            "qr_code_url": f"https://ewaybillgst.gov.in/verify?ewb={ewb_number}&sig={digital_signature[:8]}"
         }
 
     def generate_us_ebol(
@@ -64,8 +65,9 @@ class EWayBillEngine:
         """
         Generates US electronic Bill of Lading (eBOL) compliant with NMFTA standards.
         """
+        import secrets
         now = int(time.time())
-        bol_number = f"BOL-US-{int(time.time()) % 1000000:06d}"
+        bol_number = f"BOL-US-{secrets.randbelow(900000) + 100000}"
 
         return {
             "type": "US_ELECTRONIC_BOL",

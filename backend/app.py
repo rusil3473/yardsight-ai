@@ -260,9 +260,13 @@ def switch_tenant(req: TenantSwitchRequest, db: Session = Depends(get_db)):
             "status": "success",
             "active_tenant_id": req.tenant_id,
             "tenant": t.to_dict(),
+            "active_tenant": t.to_dict(),
             "message": f"Tenant context switched to '{t.name}'"
         }
-    return tenant_manager.switch_active_tenant(req.tenant_id)
+    res = tenant_manager.switch_active_tenant(req.tenant_id)
+    if "active_tenant" in res and "tenant" not in res:
+        res["tenant"] = res["active_tenant"]
+    return res
 
 @app.put("/api/user/profile")
 def update_user_profile(
@@ -488,21 +492,28 @@ def generate_documents(
     doc["authorized_role"] = user.get("role")
 
     # Persist document to SQLite
-    ewb_record = EWayBill(
-        id=f"EWB-{int(datetime.utcnow().timestamp())}",
-        tenant_id=user.get("tenant_id", "TENANT-AMZN-BLR1"),
-        ewb_number=doc.get("eway_bill_number", doc.get("bol_number", f"DOC-{int(datetime.utcnow().timestamp())}")),
-        truck_plate=plate,
-        transporter=carrier,
-        doc_type=req.doc_type,
-        cargo_description=doc.get("cargo_description", "Commercial Freight"),
-        status="ACTIVE",
-        qr_code_data=doc.get("qr_code_url", ""),
-        generated_by_user_id=user.get("sub", "usr_admin"),
-        generated_at=datetime.utcnow()
-    )
-    db.add(ewb_record)
-    db.commit()
+    try:
+        import uuid
+        doc_num = doc.get("eway_bill_number", doc.get("bol_number", f"DOC-{int(datetime.utcnow().timestamp())}"))
+        ewb_record = EWayBill(
+            id=f"EWB-{int(datetime.utcnow().timestamp())}-{uuid.uuid4().hex[:6]}",
+            tenant_id=user.get("tenant_id", "TENANT-AMZN-BLR1"),
+            ewb_number=doc_num,
+            truck_plate=plate,
+            transporter=carrier,
+            doc_type=req.doc_type,
+            cargo_description=doc.get("cargo_description", "Commercial Freight"),
+            status="ACTIVE",
+            qr_code_data=doc.get("qr_code_url", ""),
+            generated_by_user_id=user.get("sub", "usr_admin"),
+            generated_at=datetime.utcnow()
+        )
+        db.add(ewb_record)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        # Non-fatal if already logged or conflict
+        print(f"[WARN] EWayBill persistence note: {e}")
 
     return doc
 

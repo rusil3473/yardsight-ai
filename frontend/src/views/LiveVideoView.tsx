@@ -47,14 +47,14 @@ export const LiveVideoView: React.FC<LiveVideoViewProps> = ({
 
         <div className="flex items-center gap-2">
           <button
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-700/50 bg-slate-800/40 px-3.5 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition-all"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-700/80 bg-slate-800/80 px-4 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-700 hover:text-white transition-all cursor-pointer active:scale-95 shadow-sm"
           >
             <Maximize2 className="h-3.5 w-3.5" />
             <span>Full Screen</span>
           </button>
           <button
             onClick={() => onRefreshPlate('MH-12-RN-4819', 'IN')}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-cyan-500/25 bg-cyan-500/8 px-3.5 py-2 text-xs font-semibold text-cyan-400 hover:bg-cyan-500/15 transition-all"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-4 py-2 text-xs font-semibold text-cyan-300 hover:bg-cyan-500/20 hover:border-cyan-400/50 transition-all cursor-pointer active:scale-95 shadow-sm"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${isLoadingANPR ? 'animate-spin' : ''}`} />
             <span>Resync RTSP</span>

@@ -377,7 +377,7 @@ export const HomeOverviewView: React.FC<HomeOverviewViewProps> = ({ onNavigateTa
           <div className="flex flex-wrap items-center gap-2.5 shrink-0">
             <button
               onClick={() => setIsCheckInModalOpen(true)}
-              className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-950 transition-all shadow-lg hover:scale-102 cursor-pointer"
+              className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-950 transition-all shadow-lg hover:scale-[1.02] active:scale-95 cursor-pointer"
               style={{
                 background: 'linear-gradient(135deg, #06b6d4 0%, #38bdf8 100%)',
                 boxShadow: '0 4px 18px rgba(6,182,212,0.35)'
@@ -825,7 +825,7 @@ export const HomeOverviewView: React.FC<HomeOverviewViewProps> = ({ onNavigateTa
                 <div className="flex items-center gap-2">
                   <span className="h-2 w-2 rounded-full bg-red-500 animate-ping" />
                   <span className="font-mono font-bold text-white">CAM-01 Gate Entry</span>
-                  <span className="text-[9px] rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-1 py-0.2">ANPR Active</span>
+                  <span className="text-[9px] rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-2 py-0.5">ANPR Active</span>
                 </div>
                 <button
                   onClick={() => onNavigateTab('video')}
@@ -899,7 +899,7 @@ export const HomeOverviewView: React.FC<HomeOverviewViewProps> = ({ onNavigateTa
                   </div>
                   <p className="mt-0.5 text-[11px] text-slate-400 leading-snug">{act.desc}</p>
                   <div className="mt-1.5 flex items-center justify-between">
-                    <span className={`rounded px-1.5 py-0.2 text-[9px] font-bold border ${badgeColorMap[act.badgeColor]}`}>
+                    <span className={`rounded px-2 py-0.5 text-[9px] font-bold border ${badgeColorMap[act.badgeColor]}`}>
                       {act.badge}
                     </span>
                     <ChevronRight className="h-3 w-3 text-slate-600 group-hover:text-cyan-400 transition-colors" />
