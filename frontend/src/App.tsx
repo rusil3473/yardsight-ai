@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AuthProvider } from './context/AuthContext';
 import { CorporateNavbar } from './components/CorporateNavbar';
-import { CorporateTabNav } from './components/CorporateTabNav';
-import type { TabId } from './components/CorporateTabNav';
+import type { TabId } from './components/CorporateNavbar';
 import { CorporateLoginModal } from './components/CorporateLoginModal';
 import { MCPAgentDrawer } from './components/MCPAgentDrawer';
 
@@ -171,15 +170,11 @@ const MainAppContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans antialiased selection:bg-cyan-500 selection:text-slate-950 pb-16">
-      {/* Enterprise Top Navbar */}
+      {/* Enterprise Unified Top Navbar */}
       <CorporateNavbar
         marketMode={marketMode}
         setMarketMode={setMarketMode}
         onOpenMCP={() => setIsMCPOpen(true)}
-      />
-
-      {/* Corporate Multi-Tab Navigation */}
-      <CorporateTabNav
         activeTab={activeTab}
         setActiveTab={setActiveTab}
       />
