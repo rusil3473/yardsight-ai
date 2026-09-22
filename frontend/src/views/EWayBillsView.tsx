@@ -248,20 +248,20 @@ export const EWayBillsView: React.FC<EWayBillsViewProps> = ({ marketMode }) => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Active Logistics Queue (4 of 12 cols) */}
         <div className="lg:col-span-4 space-y-4">
-          <div className="rounded-2xl bg-slate-900/70 border border-slate-800/80 p-4 backdrop-blur-xl shadow-xl">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800/60">
+          <div className="rounded-2xl bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800/80 p-4 backdrop-blur-xl shadow-sm dark:shadow-xl">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800/60">
               <div className="flex items-center gap-2">
-                <Truck className="h-4 w-4 text-cyan-400" />
-                <h2 className="text-xs font-bold uppercase tracking-wider text-white">
+                <Truck className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
+                <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
                   Active Yard Freight Queue
                 </h2>
               </div>
-              <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-400 border border-emerald-500/25">
+              <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
                 3 Trucks Active
               </span>
             </div>
 
-            <p className="text-[11px] text-slate-400 mt-2">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2">
               Select any freight truck below to immediately inspect, generate, and sign its official statutory documentation:
             </p>
 
@@ -275,41 +275,41 @@ export const EWayBillsView: React.FC<EWayBillsViewProps> = ({ marketMode }) => {
                     onClick={() => handleGenerateDoc(t.id, docType)}
                     className={`rounded-xl py-3.5 px-4 pl-5 border transition-all cursor-pointer relative overflow-hidden ${
                       isSelected
-                        ? 'bg-slate-800/90 border-cyan-500 shadow-md shadow-cyan-500/20'
-                        : 'bg-slate-950/60 border-slate-800/80 hover:border-slate-700 hover:bg-slate-900/60'
+                        ? 'bg-cyan-500/10 dark:bg-slate-800/90 border-cyan-500 shadow-md shadow-cyan-500/15'
+                        : 'bg-slate-50 dark:bg-slate-950/60 border-slate-200 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-900/60'
                     }`}
                   >
                     {/* Active selection glowing bar */}
                     {isSelected && (
-                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-cyan-400 shadow-lg shadow-cyan-400" />
+                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-cyan-500 dark:bg-cyan-400 shadow-lg shadow-cyan-400" />
                     )}
 
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="rounded bg-slate-900 border border-slate-700/80 px-2 py-0.5 font-mono font-bold text-xs text-white">
+                        <span className="rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700/80 px-2 py-0.5 font-mono font-bold text-xs text-slate-900 dark:text-white">
                           {t.plate}
                         </span>
-                        <span className="text-[10px] font-mono text-cyan-400">{t.id}</span>
+                        <span className="text-[10px] font-mono text-cyan-600 dark:text-cyan-400">{t.id}</span>
                       </div>
-                      <span className="rounded bg-cyan-500/10 px-2 py-0.5 text-[10px] font-bold text-cyan-300 border border-cyan-500/25">
+                      <span className="rounded bg-cyan-500/10 px-2 py-0.5 text-[10px] font-bold text-cyan-700 dark:text-cyan-300 border border-cyan-500/25">
                         {t.dock}
                       </span>
                     </div>
 
-                    <div className="mt-2 text-xs font-bold text-white leading-tight">
+                    <div className="mt-2 text-xs font-bold text-slate-900 dark:text-white leading-tight">
                       {t.carrier}
                     </div>
 
-                    <div className="text-[11px] text-slate-400 mt-0.5 line-clamp-1">
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
                       {t.goods}
                     </div>
 
-                    <div className="mt-2.5 pt-2 border-t border-slate-800/60 flex items-center justify-between text-[10px]">
-                      <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                    <div className="mt-2.5 pt-2 border-t border-slate-200 dark:border-slate-800/60 flex items-center justify-between text-[10px]">
+                      <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
                         <CheckCircle2 className="h-3 w-3" />
                         Invoice: ₹{(t.invoiceValue / 100000).toFixed(1)}L
                       </span>
-                      <span className="text-cyan-400 font-semibold">
+                      <span className="text-cyan-600 dark:text-cyan-400 font-semibold">
                         {isSelected ? 'Viewing Document →' : 'Click to Generate'}
                       </span>
                     </div>
@@ -320,12 +320,12 @@ export const EWayBillsView: React.FC<EWayBillsViewProps> = ({ marketMode }) => {
           </div>
 
           {/* Statutory Help Card */}
-          <div className="rounded-2xl bg-gradient-to-b from-slate-900/60 to-slate-950/70 border border-slate-800/80 p-4 text-xs space-y-2">
-            <div className="flex items-center gap-2 text-cyan-400 font-bold">
+          <div className="rounded-2xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800/80 p-4 text-xs space-y-2">
+            <div className="flex items-center gap-2 text-cyan-600 dark:text-cyan-400 font-bold">
               <ShieldCheck className="h-4 w-4" />
               <span>Statutory Compliance Notice</span>
             </div>
-            <p className="text-[11px] text-slate-400 leading-relaxed">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
               Under GST Rule 138, moving taxable goods exceeding ₹50,000 without a valid Part B authenticated E-Way Bill incurs a 100% tax penalty and vehicle seizure. YardSight auto-syncs ANPR plate unwarps to Part B in 30ms.
             </p>
           </div>
@@ -335,32 +335,32 @@ export const EWayBillsView: React.FC<EWayBillsViewProps> = ({ marketMode }) => {
         <div className="lg:col-span-8">
           {generatedDoc ? (
             <div
-              className="rounded-2xl border border-slate-800/90 bg-slate-900/80 p-5 sm:p-6 backdrop-blur-xl shadow-2xl relative overflow-hidden"
+              className="rounded-2xl border border-slate-200 dark:border-slate-800/90 bg-white dark:bg-slate-900/80 p-5 sm:p-6 backdrop-blur-xl shadow-sm dark:shadow-2xl relative overflow-hidden"
               style={{
-                boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.08), 0 20px 40px -15px rgba(0,0,0,0.6)'
+                boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.08), 0 20px 40px -15px rgba(0,0,0,0.2)'
               }}
             >
               {/* Document Action Top Bar */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-800 gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800 gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 shrink-0">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30 shrink-0">
                     <FileText className="h-6 w-6" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm sm:text-base font-extrabold text-white">
+                      <span className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white">
                         {generatedDoc.type === 'GST_EWAY_BILL'
                           ? 'GOVERNMENT OF INDIA • FORM GST EWB-01'
                           : 'UNITED STATES UNIFORM STRAIGHT BILL OF LADING'}
                       </span>
-                      <span className="rounded bg-emerald-500/15 px-2 py-0.5 text-[9px] font-bold text-emerald-400 border border-emerald-500/30 hidden sm:inline">
+                      <span className="rounded bg-emerald-500/15 px-2 py-0.5 text-[9px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 hidden sm:inline">
                         DIGITALLY SEALED
                       </span>
                     </div>
-                    <div className="text-xs font-mono text-cyan-400 mt-0.5 flex items-center gap-2">
+                    <div className="text-xs font-mono text-cyan-600 dark:text-cyan-400 mt-0.5 flex items-center gap-2">
                       <span>Doc #: {generatedDoc.eway_bill_number || generatedDoc.bol_number}</span>
-                      <span className="text-slate-600">•</span>
-                      <span className="text-slate-400">Issued: {generatedDoc.generated_date || generatedDoc.issue_date}</span>
+                      <span className="text-slate-400 dark:text-slate-600">•</span>
+                      <span className="text-slate-500 dark:text-slate-400">Issued: {generatedDoc.generated_date || generatedDoc.issue_date}</span>
                     </div>
                   </div>
                 </div>
@@ -368,18 +368,18 @@ export const EWayBillsView: React.FC<EWayBillsViewProps> = ({ marketMode }) => {
                 <div className="flex items-center gap-2 shrink-0">
                   <button
                     onClick={() => window.print()}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-700/80 bg-slate-800/80 px-3.5 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-700 hover:text-white transition-all cursor-pointer shadow-sm active:scale-95"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800/80 px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer shadow-sm active:scale-95"
                     title="Print PDF Certificate"
                   >
-                    <Printer className="h-3.5 w-3.5 text-cyan-400" />
+                    <Printer className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />
                     <span>Print PDF</span>
                   </button>
                   <button
                     onClick={handleCopyLink}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-700/80 bg-slate-800/80 px-3.5 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-700 hover:text-white transition-all cursor-pointer shadow-sm active:scale-95"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800/80 px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer shadow-sm active:scale-95"
                     title="Share Verification Link"
                   >
-                    <Share2 className="h-3.5 w-3.5 text-cyan-400" />
+                    <Share2 className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />
                     <span>Share</span>
                   </button>
                 </div>
@@ -420,12 +420,12 @@ export const EWayBillsView: React.FC<EWayBillsViewProps> = ({ marketMode }) => {
                   return (
                     <div className="mt-5 space-y-4">
                       {/* Barcode representation */}
-                      <div className="rounded-xl bg-slate-950/80 border border-slate-800/80 p-3 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+                      <div className="rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800/80 p-3 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
                         <div>
                           <span className="text-[10px] uppercase font-bold text-slate-500 block">NIC National Electronic Gateway ID</span>
-                          <span className="font-mono font-bold text-xs text-white">EWB-191288410291-GSTN-PORTAL-AUTH</span>
+                          <span className="font-mono font-bold text-xs text-slate-900 dark:text-white">EWB-191288410291-GSTN-PORTAL-AUTH</span>
                         </div>
-                        <div className="font-mono text-xs tracking-widest text-slate-400 select-none">
+                        <div className="font-mono text-xs tracking-widest text-slate-600 dark:text-slate-400 select-none">
                           ||| ||||| || |||| |||||| ||| |||||||
                         </div>
                       </div>
@@ -433,9 +433,9 @@ export const EWayBillsView: React.FC<EWayBillsViewProps> = ({ marketMode }) => {
                       {/* 2-Column Split: Part A & Part B */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* Part-A: Goods & Tax Invoice */}
-                        <div className="rounded-xl bg-slate-950/80 border border-slate-800/80 p-4 space-y-2.5">
-                          <div className="flex items-center justify-between pb-2 border-b border-slate-800/60">
-                            <span className="text-xs font-bold uppercase tracking-wider text-cyan-400">
+                        <div className="rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800/80 p-4 space-y-2.5">
+                          <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800/60">
+                            <span className="text-xs font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400">
                               PART-A: Consignment & Tax Invoice
                             </span>
                             <span className="text-[10px] text-slate-500 font-mono">Invoice Value</span>
@@ -443,31 +443,31 @@ export const EWayBillsView: React.FC<EWayBillsViewProps> = ({ marketMode }) => {
 
                           <div className="space-y-2 text-xs">
                             <div>
-                              <span className="text-slate-400 block text-[11px]">Supplier (Consignor):</span>
-                              <p className="font-semibold text-white leading-tight mt-0.5">{supplier}</p>
-                              <p className="text-[10px] text-slate-400">{dispatchFrom}</p>
+                              <span className="text-slate-500 dark:text-slate-400 block text-[11px]">Supplier (Consignor):</span>
+                              <p className="font-semibold text-slate-900 dark:text-white leading-tight mt-0.5">{supplier}</p>
+                              <p className="text-[10px] text-slate-500 dark:text-slate-400">{dispatchFrom}</p>
                             </div>
 
                             <div>
-                              <span className="text-slate-400 block text-[11px]">Recipient (Consignee):</span>
-                              <p className="font-semibold text-white leading-tight mt-0.5">{recipient}</p>
-                              <p className="text-[10px] text-slate-400">{deliveryTo}</p>
+                              <span className="text-slate-500 dark:text-slate-400 block text-[11px]">Recipient (Consignee):</span>
+                              <p className="font-semibold text-slate-900 dark:text-white leading-tight mt-0.5">{recipient}</p>
+                              <p className="text-[10px] text-slate-500 dark:text-slate-400">{deliveryTo}</p>
                             </div>
 
-                            <div className="pt-2 border-t border-slate-800/60 grid grid-cols-2 gap-2 text-[11px]">
+                            <div className="pt-2 border-t border-slate-200 dark:border-slate-800/60 grid grid-cols-2 gap-2 text-[11px]">
                               <div>
                                 <span className="text-slate-500">Taxable Goods Value:</span>
-                                <p className="font-mono font-bold text-white">₹{taxableVal.toLocaleString()} INR</p>
+                                <p className="font-mono font-bold text-slate-900 dark:text-white">₹{taxableVal.toLocaleString()} INR</p>
                               </div>
                               <div>
                                 <span className="text-slate-500">CGST + SGST (18%):</span>
-                                <p className="font-mono font-bold text-slate-300">₹{(cgstVal + sgstVal).toLocaleString()} INR</p>
+                                <p className="font-mono font-bold text-slate-700 dark:text-slate-300">₹{(cgstVal + sgstVal).toLocaleString()} INR</p>
                               </div>
                             </div>
 
                             <div className="pt-1 flex items-center justify-between bg-cyan-500/10 rounded-lg p-2 border border-cyan-500/20">
-                              <span className="text-[11px] font-bold text-cyan-300">Total Invoice Value:</span>
-                              <span className="font-mono font-extrabold text-sm text-emerald-400">
+                              <span className="text-[11px] font-bold text-cyan-700 dark:text-cyan-300">Total Invoice Value:</span>
+                              <span className="font-mono font-extrabold text-sm text-emerald-600 dark:text-emerald-400">
                                 ₹{invoiceVal.toLocaleString()} INR
                               </span>
                             </div>
@@ -475,50 +475,50 @@ export const EWayBillsView: React.FC<EWayBillsViewProps> = ({ marketMode }) => {
                         </div>
 
                         {/* Part-B: Transshipment Vehicle & Driver */}
-                        <div className="rounded-xl bg-slate-950/80 border border-slate-800/80 p-4 space-y-2.5">
-                          <div className="flex items-center justify-between pb-2 border-b border-slate-800/60">
-                            <span className="text-xs font-bold uppercase tracking-wider text-amber-400">
+                        <div className="rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800/80 p-4 space-y-2.5">
+                          <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800/60">
+                            <span className="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
                               PART-B: Vehicle & Transshipment
                             </span>
-                            <span className="text-[10px] text-emerald-400 font-bold">ANPR Synced</span>
+                            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">ANPR Synced</span>
                           </div>
 
                           <div className="space-y-2 text-xs">
                             <div className="flex items-center justify-between">
                               <div>
-                                <span className="text-slate-400 block text-[11px]">Registered Vehicle:</span>
-                                <p className="font-mono font-extrabold text-white text-sm mt-0.5">{vehicleNumber}</p>
+                                <span className="text-slate-500 dark:text-slate-400 block text-[11px]">Registered Vehicle:</span>
+                                <p className="font-mono font-extrabold text-slate-900 dark:text-white text-sm mt-0.5">{vehicleNumber}</p>
                               </div>
-                              <span className="rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold">
+                              <span className="rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold">
                                 Plate Verified (96.4%)
                               </span>
                             </div>
 
                             <div>
-                              <span className="text-slate-400 block text-[11px]">Transporter Agency:</span>
-                              <p className="font-semibold text-white mt-0.5">{transporterName}</p>
+                              <span className="text-slate-500 dark:text-slate-400 block text-[11px]">Transporter Agency:</span>
+                              <p className="font-semibold text-slate-900 dark:text-white mt-0.5">{transporterName}</p>
                               <p className="text-[10px] text-slate-500 font-mono">ID: {transporterId}</p>
                             </div>
 
                             <div>
-                              <span className="text-slate-400 block text-[11px]">Driver In-Charge:</span>
-                              <p className="font-medium text-slate-200 mt-0.5">{driverContact}</p>
+                              <span className="text-slate-500 dark:text-slate-400 block text-[11px]">Driver In-Charge:</span>
+                              <p className="font-medium text-slate-700 dark:text-slate-200 mt-0.5">{driverContact}</p>
                             </div>
 
-                            <div className="pt-2 border-t border-slate-800/60 grid grid-cols-2 gap-2 text-[11px]">
+                            <div className="pt-2 border-t border-slate-200 dark:border-slate-800/60 grid grid-cols-2 gap-2 text-[11px]">
                               <div>
                                 <span className="text-slate-500">Transit Mode:</span>
-                                <p className="text-slate-300">{transitMode}</p>
+                                <p className="text-slate-700 dark:text-slate-300">{transitMode}</p>
                               </div>
                               <div>
                                 <span className="text-slate-500">Approx Distance:</span>
-                                <p className="font-mono text-cyan-300">{approxDistance} km</p>
+                                <p className="font-mono text-cyan-600 dark:text-cyan-300">{approxDistance} km</p>
                               </div>
                             </div>
 
-                            <div className="pt-1 flex items-center justify-between bg-slate-900 rounded-lg p-2 border border-slate-800">
-                              <span className="text-[10px] text-slate-400">Statutory Validity:</span>
-                              <span className="font-mono text-[11px] font-bold text-amber-300">
+                            <div className="pt-1 flex items-center justify-between bg-slate-100 dark:bg-slate-900 rounded-lg p-2 border border-slate-200 dark:border-slate-800">
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400">Statutory Validity:</span>
+                              <span className="font-mono text-[11px] font-bold text-amber-600 dark:text-amber-300">
                                 Valid until {validUntil}
                               </span>
                             </div>
@@ -527,17 +527,17 @@ export const EWayBillsView: React.FC<EWayBillsViewProps> = ({ marketMode }) => {
                       </div>
 
                       {/* QR Verification & Highway Authority Strip */}
-                      <div className="rounded-xl bg-slate-950 border border-slate-800/80 p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                      <div className="rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
                         <div className="flex items-center gap-3">
-                          <div className="rounded-xl bg-white p-2 shadow-md shrink-0">
+                          <div className="rounded-xl bg-white p-2 shadow-md shrink-0 border border-slate-200">
                             <QrCode className="h-16 w-16 text-slate-950" />
                           </div>
                           <div>
-                            <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                              <ShieldCheck className="h-4 w-4 text-emerald-400" />
+                            <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                              <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                               <span>NIC 2D Security Barcode & QR Code</span>
                             </div>
-                            <p className="text-[11px] text-slate-400 mt-0.5 max-w-md">
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 max-w-md">
                               En-route highway tax officer mobile scan verification payload. Digitally encrypted and signed with National Informatics Centre (NIC) public key.
                             </p>
                           </div>
@@ -545,7 +545,7 @@ export const EWayBillsView: React.FC<EWayBillsViewProps> = ({ marketMode }) => {
 
                         <div className="w-full sm:w-auto flex flex-col sm:items-end gap-1 shrink-0">
                           <span className="text-[10px] text-slate-500 font-mono uppercase">Cryptographic Signature:</span>
-                          <span className="font-mono text-[10px] text-cyan-300 bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800 truncate max-w-[240px]">
+                          <span className="font-mono text-[10px] text-cyan-700 dark:text-cyan-300 bg-white dark:bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-800 truncate max-w-[240px]">
                             {digitalSig}
                           </span>
                         </div>
@@ -570,105 +570,105 @@ export const EWayBillsView: React.FC<EWayBillsViewProps> = ({ marketMode }) => {
                   return (
                     <div className="mt-5 space-y-4">
                       {/* US DOT Barcode strip */}
-                      <div className="rounded-xl bg-slate-950/80 border border-slate-800/80 p-3 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+                      <div className="rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800/80 p-3 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
                         <div>
                           <span className="text-[10px] uppercase font-bold text-slate-500 block">FMCSA Uniform Bill of Lading Number</span>
-                          <span className="font-mono font-bold text-xs text-white">{generatedDoc?.bol_number || 'BOL-US-2026-994102'}</span>
+                          <span className="font-mono font-bold text-xs text-slate-900 dark:text-white">{generatedDoc?.bol_number || 'BOL-US-2026-994102'}</span>
                         </div>
-                        <div className="font-mono text-xs tracking-widest text-slate-400 select-none">
+                        <div className="font-mono text-xs tracking-widest text-slate-600 dark:text-slate-400 select-none">
                           |||| ||| |||||| || ||||| |||| |||
                         </div>
                       </div>
 
                       {/* 2-Column Split: Carrier/Vehicle & Routing */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="rounded-xl bg-slate-950/80 border border-slate-800/80 p-4 space-y-2.5">
-                          <div className="flex items-center justify-between pb-2 border-b border-slate-800/60">
-                            <span className="text-xs font-bold uppercase tracking-wider text-cyan-400">
+                        <div className="rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800/80 p-4 space-y-2.5">
+                          <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800/60">
+                            <span className="text-xs font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400">
                               Motor Carrier & Equipment
                             </span>
-                            <span className="text-[10px] text-emerald-400 font-bold">{usStatus}</span>
+                            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">{usStatus}</span>
                           </div>
 
                           <div className="space-y-2 text-xs">
                             <div className="grid grid-cols-2 gap-2">
                               <div>
-                                <span className="text-slate-400 block text-[11px]">Carrier Name:</span>
-                                <p className="font-semibold text-white mt-0.5">{usCarrier}</p>
+                                <span className="text-slate-500 dark:text-slate-400 block text-[11px]">Carrier Name:</span>
+                                <p className="font-semibold text-slate-900 dark:text-white mt-0.5">{usCarrier}</p>
                               </div>
                               <div>
-                                <span className="text-slate-400 block text-[11px]">SCAC Code:</span>
-                                <p className="font-mono font-bold text-cyan-300 mt-0.5">{usScac}</p>
+                                <span className="text-slate-500 dark:text-slate-400 block text-[11px]">SCAC Code:</span>
+                                <p className="font-mono font-bold text-cyan-600 dark:text-cyan-300 mt-0.5">{usScac}</p>
                               </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-2 pt-1">
                               <div>
-                                <span className="text-slate-400 block text-[11px]">Power Unit Plate:</span>
-                                <p className="font-mono font-bold text-white text-sm mt-0.5">{usPlate}</p>
+                                <span className="text-slate-500 dark:text-slate-400 block text-[11px]">Power Unit Plate:</span>
+                                <p className="font-mono font-bold text-slate-900 dark:text-white text-sm mt-0.5">{usPlate}</p>
                               </div>
                               <div>
-                                <span className="text-slate-400 block text-[11px]">Trailer Tamper Seal:</span>
-                                <p className="font-mono font-bold text-amber-300 mt-0.5">{usTrailer}</p>
+                                <span className="text-slate-500 dark:text-slate-400 block text-[11px]">Trailer Tamper Seal:</span>
+                                <p className="font-mono font-bold text-amber-600 dark:text-amber-300 mt-0.5">{usTrailer}</p>
                               </div>
                             </div>
 
-                            <div className="pt-2 border-t border-slate-800/60">
-                              <span className="text-slate-400 block text-[11px]">NMFC Freight Classification:</span>
-                              <p className="text-slate-300 mt-0.5">{usClass}</p>
+                            <div className="pt-2 border-t border-slate-200 dark:border-slate-800/60">
+                              <span className="text-slate-500 dark:text-slate-400 block text-[11px]">NMFC Freight Classification:</span>
+                              <p className="text-slate-700 dark:text-slate-300 mt-0.5">{usClass}</p>
                             </div>
 
-                            <div className="bg-slate-900 rounded-lg p-2 border border-slate-800">
-                              <span className="text-slate-400 block text-[10px]">Cargo Description:</span>
-                              <p className="text-white text-xs font-medium">{usCargo}</p>
+                            <div className="bg-white dark:bg-slate-900 rounded-lg p-2 border border-slate-200 dark:border-slate-800">
+                              <span className="text-slate-500 dark:text-slate-400 block text-[10px]">Cargo Description:</span>
+                              <p className="text-slate-900 dark:text-white text-xs font-medium">{usCargo}</p>
                             </div>
                           </div>
                         </div>
 
-                        <div className="rounded-xl bg-slate-950/80 border border-slate-800/80 p-4 space-y-2.5">
-                          <div className="flex items-center justify-between pb-2 border-b border-slate-800/60">
-                            <span className="text-xs font-bold uppercase tracking-wider text-amber-400">
+                        <div className="rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800/80 p-4 space-y-2.5">
+                          <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800/60">
+                            <span className="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
                               Routing, Facility & Detention
                             </span>
-                            <span className="text-[10px] text-cyan-400 font-bold">49 CFR §373</span>
+                            <span className="text-[10px] text-cyan-600 dark:text-cyan-400 font-bold">49 CFR §373</span>
                           </div>
 
                           <div className="space-y-2 text-xs">
                             <div>
-                              <span className="text-slate-400 block text-[11px]">Shipper (Origin Facility):</span>
-                              <p className="font-semibold text-white mt-0.5">{usShipper}</p>
+                              <span className="text-slate-500 dark:text-slate-400 block text-[11px]">Shipper (Origin Facility):</span>
+                              <p className="font-semibold text-slate-900 dark:text-white mt-0.5">{usShipper}</p>
                             </div>
 
                             <div>
-                              <span className="text-slate-400 block text-[11px]">Consignee (Destination Facility):</span>
-                              <p className="font-semibold text-white mt-0.5">{usConsignee}</p>
+                              <span className="text-slate-500 dark:text-slate-400 block text-[11px]">Consignee (Destination Facility):</span>
+                              <p className="font-semibold text-slate-900 dark:text-white mt-0.5">{usConsignee}</p>
                             </div>
 
-                            <div className="pt-2 border-t border-slate-800/60">
-                              <span className="text-slate-400 block text-[11px]">Detention Protection Clause:</span>
-                              <p className="font-bold text-amber-400 text-xs mt-0.5">{usDetention}</p>
+                            <div className="pt-2 border-t border-slate-200 dark:border-slate-800/60">
+                              <span className="text-slate-500 dark:text-slate-400 block text-[11px]">Detention Protection Clause:</span>
+                              <p className="font-bold text-amber-600 dark:text-amber-400 text-xs mt-0.5">{usDetention}</p>
                             </div>
 
                             <div className="bg-emerald-500/10 rounded-lg p-2 border border-emerald-500/20 flex items-center justify-between">
-                              <span className="text-[11px] font-bold text-emerald-300">FMCSA Safety Audit:</span>
-                              <span className="text-xs font-mono font-bold text-emerald-400">CLEARED • 100% COMPLIANT</span>
+                              <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300">FMCSA Safety Audit:</span>
+                              <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">CLEARED • 100% COMPLIANT</span>
                             </div>
                           </div>
                         </div>
                       </div>
 
                       {/* Electronic Seal & Signature */}
-                      <div className="rounded-xl bg-slate-950 border border-slate-800/80 p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                      <div className="rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
                         <div className="flex items-center gap-3">
-                          <div className="rounded-xl bg-white p-2 shadow-md shrink-0">
+                          <div className="rounded-xl bg-white p-2 shadow-md shrink-0 border border-slate-200">
                             <QrCode className="h-16 w-16 text-slate-950" />
                           </div>
                           <div>
-                            <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                              <ShieldCheck className="h-4 w-4 text-emerald-400" />
+                            <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                              <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                               <span>DOT Electronic Seal & Proof of Delivery (ePOD)</span>
                             </div>
-                            <p className="text-[11px] text-slate-400 mt-0.5 max-w-md">
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 max-w-md">
                               Encrypted cryptographic bill of lading payload compliant with National Motor Freight Traffic Association (NMFTA) standard.
                             </p>
                           </div>
@@ -676,7 +676,7 @@ export const EWayBillsView: React.FC<EWayBillsViewProps> = ({ marketMode }) => {
 
                         <div className="w-full sm:w-auto flex flex-col sm:items-end gap-1 shrink-0">
                           <span className="text-[10px] text-slate-500 font-mono uppercase">Master BOL Hash:</span>
-                          <span className="font-mono text-[10px] text-cyan-300 bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800 truncate max-w-[240px]">
+                          <span className="font-mono text-[10px] text-cyan-700 dark:text-cyan-300 bg-white dark:bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-800 truncate max-w-[240px]">
                             DOT-BOL-{generatedDoc?.bol_number || '994102'}-SHA256-VALID
                           </span>
                         </div>
@@ -688,29 +688,29 @@ export const EWayBillsView: React.FC<EWayBillsViewProps> = ({ marketMode }) => {
             </div>
           ) : (
             /* Loading State */
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-12 text-center text-slate-400">
-              <RefreshCw className="h-8 w-8 text-cyan-400 animate-spin mx-auto mb-2" />
-              <p className="text-xs font-medium">Generating digital transport credentials...</p>
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-12 text-center text-slate-400">
+              <RefreshCw className="h-8 w-8 text-cyan-600 dark:text-cyan-400 animate-spin mx-auto mb-2" />
+              <p className="text-xs font-medium text-slate-600 dark:text-slate-400">Generating digital transport credentials...</p>
             </div>
           )}
         </div>
       </div>
 
       {/* SQLite Persisted Documents Archive */}
-      <div className="rounded-2xl bg-slate-900/70 border border-slate-800/80 p-5 sm:p-6 backdrop-blur-xl shadow-xl">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-800/70 gap-3">
+      <div className="rounded-2xl bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800/80 p-5 sm:p-6 backdrop-blur-xl shadow-sm dark:shadow-xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800/70 gap-3">
           <div className="flex items-center gap-2.5">
-            <Database className="h-5 w-5 text-cyan-400" />
+            <Database className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-sm sm:text-base font-bold text-white" style={{ fontFamily: 'var(--font-heading)' }}>
+                <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white" style={{ fontFamily: 'var(--font-heading)' }}>
                   Statutory Transport Documents Ledger
                 </h3>
-                <span className="rounded bg-cyan-500/10 px-2 py-0.5 text-[10px] font-mono text-cyan-400 border border-cyan-500/20">
+                <span className="rounded bg-cyan-500/10 px-2 py-0.5 text-[10px] font-mono text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
                   SQLite WAL Persisted
                 </span>
               </div>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 Permanent audit trail of all signed Indian GST EWB-01 certificates and US eBOLs
               </p>
             </div>
@@ -718,13 +718,13 @@ export const EWayBillsView: React.FC<EWayBillsViewProps> = ({ marketMode }) => {
 
           {/* Search Box */}
           <div className="relative">
-            <Search className="h-4 w-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="h-4 w-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by doc #, plate, transporter..."
-              className="rounded-xl bg-slate-950 border border-slate-800 pl-9 pr-4 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500 w-64"
+              className="rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 pl-9 pr-4 py-1.5 text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-cyan-500 w-64"
             />
           </div>
         </div>
@@ -732,7 +732,7 @@ export const EWayBillsView: React.FC<EWayBillsViewProps> = ({ marketMode }) => {
         {/* Structured High-Contrast Table */}
         <div className="mt-4 overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="text-[10px] uppercase font-bold text-slate-400 border-b border-slate-800">
+            <thead className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
               <tr>
                 <th className="py-3 px-3">Document Number</th>
                 <th className="py-3 px-3">Vehicle Plate</th>
@@ -743,26 +743,26 @@ export const EWayBillsView: React.FC<EWayBillsViewProps> = ({ marketMode }) => {
                 <th className="py-3 px-3 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/50">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
               {filteredDocs.length > 0 ? (
                 filteredDocs.map((doc, idx) => (
-                  <tr key={idx} className="hover:bg-slate-800/40 transition-colors">
-                    <td className="py-3 px-3 font-mono font-bold text-cyan-400">{doc.ewb_number}</td>
-                    <td className="py-3 px-3 font-mono text-white font-semibold">{doc.truck_plate}</td>
-                    <td className="py-3 px-3 text-slate-300">{doc.transporter}</td>
-                    <td className="py-3 px-3 text-slate-400">{doc.doc_type}</td>
+                  <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                    <td className="py-3 px-3 font-mono font-bold text-cyan-600 dark:text-cyan-400">{doc.ewb_number}</td>
+                    <td className="py-3 px-3 font-mono text-slate-900 dark:text-white font-semibold">{doc.truck_plate}</td>
+                    <td className="py-3 px-3 text-slate-700 dark:text-slate-300">{doc.transporter}</td>
+                    <td className="py-3 px-3 text-slate-500 dark:text-slate-400">{doc.doc_type}</td>
                     <td className="py-3 px-3">
-                      <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-400 border border-emerald-500/25">
+                      <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
                         {doc.status}
                       </span>
                     </td>
-                    <td className="py-3 px-3 font-mono text-[11px] text-slate-400">
+                    <td className="py-3 px-3 font-mono text-[11px] text-slate-500 dark:text-slate-400">
                       {doc.generated_at ? new Date(doc.generated_at).toLocaleString() : 'Recent'}
                     </td>
                     <td className="py-3 px-3 text-right">
                       <button
                         onClick={() => window.print()}
-                        className="text-cyan-400 hover:text-cyan-300 font-semibold text-[11px] cursor-pointer"
+                        className="text-cyan-600 dark:text-cyan-400 hover:text-cyan-500 font-semibold text-[11px] cursor-pointer"
                       >
                         Print Copy
                       </button>

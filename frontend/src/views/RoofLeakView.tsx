@@ -63,49 +63,49 @@ export const RoofLeakView: React.FC<RoofLeakViewProps> = ({
       )}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-slate-800/80">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-slate-200 dark:border-slate-800/80">
         <div>
           <div className="flex items-center gap-2.5 mb-1">
             {isHighRisk ? (
-              <span className="flex items-center gap-1.5 rounded-lg bg-red-500/10 px-2.5 py-1 text-[11px] font-semibold text-red-400 border border-red-500/20 animate-pulse">
+              <span className="flex items-center gap-1.5 rounded-lg bg-red-500/10 px-2.5 py-1 text-[11px] font-semibold text-red-600 dark:text-red-400 border border-red-500/20 animate-pulse">
                 <AlertTriangle className="h-3 w-3" />
                 Specular Water Anomaly Detected
               </span>
             ) : (
-              <span className="flex items-center gap-1.5 rounded-lg bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-400 border border-emerald-500/20">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              <span className="flex items-center gap-1.5 rounded-lg bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" />
                 Physical AI Monitoring Active
               </span>
             )}
-            <span className="text-[11px] text-slate-400 flex items-center gap-1">
-              <Layers className="h-3 w-3 text-cyan-400" />
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
+              <Layers className="h-3 w-3 text-cyan-600 dark:text-cyan-400" />
               Bay C-4 Indoor CCTV CAM-04
             </span>
           </div>
-          <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight" style={{ fontFamily: 'var(--font-heading)' }}>
+          <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight" style={{ fontFamily: 'var(--font-heading)' }}>
             Physical AI Roof Leak & Specular Moisture Intelligence
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             Real-time concrete floor albedo drop detection and tube light specular glare analysis to preserve warehouse inventory at {tenant.name}.
           </p>
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
-          <div className="rounded-xl bg-slate-900/80 border border-slate-800 px-4 py-2 text-center shadow-sm">
+          <div className="rounded-xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 px-4 py-2 text-center shadow-sm">
             <div className="flex items-center justify-center gap-1.5">
-              <Droplets className="h-4 w-4 text-cyan-400" />
-              <span className="text-lg font-extrabold text-white" style={{ fontFamily: 'var(--font-heading)' }}>
+              <Droplets className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
+              <span className="text-lg font-extrabold text-slate-900 dark:text-white" style={{ fontFamily: 'var(--font-heading)' }}>
                 {Math.round(rainIntensity * 100)}%
               </span>
             </div>
-            <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Rain Inflow</div>
+            <div className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Rain Inflow</div>
           </div>
-          <div className="rounded-xl bg-slate-900/80 border border-slate-800 px-4 py-2 text-center shadow-sm">
+          <div className="rounded-xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 px-4 py-2 text-center shadow-sm">
             <div className="flex items-center justify-center gap-1.5">
-              <ThermometerSun className="h-4 w-4 text-amber-400" />
-              <span className="text-lg font-extrabold text-amber-400" style={{ fontFamily: 'var(--font-heading)' }}>26°C</span>
+              <ThermometerSun className="h-4 w-4 text-amber-500 dark:text-amber-400" />
+              <span className="text-lg font-extrabold text-amber-600 dark:text-amber-400" style={{ fontFamily: 'var(--font-heading)' }}>26°C</span>
             </div>
-            <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Godown Temp</div>
+            <div className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Godown Temp</div>
           </div>
         </div>
       </div>
@@ -120,15 +120,15 @@ export const RoofLeakView: React.FC<RoofLeakViewProps> = ({
       {/* Warehouse Godown Floor Grid & Moisture Mitigation Controls */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Floor Heatmap Grid (8 of 12 cols) */}
-        <div className="lg:col-span-8 rounded-2xl bg-slate-900/70 border border-slate-800/80 p-5 backdrop-blur-xl shadow-xl">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800/60">
+        <div className="lg:col-span-8 rounded-2xl bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800/80 p-5 backdrop-blur-xl shadow-sm dark:shadow-xl">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800/60">
             <div className="flex items-center gap-2">
-              <Layers className="h-4 w-4 text-cyan-400" />
-              <h3 className="text-xs sm:text-sm font-bold text-white uppercase tracking-wider">
+              <Layers className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
+              <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
                 Interior Godown Bay Albedo & Moisture Heatmap
               </h3>
             </div>
-            <span className="text-[10px] text-slate-400 font-mono">
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
               Sensors: 6 Bays Active
             </span>
           </div>
@@ -141,29 +141,29 @@ export const RoofLeakView: React.FC<RoofLeakViewProps> = ({
                   key={bay.id}
                   className={`rounded-xl p-3.5 border transition-all ${
                     isCrit
-                      ? 'bg-red-950/30 border-red-500/60 shadow-lg shadow-red-500/15 animate-pulse'
-                      : 'bg-slate-950/70 border-slate-800'
+                      ? 'bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-500/60 shadow-lg shadow-red-500/10 animate-pulse'
+                      : 'bg-slate-50 dark:bg-slate-950/70 border-slate-200 dark:border-slate-800'
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-mono font-bold text-xs text-white">{bay.name}</span>
+                    <span className="font-mono font-bold text-xs text-slate-900 dark:text-white">{bay.name}</span>
                     <span className={`rounded px-1.5 py-0.5 text-[9px] font-bold border ${
                       isCrit
-                        ? 'bg-red-500/20 text-red-300 border-red-500/40'
-                        : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                        ? 'bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-300 border-red-300 dark:border-red-500/40'
+                        : 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-500/20'
                     }`}>
                       {bay.status === 'CRITICAL_LEAK' ? 'WATER SLAB' : 'DRY'}
                     </span>
                   </div>
 
                   <div className="mt-2 text-xs">
-                    <span className="text-slate-400 block text-[10px]">Stored Cargo:</span>
-                    <span className="font-semibold text-slate-200 line-clamp-1">{bay.inventory}</span>
+                    <span className="text-slate-500 dark:text-slate-400 block text-[10px]">Stored Cargo:</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200 line-clamp-1">{bay.inventory}</span>
                   </div>
 
-                  <div className="mt-3 pt-2 border-t border-slate-800/60 flex items-center justify-between text-[11px]">
+                  <div className="mt-3 pt-2 border-t border-slate-200 dark:border-slate-800/60 flex items-center justify-between text-[11px]">
                     <span className="text-slate-500">Diffuse Albedo:</span>
-                    <span className={`font-mono font-bold ${isCrit ? 'text-red-400' : 'text-cyan-400'}`}>
+                    <span className={`font-mono font-bold ${isCrit ? 'text-red-600 dark:text-red-400' : 'text-cyan-600 dark:text-cyan-400'}`}>
                       {bay.albedo}
                     </span>
                   </div>
@@ -174,23 +174,23 @@ export const RoofLeakView: React.FC<RoofLeakViewProps> = ({
         </div>
 
         {/* Rapid Moisture Defense Actions (4 of 12 cols) */}
-        <div className="lg:col-span-4 rounded-2xl bg-slate-900/70 border border-slate-800/80 p-5 backdrop-blur-xl shadow-xl flex flex-col justify-between">
+        <div className="lg:col-span-4 rounded-2xl bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800/80 p-5 backdrop-blur-xl shadow-sm dark:shadow-xl flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800/60">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800/60">
               <div className="flex items-center gap-2">
-                <ShieldAlert className="h-4 w-4 text-amber-400" />
-                <h3 className="text-xs sm:text-sm font-bold text-white uppercase tracking-wider">
+                <ShieldAlert className="h-4 w-4 text-amber-500 dark:text-amber-400" />
+                <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
                   Moisture Mitigation Controls
                 </h3>
               </div>
-              <span className="text-[10px] text-amber-400 font-mono">BAY C-4 ALERT</span>
+              <span className="text-[10px] text-amber-600 dark:text-amber-400 font-mono font-bold">BAY C-4 ALERT</span>
             </div>
 
             <div className="mt-3 space-y-3">
-              <div className="rounded-xl bg-slate-950/70 border border-slate-800 p-3 text-xs space-y-1">
-                <span className="text-[10px] text-slate-400 block uppercase font-bold">Inventory Preservation Value</span>
-                <div className="text-lg font-extrabold text-emerald-400 font-mono">₹18,40,000 INR</div>
-                <p className="text-[10px] text-slate-400">
+              <div className="rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 p-3 text-xs space-y-1">
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 block uppercase font-bold">Inventory Preservation Value</span>
+                <div className="text-lg font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">₹18,40,000 INR</div>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400">
                   350 bags of cement in Bay C-4 splash radius protected from hardening damage.
                 </p>
               </div>
@@ -199,7 +199,7 @@ export const RoofLeakView: React.FC<RoofLeakViewProps> = ({
                 onClick={handleTriggerPump}
                 className={`w-full rounded-xl p-3 text-xs font-bold transition-all cursor-pointer flex items-center justify-between ${
                   pumpActive
-                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                    ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40'
                     : 'bg-cyan-500 text-slate-950 hover:bg-cyan-400 shadow-lg shadow-cyan-500/20'
                 }`}
               >
@@ -214,22 +214,22 @@ export const RoofLeakView: React.FC<RoofLeakViewProps> = ({
                 onClick={handleForkliftRelocation}
                 className={`w-full rounded-xl p-3 text-xs font-bold transition-all cursor-pointer flex items-center justify-between ${
                   relocationActive
-                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                    : 'bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700'
+                    ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700'
                 }`}
               >
                 <span className="flex items-center gap-2">
-                  <PackageCheck className="h-4 w-4 text-cyan-400" />
+                  <PackageCheck className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
                   <span>{relocationActive ? 'Forklifts Relocating Cargo' : 'Dispatch Forklifts to C-4'}</span>
                 </span>
-                <ArrowRight className="h-4 w-4 text-slate-400" />
+                <ArrowRight className="h-4 w-4 text-slate-500 dark:text-slate-400" />
               </button>
             </div>
           </div>
 
-          <div className="mt-4 pt-3 border-t border-slate-800/60 flex items-center justify-between text-[11px] text-slate-400">
+          <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800/60 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
             <span>Automated Weather API: Connected</span>
-            <span className="text-cyan-400 font-mono">Monsoon Radar Active</span>
+            <span className="text-cyan-600 dark:text-cyan-400 font-mono">Monsoon Radar Active</span>
           </div>
         </div>
       </div>
