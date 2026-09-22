@@ -7,18 +7,313 @@ from datetime import datetime, timedelta
 from database import engine, SessionLocal, Base
 from models import Tenant, User, Truck, CCTVCamera, LeakEvent, EWayBill, AuditLog
 
+def migrate_schema():
+    """Ensure newly added columns exist in existing SQLite tables."""
+    from sqlalchemy import text
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(text("PRAGMA table_info(cctv_cameras);")).fetchall()
+            col_names = [r[1] for r in result]
+            if col_names:
+                new_cols = [
+                    ("stream_url", "TEXT"),
+                    ("dmss_serial", "VARCHAR(128)"),
+                    ("dmss_channel", "INTEGER DEFAULT 1"),
+                    ("dmss_username", "VARCHAR(64) DEFAULT 'admin'"),
+                    ("dmss_password", "VARCHAR(128)"),
+                    ("ai_pipeline", "VARCHAR(64) DEFAULT 'ANPR_OCR'"),
+                    ("brand", "VARCHAR(64) DEFAULT 'Dahua'")
+                ]
+                for col, col_type in new_cols:
+                    if col not in col_names:
+                        conn.execute(text(f"ALTER TABLE cctv_cameras ADD COLUMN {col} {col_type};"))
+                conn.commit()
+    except Exception as e:
+        print(f"[MIGRATION NOTE] {e}")
+
 def init_db():
     """Creates tables if they don't exist and seeds initial records."""
+    migrate_schema()
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     try:
+        # Check if cameras for FK and DFW exist; if not, re-seed cameras
+        fk_cam = db.query(CCTVCamera).filter(CCTVCamera.tenant_id == "TENANT-FK-BHW1").first()
+        dfw_cam = db.query(CCTVCamera).filter(CCTVCamera.tenant_id == "TENANT-US-DFW").first()
+        if not fk_cam or not dfw_cam:
+            # Delete old camera records with missing schema and re-seed
+            db.query(CCTVCamera).delete()
+            db.commit()
+            seed_enterprise_cameras(db)
+            return
+
         # Check if tenants already seeded
         existing_tenant = db.query(Tenant).first()
         if existing_tenant:
             return  # Already seeded
 
         print("[DATABASE] Seeding fresh enterprise data into SQLite...")
+        seed_enterprise_data(db)
+    except Exception as e:
+        db.rollback()
+        print(f"[DATABASE ERROR] Failed to seed data: {e}")
+    finally:
+        db.close()
 
+def seed_enterprise_cameras(db):
+    """Seeds multi-tenant CCTV cameras for Amazon BLR1, Flipkart Bhiwandi, and DFW Intermodal."""
+    cameras = [
+        # --- TENANT-AMZN-BLR1 (4 Cameras) ---
+        CCTVCamera(
+            id="cam-01-gate-inbound",
+            tenant_id="TENANT-AMZN-BLR1",
+            name="CAM 01 - Gate North ANPR",
+            stream_type="RTSP",
+            location="North Perimeter Gate 1",
+            status="ONLINE",
+            fps=30,
+            resolution="1080p",
+            stream_url="rtsp://admin:admin123@192.168.1.101:554/cam/realmonitor?channel=1&subtype=0",
+            dmss_serial="DH-98410291-BLR",
+            dmss_channel=1,
+            dmss_username="admin",
+            ai_pipeline="ANPR_OCR",
+            brand="DAHUA_DMSS"
+        ),
+        CCTVCamera(
+            id="cam-02-gate-outbound",
+            tenant_id="TENANT-AMZN-BLR1",
+            name="CAM 02 - Bay 01 Loading Dock",
+            stream_type="DMSS",
+            location="Dock Bay West",
+            status="ONLINE",
+            fps=30,
+            resolution="1080p",
+            stream_url="rtsp://admin:admin123@192.168.1.102:554/cam/realmonitor?channel=2&subtype=0",
+            dmss_serial="DH-98410291-BLR",
+            dmss_channel=2,
+            dmss_username="admin",
+            ai_pipeline="DOCK_CYCLE",
+            brand="DAHUA_DMSS"
+        ),
+        CCTVCamera(
+            id="cam-03-dock-apron",
+            tenant_id="TENANT-AMZN-BLR1",
+            name="CAM 03 - Bay 03 Loading Dock",
+            stream_type="DMSS",
+            location="Dock Bay East",
+            status="ONLINE",
+            fps=30,
+            resolution="1080p",
+            stream_url="rtsp://admin:admin123@192.168.1.103:554/cam/realmonitor?channel=3&subtype=0",
+            dmss_serial="DH-98410291-BLR",
+            dmss_channel=3,
+            dmss_username="admin",
+            ai_pipeline="DOCK_CYCLE",
+            brand="DAHUA_DMSS"
+        ),
+        CCTVCamera(
+            id="cam-04-roof-leak",
+            tenant_id="TENANT-AMZN-BLR1",
+            name="CAM 04 - Interior Godown Floor",
+            stream_type="RTSP",
+            location="Godown Sector 4 Ceiling",
+            status="ONLINE",
+            fps=25,
+            resolution="1080p",
+            stream_url="rtsp://admin:admin123@192.168.1.104:554/cam/realmonitor?channel=4&subtype=0",
+            dmss_serial="DH-98410291-BLR",
+            dmss_channel=4,
+            dmss_username="admin",
+            ai_pipeline="ROOF_LEAK",
+            brand="DAHUA_DMSS"
+        ),
+
+        # --- TENANT-FK-BHW1 (3 Cameras) ---
+        CCTVCamera(
+            id="cam-fk-01-gate",
+            tenant_id="TENANT-FK-BHW1",
+            name="CAM 01 - Bhiwandi Gate 1 ANPR",
+            stream_type="DMSS",
+            location="Main Gate Inbound",
+            status="ONLINE",
+            fps=30,
+            resolution="1080p",
+            stream_url="rtsp://admin:fk1234@10.0.12.10:554/h264/ch1/main",
+            dmss_serial="DH-551029-BHW",
+            dmss_channel=1,
+            dmss_username="admin",
+            ai_pipeline="ANPR_OCR",
+            brand="DAHUA_DMSS"
+        ),
+        CCTVCamera(
+            id="cam-fk-02-apron",
+            tenant_id="TENANT-FK-BHW1",
+            name="CAM 02 - Flipkart Loading Apron",
+            stream_type="RTSP",
+            location="Loading Bays 1-4",
+            status="ONLINE",
+            fps=30,
+            resolution="1080p",
+            stream_url="rtsp://admin:fk1234@10.0.12.11:554/h264/ch2/main",
+            dmss_serial="DH-551029-BHW",
+            dmss_channel=2,
+            dmss_username="admin",
+            ai_pipeline="DOCK_CYCLE",
+            brand="GENERIC_RTSP"
+        ),
+        CCTVCamera(
+            id="cam-fk-03-warehouse",
+            tenant_id="TENANT-FK-BHW1",
+            name="CAM 03 - Sector 2 High-Bay Storage",
+            stream_type="DMSS",
+            location="Rack Zone B (High-Value)",
+            status="ONLINE",
+            fps=25,
+            resolution="1080p",
+            stream_url="rtsp://admin:fk1234@10.0.12.12:554/h264/ch3/main",
+            dmss_serial="DH-551029-BHW",
+            dmss_channel=3,
+            dmss_username="admin",
+            ai_pipeline="SECURITY_INTRUSION",
+            brand="DAHUA_DMSS"
+        ),
+
+        # --- TENANT-US-DFW (8 Cameras) ---
+        CCTVCamera(
+            id="cam-dfw-01-gate-in",
+            tenant_id="TENANT-US-DFW",
+            name="CAM 01 - DFW North Inbound Gate",
+            stream_type="DMSS",
+            location="North Gate 1",
+            status="ONLINE",
+            fps=30,
+            resolution="4K UHD",
+            stream_url="rtsp://admin:usdfw2026@172.16.4.10:554/cam/realmonitor?channel=1&subtype=0",
+            dmss_serial="DH-771920-DFW",
+            dmss_channel=1,
+            dmss_username="admin",
+            ai_pipeline="ANPR_OCR",
+            brand="DAHUA_DMSS"
+        ),
+        CCTVCamera(
+            id="cam-dfw-02-gate-out",
+            tenant_id="TENANT-US-DFW",
+            name="CAM 02 - DFW North Outbound Gate",
+            stream_type="DMSS",
+            location="North Gate 2",
+            status="ONLINE",
+            fps=30,
+            resolution="4K UHD",
+            stream_url="rtsp://admin:usdfw2026@172.16.4.11:554/cam/realmonitor?channel=2&subtype=0",
+            dmss_serial="DH-771920-DFW",
+            dmss_channel=2,
+            dmss_username="admin",
+            ai_pipeline="ANPR_OCR",
+            brand="DAHUA_DMSS"
+        ),
+        CCTVCamera(
+            id="cam-dfw-03-dock-01",
+            tenant_id="TENANT-US-DFW",
+            name="CAM 03 - Intermodal Dock 01",
+            stream_type="RTSP",
+            location="Cross-Dock Bay 01",
+            status="ONLINE",
+            fps=30,
+            resolution="1080p",
+            stream_url="rtsp://admin:usdfw2026@172.16.4.12:554/axis-media/media.amp",
+            dmss_serial="DH-771920-DFW",
+            dmss_channel=3,
+            dmss_username="admin",
+            ai_pipeline="DOCK_CYCLE",
+            brand="AXIS"
+        ),
+        CCTVCamera(
+            id="cam-dfw-04-dock-02",
+            tenant_id="TENANT-US-DFW",
+            name="CAM 04 - Intermodal Dock 02",
+            stream_type="RTSP",
+            location="Cross-Dock Bay 02",
+            status="ONLINE",
+            fps=30,
+            resolution="1080p",
+            stream_url="rtsp://admin:usdfw2026@172.16.4.13:554/axis-media/media.amp",
+            dmss_serial="DH-771920-DFW",
+            dmss_channel=4,
+            dmss_username="admin",
+            ai_pipeline="DOCK_CYCLE",
+            brand="AXIS"
+        ),
+        CCTVCamera(
+            id="cam-dfw-05-dock-03",
+            tenant_id="TENANT-US-DFW",
+            name="CAM 05 - Intermodal Dock 03",
+            stream_type="DMSS",
+            location="Cross-Dock Bay 03",
+            status="ONLINE",
+            fps=30,
+            resolution="1080p",
+            stream_url="rtsp://admin:usdfw2026@172.16.4.14:554/cam/realmonitor?channel=5&subtype=0",
+            dmss_serial="DH-771920-DFW",
+            dmss_channel=5,
+            dmss_username="admin",
+            ai_pipeline="DOCK_CYCLE",
+            brand="DAHUA_DMSS"
+        ),
+        CCTVCamera(
+            id="cam-dfw-06-rail-apron",
+            tenant_id="TENANT-US-DFW",
+            name="CAM 06 - Rail Yard Container Apron",
+            stream_type="HLS",
+            location="BNSF Rail Siding Track 2",
+            status="ONLINE",
+            fps=30,
+            resolution="1080p",
+            stream_url="https://live-streams.yardsight.corp/hls/dfw-rail-06.m3u8",
+            dmss_serial="DH-771920-DFW",
+            dmss_channel=6,
+            dmss_username="admin",
+            ai_pipeline="SECURITY_INTRUSION",
+            brand="GENERIC_RTSP"
+        ),
+        CCTVCamera(
+            id="cam-dfw-07-cold-chain",
+            tenant_id="TENANT-US-DFW",
+            name="CAM 07 - Refrigerated Cold Chain Bay",
+            stream_type="DMSS",
+            location="Temp Controlled Dock 14",
+            status="ONLINE",
+            fps=30,
+            resolution="1080p",
+            stream_url="rtsp://admin:usdfw2026@172.16.4.16:554/cam/realmonitor?channel=7&subtype=0",
+            dmss_serial="DH-771920-DFW",
+            dmss_channel=7,
+            dmss_username="admin",
+            ai_pipeline="DOCK_CYCLE",
+            brand="DAHUA_DMSS"
+        ),
+        CCTVCamera(
+            id="cam-dfw-08-perimeter",
+            tenant_id="TENANT-US-DFW",
+            name="CAM 08 - South Perimeter Radar PTZ",
+            stream_type="DMSS",
+            location="South Fence Perimeter Tower",
+            status="ONLINE",
+            fps=30,
+            resolution="4K UHD",
+            stream_url="rtsp://admin:usdfw2026@172.16.4.17:554/cam/realmonitor?channel=8&subtype=0",
+            dmss_serial="DH-771920-DFW",
+            dmss_channel=8,
+            dmss_username="admin",
+            ai_pipeline="SECURITY_INTRUSION",
+            brand="DAHUA_DMSS"
+        )
+    ]
+    db.add_all(cameras)
+    db.commit()
+
+def seed_enterprise_data(db):
+    try:
         # 1. Tenants
         tenants = [
             Tenant(
@@ -185,51 +480,8 @@ def init_db():
         db.add_all(trucks)
         db.commit()
 
-        # 4. CCTV Cameras
-        cameras = [
-            CCTVCamera(
-                id="cam-01-gate-inbound",
-                tenant_id="TENANT-AMZN-BLR1",
-                name="Camera 01: Inbound Gate ANPR",
-                stream_type="RTSP",
-                location="North Perimeter Gate 1",
-                status="ONLINE",
-                fps=30,
-                resolution="1080p"
-            ),
-            CCTVCamera(
-                id="cam-02-gate-outbound",
-                tenant_id="TENANT-AMZN-BLR1",
-                name="Camera 02: Outbound Gate ANPR",
-                stream_type="RTSP",
-                location="North Perimeter Gate 2",
-                status="ONLINE",
-                fps=30,
-                resolution="1080p"
-            ),
-            CCTVCamera(
-                id="cam-03-dock-apron",
-                tenant_id="TENANT-AMZN-BLR1",
-                name="Camera 03: Loading Docks 01-06",
-                stream_type="HLS",
-                location="Main Warehouse Apron",
-                status="ONLINE",
-                fps=30,
-                resolution="1080p"
-            ),
-            CCTVCamera(
-                id="cam-04-roof-leak",
-                tenant_id="TENANT-AMZN-BLR1",
-                name="Camera 04: Bay C-4 Roof & Slab Physical AI",
-                stream_type="RTSP",
-                location="Godown Sector 4 Ceiling",
-                status="ONLINE",
-                fps=25,
-                resolution="1080p"
-            )
-        ]
-        db.add_all(cameras)
-        db.commit()
+        # 4. CCTV Cameras (Seeded for all facilities)
+        seed_enterprise_cameras(db)
 
         # 5. Leak Anomaly Event
         leak = LeakEvent(

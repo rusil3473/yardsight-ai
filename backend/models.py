@@ -133,16 +133,24 @@ class CCTVCamera(Base):
     id = Column(String(64), primary_key=True, index=True)
     tenant_id = Column(String(64), ForeignKey("tenants.id"), nullable=False)
     name = Column(String(128), nullable=False)
-    stream_type = Column(String(32), default="RTSP")  # RTSP, HLS, WebRTC
+    stream_type = Column(String(32), default="RTSP")  # RTSP, HLS, WebRTC, DMSS
     location = Column(String(128), nullable=False)
-    status = Column(String(32), default="ONLINE")  # ONLINE, OFFLINE, DEGRADED
+    status = Column(String(32), default="ONLINE")  # ONLINE, OFFLINE, DEGRADED, HAZARD
     fps = Column(Integer, default=30)
     resolution = Column(String(32), default="1080p")
+    stream_url = Column(String(512), nullable=True)
+    dmss_serial = Column(String(64), nullable=True)  # Dahua DMSS Device Serial Number
+    dmss_channel = Column(Integer, default=1)
+    dmss_username = Column(String(64), default="admin")
+    dmss_password = Column(String(64), nullable=True)
+    ai_pipeline = Column(String(64), default="ANPR_OCR")  # ANPR_OCR, DOCK_CYCLE, ROOF_LEAK, SECURITY_INTRUSION
+    brand = Column(String(64), default="DAHUA_DMSS")  # DAHUA_DMSS, HIKVISION, AXIS, GENERIC_RTSP, SIMULATED
 
     tenant = relationship("Tenant", back_populates="cameras")
 
     def to_dict(self):
         return {
+            "id": self.id,
             "camera_id": self.id,
             "name": self.name,
             "stream_type": self.stream_type,
@@ -150,6 +158,13 @@ class CCTVCamera(Base):
             "status": self.status,
             "fps": self.fps,
             "resolution": self.resolution,
+            "stream_url": self.stream_url,
+            "dmss_serial": self.dmss_serial,
+            "dmss_channel": self.dmss_channel,
+            "dmss_username": self.dmss_username,
+            "dmss_password": self.dmss_password,
+            "ai_pipeline": self.ai_pipeline,
+            "brand": self.brand,
             "tenant_id": self.tenant_id
         }
 

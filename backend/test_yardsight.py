@@ -191,3 +191,73 @@ def test_database_persistence():
     assert docs_resp.status_code == 200
     docs = docs_resp.json()["documents"]
     assert len(docs) >= 1
+
+def test_cameras_crud_and_dmss():
+    admin_user = ENTERPRISE_USERS["admin@yardsight.corp"]
+    admin_token = create_access_token(admin_user)
+    headers = {"Authorization": f"Bearer {admin_token}"}
+
+    # 1. Multi-tenant cameras dynamic isolation
+    amzn_cams = client.get("/api/cameras?tenant_id=TENANT-AMZN-BLR1").json()
+    assert amzn_cams["count"] == 4
+    assert any("Gate North" in c["name"] for c in amzn_cams["cameras"])
+
+    fk_cams = client.get("/api/cameras?tenant_id=TENANT-FK-BHW1").json()
+    assert fk_cams["count"] == 3
+    assert any("Bhiwandi Gate 1" in c["name"] for c in fk_cams["cameras"])
+
+    dfw_cams = client.get("/api/cameras?tenant_id=TENANT-US-DFW").json()
+    assert dfw_cams["count"] == 8
+    assert any("Intermodal" in c["name"] for c in dfw_cams["cameras"])
+
+    # 2. Test Stream Connection (Dahua DMSS)
+    test_stream_resp = client.post(
+        "/api/cameras/test-stream",
+        json={"stream_type": "DMSS", "dmss_serial": "DH-98410291-BLR", "dmss_channel": 2}
+    )
+    assert test_stream_resp.status_code == 200
+    assert test_stream_resp.json()["connected"] is True
+    assert test_stream_resp.json()["p2p_status"] == "ONLINE"
+
+    # 3. Add new DMSS Camera
+    new_cam_payload = {
+        "name": "Bay 09 DMSS Dahua PTZ",
+        "tenant_id": "TENANT-AMZN-BLR1",
+        "stream_type": "DMSS",
+        "brand": "Dahua",
+        "location": "Bay 09 Loading Dock",
+        "dmss_serial": "DH-29384756-BLR",
+        "dmss_channel": 1,
+        "dmss_username": "admin",
+        "ai_pipeline": "DOCK_CYCLE",
+        "fps": 30,
+        "resolution": "4K Ultra-HD"
+    }
+    add_resp = client.post("/api/cameras", json=new_cam_payload, headers=headers)
+    assert add_resp.status_code == 200
+    created_cam = add_resp.json()["camera"]
+    assert created_cam["dmss_serial"] == "DH-29384756-BLR"
+    cam_id = created_cam["id"]
+
+    # Verify count increased to 5
+    amzn_after_add = client.get("/api/cameras?tenant_id=TENANT-AMZN-BLR1").json()
+    assert amzn_after_add["count"] == 5
+
+    # 4. Update Camera
+    update_resp = client.put(
+        f"/api/cameras/{cam_id}",
+        json={"name": "Bay 09 DMSS PTZ (Updated)", "status": "ONLINE", "fps": 60},
+        headers=headers
+    )
+    assert update_resp.status_code == 200
+    assert update_resp.json()["camera"]["name"] == "Bay 09 DMSS PTZ (Updated)"
+    assert update_resp.json()["camera"]["fps"] == 60
+
+    # 5. Delete Camera
+    del_resp = client.delete(f"/api/cameras/{cam_id}", headers=headers)
+    assert del_resp.status_code == 200
+    assert del_resp.json()["deleted_camera_id"] == cam_id
+
+    # Verify count back to 4
+    amzn_after_del = client.get("/api/cameras?tenant_id=TENANT-AMZN-BLR1").json()
+    assert amzn_after_del["count"] == 4

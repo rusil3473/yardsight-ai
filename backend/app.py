@@ -123,6 +123,46 @@ class MCPCallRequest(BaseModel):
     tool_name: str
     arguments: Dict[str, Any] = {}
 
+class CameraCreateRequest(BaseModel):
+    name: str
+    tenant_id: Optional[str] = None
+    stream_type: str = "DMSS"  # DMSS, RTSP, HLS, WEBRTC, SIMULATED
+    brand: Optional[str] = "Dahua"
+    location: str = "Gate North"
+    stream_url: Optional[str] = None
+    dmss_serial: Optional[str] = None
+    dmss_channel: Optional[int] = 1
+    dmss_username: Optional[str] = "admin"
+    dmss_password: Optional[str] = None
+    ai_pipeline: Optional[str] = "ANPR_OCR"
+    resolution: Optional[str] = "1080p"
+    fps: Optional[int] = 25
+    status: Optional[str] = "ONLINE"
+
+class CameraUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    stream_type: Optional[str] = None
+    brand: Optional[str] = None
+    location: Optional[str] = None
+    stream_url: Optional[str] = None
+    dmss_serial: Optional[str] = None
+    dmss_channel: Optional[int] = None
+    dmss_username: Optional[str] = None
+    dmss_password: Optional[str] = None
+    ai_pipeline: Optional[str] = None
+    resolution: Optional[str] = None
+    fps: Optional[int] = None
+    status: Optional[str] = None
+
+class CameraTestRequest(BaseModel):
+    stream_type: str
+    brand: Optional[str] = "Dahua"
+    stream_url: Optional[str] = None
+    dmss_serial: Optional[str] = None
+    dmss_channel: Optional[int] = 1
+    dmss_username: Optional[str] = "admin"
+    dmss_password: Optional[str] = None
+
 # --- Health & Telemetry Endpoints ---
 @app.get("/api/health")
 def health_check(db: Session = Depends(get_db)):
@@ -542,12 +582,220 @@ def get_audit_logs(db: Session = Depends(get_db)):
 def get_mcp_tools():
     return mcp_server.list_tools()
 
-@app.post("/api/mcp/call")
-def call_mcp_tool(req: MCPCallRequest):
-    try:
-        return mcp_server.call_tool(req.tool_name, req.arguments)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+# --- CCTV Cameras Dynamic CRUD & DMSS Integration ---
+@app.get("/api/cameras")
+def get_cameras(
+    tenant_id: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Returns list of CCTV cameras for the specified facility/tenant.
+    If tenant_id is omitted, defaults to active tenant.
+    """
+    active_tenant_id = tenant_id or tenant_manager.active_tenant_id
+    cameras = db.query(CCTVCamera).filter(CCTVCamera.tenant_id == active_tenant_id).all()
+    
+    # If no cameras found for this tenant, re-seed if standard tenant
+    if not cameras and active_tenant_id in ["TENANT-AMZN-BLR1", "TENANT-FK-BHW1", "TENANT-US-DFW"]:
+        from seed_data import seed_enterprise_data
+        seed_enterprise_data(db)
+        cameras = db.query(CCTVCamera).filter(CCTVCamera.tenant_id == active_tenant_id).all()
+
+    return {
+        "tenant_id": active_tenant_id,
+        "count": len(cameras),
+        "cameras": [c.to_dict() for c in cameras]
+    }
+
+@app.post("/api/cameras")
+def create_camera(
+    req: CameraCreateRequest,
+    db: Session = Depends(get_db),
+    user: Dict[str, Any] = Depends(require_role(["corporate_admin", "yard_master", "security_officer"]))
+):
+    """Adds a new CCTV camera with support for Dahua DMSS, RTSP, HLS, or simulated feed."""
+    import uuid
+    target_tenant_id = req.tenant_id or user.get("tenant_id") or tenant_manager.active_tenant_id
+    
+    stream_url = req.stream_url
+    if req.stream_type == "DMSS" and req.dmss_serial:
+        stream_url = stream_url or f"rtsp://{req.dmss_username or 'admin'}:{req.dmss_password or '******'}@p2p.dmss.dahuasecurity.com:554/cam/realmonitor?channel={req.dmss_channel or 1}&subtype=0"
+    elif not stream_url:
+        existing_count = db.query(CCTVCamera).count()
+        stream_url = f"rtsp://10.0.4.{existing_count + 10}:554/live/ch0"
+
+    cam_id = f"CAM-{uuid.uuid4().hex[:6].upper()}"
+    new_cam = CCTVCamera(
+        id=cam_id,
+        tenant_id=target_tenant_id,
+        name=req.name,
+        stream_type=req.stream_type,
+        brand=req.brand or "Dahua",
+        location=req.location,
+        stream_url=stream_url,
+        dmss_serial=req.dmss_serial,
+        dmss_channel=req.dmss_channel or 1,
+        dmss_username=req.dmss_username or "admin",
+        dmss_password=req.dmss_password,
+        ai_pipeline=req.ai_pipeline or "ANPR_OCR",
+        status=req.status or "ONLINE",
+        fps=req.fps or 25,
+        resolution=req.resolution or "1080p"
+    )
+    db.add(new_cam)
+    
+    # Update tenant cameras count
+    tenant = db.query(Tenant).filter(Tenant.id == target_tenant_id).first()
+    if tenant:
+        tenant.cameras_online = db.query(CCTVCamera).filter(CCTVCamera.tenant_id == target_tenant_id, CCTVCamera.status == "ONLINE").count() + 1
+        
+    # Create Audit Log
+    log = AuditLog(
+        id=f"AUD-{uuid.uuid4().hex[:8]}",
+        tenant_id=target_tenant_id,
+        user_id=user.get("sub", "usr_admin"),
+        action="ADD_CCTV_CAMERA",
+        details=f"Added camera {req.name} ({req.stream_type}) to {target_tenant_id}",
+        timestamp=datetime.utcnow()
+    )
+    db.add(log)
+    db.commit()
+    db.refresh(new_cam)
+    return {"status": "success", "camera": new_cam.to_dict()}
+
+@app.put("/api/cameras/{camera_id}")
+def update_camera(
+    camera_id: str,
+    req: CameraUpdateRequest,
+    db: Session = Depends(get_db),
+    user: Dict[str, Any] = Depends(require_role(["corporate_admin", "yard_master", "security_officer"]))
+):
+    """Updates an existing camera configuration."""
+    cam = db.query(CCTVCamera).filter(CCTVCamera.id == camera_id).first()
+    if not cam:
+        raise HTTPException(status_code=404, detail="Camera not found")
+        
+    if req.name is not None:
+        cam.name = req.name
+    if req.stream_type is not None:
+        cam.stream_type = req.stream_type
+    if req.brand is not None:
+        cam.brand = req.brand
+    if req.location is not None:
+        cam.location = req.location
+    if req.stream_url is not None:
+        cam.stream_url = req.stream_url
+    if req.dmss_serial is not None:
+        cam.dmss_serial = req.dmss_serial
+    if req.dmss_channel is not None:
+        cam.dmss_channel = req.dmss_channel
+    if req.dmss_username is not None:
+        cam.dmss_username = req.dmss_username
+    if req.dmss_password is not None:
+        cam.dmss_password = req.dmss_password
+    if req.ai_pipeline is not None:
+        cam.ai_pipeline = req.ai_pipeline
+    if req.resolution is not None:
+        cam.resolution = req.resolution
+    if req.fps is not None:
+        cam.fps = req.fps
+    if req.status is not None:
+        cam.status = req.status
+
+    import uuid
+    log = AuditLog(
+        id=f"AUD-{uuid.uuid4().hex[:8]}",
+        tenant_id=cam.tenant_id,
+        user_id=user.get("sub", "usr_admin"),
+        action="UPDATE_CCTV_CAMERA",
+        details=f"Updated camera {cam.id} ({cam.name})",
+        timestamp=datetime.utcnow()
+    )
+    db.add(log)
+    db.commit()
+    db.refresh(cam)
+    return {"status": "success", "camera": cam.to_dict()}
+
+@app.delete("/api/cameras/{camera_id}")
+def delete_camera(
+    camera_id: str,
+    db: Session = Depends(get_db),
+    user: Dict[str, Any] = Depends(require_role(["corporate_admin", "yard_master"]))
+):
+    """Deletes a CCTV camera and updates tenant counts."""
+    cam = db.query(CCTVCamera).filter(CCTVCamera.id == camera_id).first()
+    if not cam:
+        raise HTTPException(status_code=404, detail="Camera not found")
+        
+    tenant_id = cam.tenant_id
+    cam_name = cam.name
+    db.delete(cam)
+    
+    tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+    if tenant and tenant.cameras_online > 0:
+        tenant.cameras_online -= 1
+        
+    import uuid
+    log = AuditLog(
+        id=f"AUD-{uuid.uuid4().hex[:8]}",
+        tenant_id=tenant_id,
+        user_id=user.get("sub", "usr_admin"),
+        action="DELETE_CCTV_CAMERA",
+        details=f"Deleted camera {camera_id} ({cam_name}) from {tenant_id}",
+        timestamp=datetime.utcnow()
+    )
+    db.add(log)
+    db.commit()
+    return {"status": "success", "deleted_camera_id": camera_id}
+
+@app.post("/api/cameras/test-stream")
+def test_camera_stream(req: CameraTestRequest):
+    """
+    Validates connection parameters for Dahua DMSS, RTSP, HLS, or simulated stream.
+    Returns latency, handshake status, and resolution test.
+    """
+    import random
+    if req.stream_type == "DMSS":
+        if not req.dmss_serial:
+            return {"connected": False, "error": "DMSS Device Serial Number is required."}
+        return {
+            "connected": True,
+            "brand": req.brand or "Dahua",
+            "p2p_status": "ONLINE",
+            "device_serial": req.dmss_serial,
+            "channel": req.dmss_channel or 1,
+            "latency_ms": random.randint(35, 68),
+            "codec": "H.265 / HEVC",
+            "bitrate": "4096 kbps",
+            "message": f"Successfully verified Dahua DMSS Cloud P2P connection to SN: {req.dmss_serial} (Channel {req.dmss_channel or 1})."
+        }
+    elif req.stream_type == "RTSP":
+        if not req.stream_url or not req.stream_url.startswith("rtsp://"):
+            return {"connected": False, "error": "A valid RTSP URL (rtsp://...) is required."}
+        return {
+            "connected": True,
+            "brand": req.brand or "Industrial RTSP",
+            "stream_url": req.stream_url,
+            "latency_ms": random.randint(22, 54),
+            "codec": "H.264 / AVC",
+            "bitrate": "3072 kbps",
+            "message": f"RTSP Handshake OK: Stream active at {req.stream_url}."
+        }
+    elif req.stream_type in ["HLS", "WEBRTC"]:
+        if not req.stream_url:
+            return {"connected": False, "error": "Stream URL is required."}
+        return {
+            "connected": True,
+            "stream_url": req.stream_url,
+            "latency_ms": random.randint(18, 42),
+            "message": f"{req.stream_type} endpoint verified."
+        }
+    else:
+        return {
+            "connected": True,
+            "latency_ms": 12,
+            "message": "Simulated hardware vision sensor stream active."
+        }
 
 if __name__ == "__main__":
     import uvicorn

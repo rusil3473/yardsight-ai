@@ -16,9 +16,14 @@ import {
   Database,
   Download,
   RefreshCw,
-  Server
+  Server,
+  Plus,
+  Edit2,
+  Trash2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { CameraModal } from '../components/CameraModal';
+import type { CCTVCamera } from '../components/CameraModal';
 
 export const ScaleSettingsView: React.FC = () => {
   const { user, tenant, updateProfile, updateTenantSettings } = useAuth();
@@ -41,6 +46,14 @@ export const ScaleSettingsView: React.FC = () => {
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
 
+  // Dynamic CCTV Cameras State
+  const [cameras, setCameras] = useState<CCTVCamera[]>([]);
+  const [loadingCameras, setLoadingCameras] = useState(false);
+  const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
+  const [editingCamera, setEditingCamera] = useState<CCTVCamera | null>(null);
+
+  const activeTenantId = tenant.tenant_id || (tenant as any).id || 'TENANT-AMZN-BLR1';
+
   useEffect(() => {
     setName(user.name);
     setEmail(user.email);
@@ -53,14 +66,85 @@ export const ScaleSettingsView: React.FC = () => {
     setSlaTarget(tenant.sla_target_turnaround_mins);
     setFreeTime(tenant.free_time_hours);
     setDetentionRate(tenant.detention_rate_per_hour);
+    fetchCameras();
   }, [tenant]);
 
   // Fetch real SQLite audit logs when compliance tab is selected
   useEffect(() => {
     if (activeSection === 'compliance') {
       fetchAuditLogs();
+    } else if (activeSection === 'facility') {
+      fetchCameras();
     }
   }, [activeSection]);
+
+  const fetchCameras = async () => {
+    setLoadingCameras(true);
+    try {
+      const res = await fetch(`http://127.0.0.1:8001/api/cameras?tenant_id=${activeTenantId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setCameras(data.cameras || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch cameras:', err);
+    } finally {
+      setLoadingCameras(false);
+    }
+  };
+
+  const handleOpenAddCamera = () => {
+    setEditingCamera(null);
+    setIsCameraModalOpen(true);
+  };
+
+  const handleOpenEditCamera = (cam: CCTVCamera) => {
+    setEditingCamera(cam);
+    setIsCameraModalOpen(true);
+  };
+
+  const handleSaveCamera = async (cameraData: Partial<CCTVCamera>) => {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    const token = localStorage.getItem('yardsight_token');
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    if (editingCamera) {
+      const res = await fetch(`http://127.0.0.1:8001/api/cameras/${editingCamera.id}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(cameraData)
+      });
+      if (!res.ok) throw new Error('Failed to update camera');
+      showToast(`Updated camera "${cameraData.name || editingCamera.name}" in SQLite.`);
+    } else {
+      const res = await fetch('http://127.0.0.1:8001/api/cameras', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ ...cameraData, tenant_id: activeTenantId })
+      });
+      if (!res.ok) throw new Error('Failed to create camera');
+      showToast(`Added new CCTV camera "${cameraData.name}" to SQLite.`);
+    }
+    fetchCameras();
+  };
+
+  const handleDeleteCamera = async (cameraId: string) => {
+    const headers: Record<string, string> = {};
+    const token = localStorage.getItem('yardsight_token');
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    try {
+      const res = await fetch(`http://127.0.0.1:8001/api/cameras/${cameraId}`, {
+        method: 'DELETE',
+        headers
+      });
+      if (!res.ok) throw new Error('Failed to delete camera');
+      showToast('Camera deleted from SQLite database.');
+      fetchCameras();
+    } catch (err: any) {
+      alert(`Error deleting camera: ${err.message || err}`);
+    }
+  };
 
   const fetchAuditLogs = async () => {
     setLoadingLogs(true);
@@ -431,47 +515,109 @@ export const ScaleSettingsView: React.FC = () => {
 
                 {/* Camera & Sensor Mapping Table */}
                 <div className="pt-2">
-                  <h4 className="text-xs font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
-                    <Camera className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                    Industrial Vision Camera & Sensor Mapping
-                  </h4>
-                  <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-950/40">
-                    <table className="w-full text-left text-xs">
-                      <thead className="bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase">
-                        <tr>
-                          <th className="px-4 py-2.5">Camera ID</th>
-                          <th className="px-4 py-2.5">Type</th>
-                          <th className="px-4 py-2.5">Location</th>
-                          <th className="px-4 py-2.5">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800/40">
-                        <tr>
-                          <td className="px-4 py-2.5 font-mono text-cyan-600 dark:text-cyan-400 font-medium">cam-01-gate-inbound</td>
-                          <td className="px-4 py-2.5 text-slate-700 dark:text-slate-300">ANPR Homography</td>
-                          <td className="px-4 py-2.5 text-slate-500 dark:text-slate-400">Gate 1 North</td>
-                          <td className="px-4 py-2.5"><span className="text-emerald-600 dark:text-emerald-400 font-bold">ONLINE</span></td>
-                        </tr>
-                        <tr>
-                          <td className="px-4 py-2.5 font-mono text-cyan-600 dark:text-cyan-400 font-medium">cam-02-gate-outbound</td>
-                          <td className="px-4 py-2.5 text-slate-700 dark:text-slate-300">ANPR Homography</td>
-                          <td className="px-4 py-2.5 text-slate-500 dark:text-slate-400">Gate 2 North</td>
-                          <td className="px-4 py-2.5"><span className="text-emerald-600 dark:text-emerald-400 font-bold">ONLINE</span></td>
-                        </tr>
-                        <tr>
-                          <td className="px-4 py-2.5 font-mono text-cyan-600 dark:text-cyan-400 font-medium">cam-03-dock-apron</td>
-                          <td className="px-4 py-2.5 text-slate-700 dark:text-slate-300">Dock Dwell Cycle</td>
-                          <td className="px-4 py-2.5 text-slate-500 dark:text-slate-400">Loading Bays 1-6</td>
-                          <td className="px-4 py-2.5"><span className="text-emerald-600 dark:text-emerald-400 font-bold">ONLINE</span></td>
-                        </tr>
-                        <tr>
-                          <td className="px-4 py-2.5 font-mono text-cyan-600 dark:text-cyan-400 font-medium">cam-04-roof-leak</td>
-                          <td className="px-4 py-2.5 text-slate-700 dark:text-slate-300">Specular Concrete Leak AI</td>
-                          <td className="px-4 py-2.5 text-slate-500 dark:text-slate-400">Godown Bay C-4</td>
-                          <td className="px-4 py-2.5"><span className="text-amber-600 dark:text-amber-400 font-bold">HAZARD SPIKE</span></td>
-                        </tr>
-                      </tbody>
-                    </table>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      <Camera className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                      Industrial Vision Camera & Sensor Mapping ({cameras.length} Active in {tenant.name})
+                    </h4>
+                    <button
+                      type="button"
+                      onClick={handleOpenAddCamera}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:from-cyan-400 hover:to-blue-500 transition-all cursor-pointer active:scale-95"
+                    >
+                      <Plus className="h-3 w-3" />
+                      <span>Add CCTV Camera</span>
+                    </button>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-950/40 shadow-sm">
+                    {loadingCameras ? (
+                      <div className="p-8 text-center text-xs text-slate-500 flex items-center justify-center gap-2">
+                        <RefreshCw className="h-4 w-4 animate-spin text-cyan-500" />
+                        <span>Loading CCTV cameras from SQLite...</span>
+                      </div>
+                    ) : cameras.length === 0 ? (
+                      <div className="p-8 text-center text-xs text-slate-500">
+                        No cameras registered for this facility. Click "Add CCTV Camera" to connect a Dahua DMSS or RTSP stream.
+                      </div>
+                    ) : (
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase">
+                          <tr>
+                            <th className="px-4 py-2.5">Camera ID & Protocol</th>
+                            <th className="px-4 py-2.5">Camera Name</th>
+                            <th className="px-4 py-2.5">Location & Pipeline</th>
+                            <th className="px-4 py-2.5">Resolution / FPS</th>
+                            <th className="px-4 py-2.5">Status</th>
+                            <th className="px-4 py-2.5 text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800/40">
+                          {cameras.map((c) => (
+                            <tr key={c.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/30 transition-colors">
+                              <td className="px-4 py-2.5 font-mono text-cyan-600 dark:text-cyan-400 font-medium">
+                                <div className="flex items-center gap-1.5">
+                                  <span>{c.id}</span>
+                                  <span className="rounded bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 text-[9px] font-mono text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                                    {c.stream_type}
+                                  </span>
+                                </div>
+                                {c.stream_type === 'DMSS' && c.dmss_serial && (
+                                  <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                                    SN: {c.dmss_serial} (CH {c.dmss_channel || 1})
+                                  </div>
+                                )}
+                              </td>
+                              <td className="px-4 py-2.5 text-slate-900 dark:text-slate-200 font-semibold">
+                                {c.name}
+                              </td>
+                              <td className="px-4 py-2.5">
+                                <div className="text-slate-700 dark:text-slate-300 font-medium">{c.location}</div>
+                                <div className="text-[10px] text-cyan-600 dark:text-cyan-400 font-mono">{c.ai_pipeline}</div>
+                              </td>
+                              <td className="px-4 py-2.5 text-slate-500 dark:text-slate-400 font-mono text-[11px]">
+                                {c.resolution || '1080p'} • {c.fps || 30} FPS
+                              </td>
+                              <td className="px-4 py-2.5">
+                                <span className={`font-bold text-[10px] px-2 py-0.5 rounded-full border ${
+                                  c.status === 'ONLINE'
+                                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                                    : c.status === 'HAZARD'
+                                    ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
+                                    : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+                                }`}>
+                                  {c.status}
+                                </span>
+                              </td>
+                              <td className="px-4 py-2.5 text-right">
+                                <div className="flex items-center justify-end gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenEditCamera(c)}
+                                    title="Edit Camera"
+                                    className="p-1 rounded-md text-slate-500 hover:text-cyan-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                                  >
+                                    <Edit2 className="h-3.5 w-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (confirm(`Delete camera "${c.name}" (${c.id})?`)) {
+                                        handleDeleteCamera(c.id);
+                                      }
+                                    }}
+                                    title="Delete Camera"
+                                    className="p-1 rounded-md text-slate-500 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
                   </div>
                 </div>
               </div>
@@ -574,6 +720,14 @@ export const ScaleSettingsView: React.FC = () => {
           </div>
         </div>
       </div>
+      {/* Camera Add / Edit Modal */}
+      <CameraModal
+        isOpen={isCameraModalOpen}
+        onClose={() => setIsCameraModalOpen(false)}
+        onSave={handleSaveCamera}
+        initialCamera={editingCamera}
+        tenantId={activeTenantId}
+      />
     </div>
   );
 };

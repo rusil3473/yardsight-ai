@@ -52,7 +52,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       id: 'video' as TabId,
       label: 'Live CCTV Matrix',
       icon: Video,
-      badge: '4 LIVE',
+      badge: `${tenant.cameras_online} LIVE`,
       badgeColor: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/25',
       description: 'Perspective homography & ANPR'
     },
