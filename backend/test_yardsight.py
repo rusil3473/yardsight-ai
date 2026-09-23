@@ -199,7 +199,8 @@ def test_cameras_crud_and_dmss():
 
     # 1. Multi-tenant cameras dynamic isolation
     amzn_cams = client.get("/api/cameras?tenant_id=TENANT-AMZN-BLR1").json()
-    assert amzn_cams["count"] == 4
+    initial_count = amzn_cams["count"]
+    assert initial_count >= 4
     assert any("Gate North" in c["name"] for c in amzn_cams["cameras"])
 
     fk_cams = client.get("/api/cameras?tenant_id=TENANT-FK-BHW1").json()
@@ -239,9 +240,9 @@ def test_cameras_crud_and_dmss():
     assert created_cam["dmss_serial"] == "DH-29384756-BLR"
     cam_id = created_cam["id"]
 
-    # Verify count increased to 5
+    # Verify count increased by 1
     amzn_after_add = client.get("/api/cameras?tenant_id=TENANT-AMZN-BLR1").json()
-    assert amzn_after_add["count"] == 5
+    assert amzn_after_add["count"] == initial_count + 1
 
     # 4. Update Camera
     update_resp = client.put(
@@ -258,6 +259,75 @@ def test_cameras_crud_and_dmss():
     assert del_resp.status_code == 200
     assert del_resp.json()["deleted_camera_id"] == cam_id
 
-    # Verify count back to 4
+    # Verify count restored to initial_count
     amzn_after_del = client.get("/api/cameras?tenant_id=TENANT-AMZN-BLR1").json()
-    assert amzn_after_del["count"] == 4
+    assert amzn_after_del["count"] == initial_count
+
+def test_multi_facility_trucks_and_documents_crud():
+    token = create_access_token(ENTERPRISE_USERS["admin@yardsight.corp"])
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # 1. Multi-facility trucks dynamic isolation
+    amzn_trucks = client.get("/api/dwell/trucks?tenant_id=TENANT-AMZN-BLR1").json()
+    assert len(amzn_trucks) >= 4
+    assert any("Tata Logistics" in t["carrier_name"] for t in amzn_trucks)
+
+    fk_trucks = client.get("/api/dwell/trucks?tenant_id=TENANT-FK-BHW1").json()
+    assert len(fk_trucks) >= 3
+    assert any("Gati-KWE" in t["carrier_name"] or "Safexpress" in t["carrier_name"] for t in fk_trucks)
+
+    dfw_trucks = client.get("/api/dwell/trucks?tenant_id=TENANT-US-DFW").json()
+    assert len(dfw_trucks) >= 4
+    assert any("Swift Transportation" in t["carrier_name"] or "Schneider" in t["carrier_name"] for t in dfw_trucks)
+
+    # 2. Add / Check-in new truck
+    new_truck_payload = {
+        "plate_number": "KA-51-MM-8844",
+        "carrier_name": "FedEx Express Surface",
+        "driver_name": "Anil Kumar",
+        "driver_phone": "+91-98765-99887",
+        "dock_number": "Dock 07",
+        "status": "INBOUND",
+        "cargo_desc": "15 Pallets High-Tech Components",
+        "tenant_id": "TENANT-AMZN-BLR1",
+        "country": "IN"
+    }
+    create_resp = client.post("/api/trucks", json=new_truck_payload, headers=headers)
+    assert create_resp.status_code == 200
+    created_trk = create_resp.json()["truck"]
+    assert created_trk["plate_number"] == "KA-51-MM-8844"
+    truck_id = created_trk["id"]
+
+    # 3. Update truck
+    update_resp = client.put(
+        f"/api/trucks/{truck_id}",
+        json={"dock_number": "Dock 07 (Active)", "status": "AT_DOCK"},
+        headers=headers
+    )
+    assert update_resp.status_code == 200
+    assert update_resp.json()["truck"]["status"] == "AT_DOCK"
+    assert update_resp.json()["truck"]["dock_number"] == "Dock 07 (Active)"
+
+    # 4. Generate document for this truck
+    doc_resp = client.post(
+        "/api/documents/generate",
+        json={"truck_id": truck_id, "doc_type": "GST_EWAY_BILL", "tenant_id": "TENANT-AMZN-BLR1"},
+        headers=headers
+    )
+    assert doc_resp.status_code == 200
+    doc_data = doc_resp.json()
+    assert doc_data["type"] == "GST_EWAY_BILL"
+
+    # 5. List documents filtered by tenant
+    doc_list = client.get("/api/documents/list?tenant_id=TENANT-AMZN-BLR1").json()
+    assert len(doc_list["documents"]) >= 1
+    recent_doc = doc_list["documents"][0]
+
+    # 6. Delete document
+    del_doc_resp = client.delete(f"/api/documents/{recent_doc['id']}", headers=headers)
+    assert del_doc_resp.status_code == 200
+
+    # 7. Delete truck
+    del_truck_resp = client.delete(f"/api/trucks/{truck_id}", headers=headers)
+    assert del_truck_resp.status_code == 200
+

@@ -9,7 +9,8 @@ import {
   ShieldCheck,
   Share2,
   Search,
-  RefreshCw
+  RefreshCw,
+  Trash2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -28,7 +29,8 @@ interface TruckItem {
 }
 
 export const EWayBillsView: React.FC<EWayBillsViewProps> = ({ marketMode }) => {
-  const { user, token } = useAuth();
+  const { user, token, tenant } = useAuth();
+  const activeTenantId = tenant?.tenant_id || (tenant as any)?.id || 'TENANT-AMZN-BLR1';
   const [selectedTruckId, setSelectedTruckId] = useState('TRK-9041');
   const [docType, setDocType] = useState<'GST_EWAY_BILL' | 'US_EBOL'>(
     marketMode === 'IN_GST' ? 'GST_EWAY_BILL' : 'US_EBOL'
@@ -38,46 +40,43 @@ export const EWayBillsView: React.FC<EWayBillsViewProps> = ({ marketMode }) => {
   const [savedDocuments, setSavedDocuments] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedToast, setCopiedToast] = useState<string | null>(null);
+  const [trucksList, setTrucksList] = useState<TruckItem[]>([]);
 
-  const TRUCKS: TruckItem[] = [
-    {
-      id: 'TRK-9041',
-      plate: 'MH-12-RN-4819',
-      carrier: 'Tata Logistics Express',
-      goods: '24 Pallets (Commercial FMCG & Electronics)',
-      dock: 'Dock 02',
-      status: 'DOCK_UNLOADING',
-      invoiceValue: 5723000
-    },
-    {
-      id: 'TRK-8820',
-      plate: 'KA-04-AK-2201',
-      carrier: 'BlueDart Surface Prime',
-      goods: '18 Pallets (Apparel & Footwear)',
-      dock: 'Dock 05',
-      status: 'INBOUND_INSPECTED',
-      invoiceValue: 3410000
-    },
-    {
-      id: 'TRK-7731',
-      plate: 'DL-01-EE-9912',
-      carrier: 'Delhivery Heavy Freight',
-      goods: '30 Pallets (Industrial Spares & Hardware)',
-      dock: 'Bay 01',
-      status: 'PENDING_CLEARANCE',
-      invoiceValue: 7890000
-    }
-  ];
-
-  // Auto-generate / default-load document for selected truck on mount
+  // Fetch live trucks & documents for the active facility
   useEffect(() => {
-    handleGenerateDoc(selectedTruckId, docType);
+    fetchLiveTrucks();
     fetchDocuments();
-  }, [marketMode]);
+  }, [marketMode, activeTenantId]);
+
+  const fetchLiveTrucks = async () => {
+    try {
+      const res = await fetch(`http://127.0.0.1:8001/api/dwell/trucks?tenant_id=${activeTenantId}`);
+      if (res.ok) {
+        const data = await res.json();
+        const mapped: TruckItem[] = data.map((t: any) => ({
+          id: t.truck_id || t.id,
+          plate: t.plate_number,
+          carrier: t.carrier_name,
+          goods: t.cargo_desc || t.cargo_items || 'Commercial Logistics Freight',
+          dock: t.dock_number || t.assigned_bay || 'Bay 01',
+          status: t.status === 'DETENTION' ? 'DOCK_UNLOADING' : t.status === 'AT_DOCK' ? 'DOCK_UNLOADING' : 'INBOUND_INSPECTED',
+          invoiceValue: t.country === 'US' ? 48500 : 5420000
+        }));
+        setTrucksList(mapped);
+        if (mapped.length > 0) {
+          const firstId = mapped[0].id;
+          setSelectedTruckId(firstId);
+          handleGenerateDoc(firstId, marketMode === 'IN_GST' ? 'GST_EWAY_BILL' : 'US_EBOL', mapped);
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to fetch live trucks for facility:', e);
+    }
+  };
 
   const fetchDocuments = async () => {
     try {
-      const res = await fetch('http://127.0.0.1:8001/api/documents/list');
+      const res = await fetch(`http://127.0.0.1:8001/api/documents/list?tenant_id=${activeTenantId}`);
       if (res.ok) {
         const data = await res.json();
         setSavedDocuments(data.documents || []);
@@ -87,12 +86,39 @@ export const EWayBillsView: React.FC<EWayBillsViewProps> = ({ marketMode }) => {
     }
   };
 
-  const handleGenerateDoc = async (truckId: string, type: 'GST_EWAY_BILL' | 'US_EBOL') => {
+  const handleDeleteDoc = async (docId: string) => {
+    try {
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const res = await fetch(`http://127.0.0.1:8001/api/documents/${docId}`, {
+        method: 'DELETE',
+        headers
+      });
+      if (res.ok) {
+        setSavedDocuments(prev => prev.filter(d => d.id !== docId && d.ewb_number !== docId));
+        setCopiedToast('Document successfully deleted from register');
+        setTimeout(() => setCopiedToast(null), 3000);
+      }
+    } catch (e) {
+      console.error('Failed to delete document:', e);
+    }
+  };
+
+  const handleGenerateDoc = async (truckId: string, type: 'GST_EWAY_BILL' | 'US_EBOL', customTrucks?: TruckItem[]) => {
     setIsLoading(true);
     setSelectedTruckId(truckId);
     setDocType(type);
 
-    const activeTruck = TRUCKS.find(t => t.id === truckId) || TRUCKS[0];
+    const sourceList = customTrucks || trucksList;
+    const activeTruck = sourceList.find(t => t.id === truckId) || sourceList[0] || {
+      id: truckId,
+      plate: 'MH-12-RN-4819',
+      carrier: 'Tata Logistics Express',
+      goods: '24 Pallets Commercial Freight',
+      dock: 'Dock 02',
+      status: 'DOCK_UNLOADING' as const,
+      invoiceValue: 5723000
+    };
 
     try {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -101,7 +127,7 @@ export const EWayBillsView: React.FC<EWayBillsViewProps> = ({ marketMode }) => {
       const res = await fetch('http://127.0.0.1:8001/api/documents/generate', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ truck_id: truckId, doc_type: type })
+        body: JSON.stringify({ truck_id: truckId, doc_type: type, tenant_id: activeTenantId })
       });
 
       if (res.ok) {
@@ -257,7 +283,7 @@ export const EWayBillsView: React.FC<EWayBillsViewProps> = ({ marketMode }) => {
                 </h2>
               </div>
               <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
-                3 Trucks Active
+                {trucksList.length} Trucks Active
               </span>
             </div>
 
@@ -267,7 +293,7 @@ export const EWayBillsView: React.FC<EWayBillsViewProps> = ({ marketMode }) => {
 
             {/* Truck Selection Cards */}
             <div className="mt-3 space-y-2.5">
-              {TRUCKS.map((t) => {
+              {trucksList.map((t) => {
                 const isSelected = selectedTruckId === t.id;
                 return (
                   <div
@@ -760,12 +786,21 @@ export const EWayBillsView: React.FC<EWayBillsViewProps> = ({ marketMode }) => {
                       {doc.generated_at ? new Date(doc.generated_at).toLocaleString() : 'Recent'}
                     </td>
                     <td className="py-3 px-3 text-right">
-                      <button
-                        onClick={() => window.print()}
-                        className="text-cyan-600 dark:text-cyan-400 hover:text-cyan-500 font-semibold text-[11px] cursor-pointer"
-                      >
-                        Print Copy
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => window.print()}
+                          className="text-cyan-600 dark:text-cyan-400 hover:text-cyan-500 font-semibold text-[11px] cursor-pointer"
+                        >
+                          Print Copy
+                        </button>
+                        <button
+                          onClick={() => handleDeleteDoc(doc.id || doc.ewb_number)}
+                          title="Delete Document from Register"
+                          className="p-1 rounded text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))

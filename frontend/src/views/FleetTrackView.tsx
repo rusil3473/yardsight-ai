@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import {
   Clock,
   AlertTriangle,
@@ -5,15 +6,21 @@ import {
   BarChart3,
   CheckCircle2,
   Scale,
-  ArrowRight
+  ArrowRight,
+  Plus
 } from 'lucide-react';
 import { DockTurnaroundTracker } from '../components/DockTurnaroundTracker';
+import { TruckModal, type TruckFormData } from '../components/TruckModal';
 import { useAuth } from '../context/AuthContext';
 
 interface FleetTrackViewProps {
   trucks: any[];
   onGenerateDocument: (truckId: string, docType: string) => void;
   onSendDispatch: (truckId: string) => void;
+  onAddTruck?: (data: any) => Promise<{ success: boolean; message?: string }>;
+  onUpdateStatus?: (truckId: string, status: string, dockNumber?: string) => void;
+  onDeleteTruck?: (truckId: string) => void;
+  onRefreshTrucks?: () => void;
   generatedDoc: any;
   marketMode: string;
 }
@@ -22,18 +29,61 @@ export const FleetTrackView: React.FC<FleetTrackViewProps> = ({
   trucks,
   onGenerateDocument,
   onSendDispatch,
+  onAddTruck,
+  onUpdateStatus,
+  onDeleteTruck,
+  onRefreshTrucks,
   generatedDoc,
   marketMode
 }) => {
-  const { tenant } = useAuth();
+  const { tenant, token } = useAuth();
   const detentionCount = trucks.filter(t => t.is_detention).length;
+  const [isTruckModalOpen, setIsTruckModalOpen] = useState(false);
+  const [editingTruck, setEditingTruck] = useState<any | null>(null);
 
-  const CARRIER_BENCHMARKS = [
-    { name: 'Tata Logistics Express', avgDwell: '52m', onTimeRate: '94.2%', activeTrucks: 2, status: 'OPTIMAL' },
-    { name: 'BlueDart Surface Prime', avgDwell: '38m', onTimeRate: '98.5%', activeTrucks: 1, status: 'EXEMPLARY' },
-    { name: 'Delhivery Heavy Freight', avgDwell: '64m', onTimeRate: '88.0%', activeTrucks: 1, status: 'DETENTION_RISK' },
-    { name: 'VRL Logistics Cold Chain', avgDwell: '42m', onTimeRate: '96.1%', activeTrucks: 1, status: 'OPTIMAL' }
-  ];
+  const isUS = marketMode === 'US_FREIGHT';
+
+  const CARRIER_BENCHMARKS = isUS
+    ? [
+        { name: 'Swift Transportation US', avgDwell: '42m', onTimeRate: '96.5%', activeTrucks: 2, status: 'OPTIMAL' },
+        { name: 'Schneider National Intermodal', avgDwell: '48m', onTimeRate: '93.8%', activeTrucks: 1, status: 'OPTIMAL' },
+        { name: 'J.B. Hunt Transport', avgDwell: '35m', onTimeRate: '98.2%', activeTrucks: 1, status: 'EXEMPLARY' },
+        { name: 'Knight-Swift Logistics', avgDwell: '62m', onTimeRate: '89.1%', activeTrucks: 1, status: 'DETENTION_RISK' }
+      ]
+    : [
+        { name: 'Tata Logistics Express', avgDwell: '52m', onTimeRate: '94.2%', activeTrucks: 2, status: 'OPTIMAL' },
+        { name: 'BlueDart Surface Prime', avgDwell: '38m', onTimeRate: '98.5%', activeTrucks: 1, status: 'EXEMPLARY' },
+        { name: 'Delhivery Heavy Freight', avgDwell: '64m', onTimeRate: '88.0%', activeTrucks: 1, status: 'DETENTION_RISK' },
+        { name: 'VRL Logistics Cold Chain', avgDwell: '42m', onTimeRate: '96.1%', activeTrucks: 1, status: 'OPTIMAL' }
+      ];
+
+  const handleTruckModalSubmit = async (data: TruckFormData) => {
+    if (data.id) {
+      // Update existing truck
+      try {
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+        const res = await fetch(`http://127.0.0.1:8001/api/trucks/${data.id}`, {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify(data)
+        });
+        if (res.ok) {
+          onRefreshTrucks?.();
+          return { success: true };
+        }
+      } catch (e: any) {
+        return { success: false, message: e.message };
+      }
+      return { success: false, message: 'Failed to update truck' };
+    } else {
+      // Create new truck
+      if (onAddTruck) {
+        return await onAddTruck(data);
+      }
+      return { success: false, message: 'Check-in handler not available' };
+    }
+  };
 
   return (
     <div className="space-y-6 pb-12">
@@ -74,6 +124,16 @@ export const FleetTrackView: React.FC<FleetTrackViewProps> = ({
             <div className="text-lg font-extrabold text-amber-400" style={{ fontFamily: 'var(--font-heading)' }}>{tenant.active_docks}</div>
             <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Dock Bays</div>
           </div>
+          <button
+            onClick={() => {
+              setEditingTruck(null);
+              setIsTruckModalOpen(true);
+            }}
+            className="flex items-center gap-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-4 py-2.5 shadow-lg shadow-cyan-500/25 active:scale-95 transition-all text-xs cursor-pointer"
+          >
+            <Plus className="h-4 w-4" />
+            <span>+ Check-In Truck</span>
+          </button>
         </div>
       </div>
 
@@ -82,8 +142,30 @@ export const FleetTrackView: React.FC<FleetTrackViewProps> = ({
         trucks={trucks}
         onGenerateDocument={onGenerateDocument}
         onSendDispatch={onSendDispatch}
+        onUpdateStatus={onUpdateStatus}
+        onDeleteTruck={onDeleteTruck}
+        onEditTruck={(t) => {
+          setEditingTruck(t);
+          setIsTruckModalOpen(true);
+        }}
+        onOpenCheckIn={() => {
+          setEditingTruck(null);
+          setIsTruckModalOpen(true);
+        }}
         generatedDoc={generatedDoc}
         marketMode={marketMode}
+      />
+
+      {/* Truck Create / Edit Modal */}
+      <TruckModal
+        isOpen={isTruckModalOpen}
+        onClose={() => {
+          setIsTruckModalOpen(false);
+          setEditingTruck(null);
+        }}
+        onSubmit={handleTruckModalSubmit}
+        initialTruck={editingTruck}
+        marketMode={marketMode as any}
       />
 
       {/* Operational Intelligence Row: Carrier SLA Benchmarks & Weighbridge Sync */}

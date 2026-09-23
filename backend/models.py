@@ -108,7 +108,11 @@ class Truck(Base):
     tenant = relationship("Tenant", back_populates="trucks")
 
     def to_dict(self):
+        dwell = self.dwell_minutes or 0
+        free = self.free_time_minutes or 120
+        is_det = self.status == "DETENTION" or dwell > free
         return {
+            "id": self.id,
             "truck_id": self.id,
             "plate_number": self.plate_number,
             "country": self.country,
@@ -116,13 +120,20 @@ class Truck(Base):
             "driver_name": self.driver_name,
             "driver_phone": self.driver_phone,
             "dock_number": self.dock_number,
-            "status": self.status,
+            "assigned_bay": self.dock_number,
+            "status": "DETENTION" if is_det else self.status,
             "arrival_time": self.arrival_time.isoformat() if self.arrival_time else None,
             "departure_time": self.departure_time.isoformat() if self.departure_time else None,
-            "dwell_minutes": self.dwell_minutes,
-            "free_time_minutes": self.free_time_minutes,
-            "detention_charge": self.detention_charge,
+            "dwell_minutes": dwell,
+            "is_detention": is_det,
+            "detention_minutes": max(0, dwell - free) if is_det else 0,
+            "free_time_minutes": free,
+            "detention_charge": self.detention_charge or 0.0,
+            "accrued_detention_fee_usd": self.detention_charge or 0.0,
+            "hours_formatted": f"{dwell // 60}h {dwell % 60}m",
             "cargo_desc": self.cargo_desc,
+            "cargo_items": self.cargo_desc,
+            "manifest_bol": self.eway_bill_id or f"BOL-{self.id}",
             "eway_bill_id": self.eway_bill_id,
             "tenant_id": self.tenant_id
         }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { Sidebar } from './components/Sidebar';
 import { TopHeader } from './components/TopHeader';
@@ -17,6 +17,9 @@ import { ScaleSettingsView } from './views/ScaleSettingsView';
 const API_BASE = 'http://127.0.0.1:8001/api';
 
 const MainAppContent: React.FC = () => {
+  const { tenant, token } = useAuth();
+  const activeTenantId = tenant?.tenant_id || (tenant as any)?.id || 'TENANT-AMZN-BLR1';
+
   const [activeTab, setActiveTab] = useState<TabId>('home');
   const [marketMode, setMarketMode] = useState<'IN_GST' | 'US_FREIGHT'>('IN_GST');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -37,10 +40,11 @@ const MainAppContent: React.FC = () => {
   ]);
 
   useEffect(() => {
-    fetchANPR('MH-12-RN-4819', 'IN');
+    const isDFW = activeTenantId === 'TENANT-US-DFW';
+    fetchANPR(isDFW ? 'TX-49-B219' : 'MH-12-RN-4819', isDFW ? 'US' : 'IN');
     fetchLeak(0.65);
-    fetchDwellTrucks();
-  }, []);
+    fetchDwellTrucks(activeTenantId);
+  }, [activeTenantId]);
 
   const fetchANPR = async (plate: string, country: string) => {
     setIsLoadingANPR(true);
@@ -69,50 +73,72 @@ const MainAppContent: React.FC = () => {
     }
   };
 
-  const fetchDwellTrucks = async () => {
+  const fetchDwellTrucks = async (tenantId?: string) => {
+    const tId = tenantId || activeTenantId;
     try {
-      const res = await fetch(`${API_BASE}/dwell/trucks`);
+      const res = await fetch(`${API_BASE}/dwell/trucks?tenant_id=${tId}`);
       if (res.ok) {
         const data = await res.json();
         setTrucks(data);
       }
     } catch (e) {
       console.warn('Backend offline, using fallback dwell state', e);
-      setTrucks([
-        {
-          truck_id: 'TRK-9041',
-          plate_number: 'MH-12-RN-4819',
-          carrier_name: 'Tata Logistics Express',
-          driver_name: 'Ramesh Sharma',
-          driver_phone: '+91-98765-43210',
-          manifest_bol: 'BOL-2026-8819',
-          assigned_bay: 'BAY-03',
-          dwell_minutes: 145,
-          is_detention: true,
-          detention_minutes: 25,
-          accrued_detention_fee_usd: 31.25,
-          hours_formatted: '2h 25m',
-          status: 'UNLOADING_COMPLETE',
-          cargo_items: '24 Pallets (Commercial FMCG / Electronics)'
-        },
-        {
-          truck_id: 'TRK-1022',
-          plate_number: 'TX-49-B219',
-          carrier_name: 'Swift Transportation US',
-          driver_name: 'Dave Miller',
-          driver_phone: '+1-512-555-0199',
-          manifest_bol: 'BOL-US-99120',
-          assigned_bay: 'BAY-01',
-          dwell_minutes: 42,
-          is_detention: false,
-          detention_minutes: 0,
-          accrued_detention_fee_usd: 0.0,
-          hours_formatted: '0h 42m',
-          status: 'BERTHED',
-          cargo_items: '18 Pallets (Industrial Fasteners)'
-        }
-      ]);
     }
+  };
+
+  const handleAddTruck = async (truckData: any) => {
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const res = await fetch(`${API_BASE}/trucks`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ ...truckData, tenant_id: activeTenantId })
+      });
+      if (res.ok) {
+        await fetchDwellTrucks(activeTenantId);
+        return { success: true };
+      }
+    } catch (e: any) {
+      console.error('Failed to add truck:', e);
+      return { success: false, message: e.message };
+    }
+    return { success: false, message: 'Failed to register truck' };
+  };
+
+  const handleUpdateTruckStatus = async (truckId: string, status: string, dockNumber?: string) => {
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const res = await fetch(`${API_BASE}/trucks/status`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ truck_id: truckId, status, dock_number: dockNumber })
+      });
+      if (res.ok) {
+        await fetchDwellTrucks(activeTenantId);
+      }
+    } catch (e) {
+      console.error('Failed to update truck status:', e);
+    }
+  };
+
+  const handleDeleteTruck = async (truckId: string) => {
+    try {
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const res = await fetch(`${API_BASE}/trucks/${truckId}`, {
+        method: 'DELETE',
+        headers
+      });
+      if (res.ok) {
+        await fetchDwellTrucks(activeTenantId);
+        return true;
+      }
+    } catch (e) {
+      console.error('Failed to delete truck:', e);
+    }
+    return false;
   };
 
   const handleGenerateDoc = async (truckId: string, docType: string) => {
@@ -195,6 +221,9 @@ const MainAppContent: React.FC = () => {
             <HomeOverviewView
               onNavigateTab={setActiveTab}
               marketMode={marketMode}
+              trucks={trucks}
+              onAddTruck={handleAddTruck}
+              onRefreshTrucks={() => fetchDwellTrucks(activeTenantId)}
             />
           )}
 
@@ -214,6 +243,10 @@ const MainAppContent: React.FC = () => {
               trucks={trucks}
               onGenerateDocument={handleGenerateDoc}
               onSendDispatch={handleSendDispatch}
+              onAddTruck={handleAddTruck}
+              onUpdateStatus={handleUpdateTruckStatus}
+              onDeleteTruck={handleDeleteTruck}
+              onRefreshTrucks={() => fetchDwellTrucks(activeTenantId)}
               generatedDoc={generatedDoc}
               marketMode={marketMode}
             />

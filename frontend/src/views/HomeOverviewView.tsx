@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Truck,
   Video,
@@ -27,6 +27,9 @@ import type { TabId } from '../components/CorporateNavbar';
 interface HomeOverviewViewProps {
   onNavigateTab: (tab: TabId) => void;
   marketMode: 'IN_GST' | 'US_FREIGHT';
+  trucks?: any[];
+  onAddTruck?: (data: any) => Promise<{ success: boolean; message?: string }>;
+  onRefreshTrucks?: () => void;
 }
 
 interface DockBay {
@@ -46,7 +49,13 @@ interface DockBay {
   eta?: string;
 }
 
-export const HomeOverviewView: React.FC<HomeOverviewViewProps> = ({ onNavigateTab, marketMode }) => {
+export const HomeOverviewView: React.FC<HomeOverviewViewProps> = ({
+  onNavigateTab,
+  marketMode,
+  trucks,
+  onAddTruck,
+  onRefreshTrucks
+}) => {
   const { tenant } = useAuth();
   const isIndia = marketMode === 'IN_GST';
 
@@ -280,8 +289,71 @@ export const HomeOverviewView: React.FC<HomeOverviewViewProps> = ({ onNavigateTa
     }
   };
 
-  const handleCheckInSubmit = (e: React.FormEvent) => {
+  // Sync real-time trucks into digital twin dock bays
+  useEffect(() => {
+    if (trucks && trucks.length > 0) {
+      const baseBays: DockBay[] = [
+        { dock_id: 'DOCK-01', name: 'Dock 01', status: 'AVAILABLE' },
+        { dock_id: 'DOCK-02', name: 'Dock 02', status: 'AVAILABLE' },
+        { dock_id: 'DOCK-03', name: 'Dock 03', status: 'AVAILABLE' },
+        {
+          dock_id: 'DOCK-04',
+          name: 'Dock 04 (Bay C-4)',
+          status: 'HAZARD',
+          hazard_detail: 'Physical AI Specular Water Puddle (14.8 m² wet slab). Cargo damage risk ₹18.4L. Divert to Dock 06.',
+          dwell_minutes: 0,
+          free_time_minutes: 0,
+          detention_fee: 0
+        },
+        { dock_id: 'DOCK-05', name: 'Dock 05', status: 'AVAILABLE' },
+        { dock_id: 'DOCK-06', name: 'Dock 06', status: 'AVAILABLE' },
+        { dock_id: 'DOCK-07', name: 'Dock 07', status: 'AVAILABLE' },
+        { dock_id: 'DOCK-08', name: 'Dock 08', status: 'RESERVED', eta: '14:30 IST' }
+      ];
+
+      trucks.forEach((t) => {
+        const rawDock = t.dock_number || t.assigned_bay || 'Dock 01';
+        let match = baseBays.find(b => b.name.toLowerCase() === rawDock.toLowerCase() || b.dock_id.toLowerCase() === rawDock.toLowerCase());
+        if (!match) {
+          match = baseBays.find(b => b.status === 'AVAILABLE');
+        }
+        if (match && match.status !== 'HAZARD') {
+          match.status = t.is_detention ? 'DETENTION' : t.status === 'CLEARED' ? 'AVAILABLE' : 'OCCUPIED';
+          match.truck_id = t.truck_id || t.id;
+          match.plate_number = t.plate_number;
+          match.carrier = t.carrier_name;
+          match.driver_name = t.driver_name;
+          match.driver_phone = t.driver_phone;
+          match.cargo = t.cargo_desc || t.cargo_items;
+          match.dwell_minutes = t.dwell_minutes || 0;
+          match.free_time_minutes = t.free_time_minutes || 120;
+          match.detention_fee = isIndia ? (t.detention_charge || 0) : ((t.detention_charge || 0) / 32);
+        }
+      });
+      setDockBays(baseBays);
+    }
+  }, [trucks, isIndia]);
+
+  const handleCheckInSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (onAddTruck) {
+      const res = await onAddTruck({
+        plate_number: newTruck.plate,
+        carrier_name: newTruck.carrier,
+        driver_name: newTruck.driverName,
+        driver_phone: newTruck.driverPhone,
+        dock_number: newTruck.dockId,
+        cargo_desc: newTruck.cargo,
+        country: isIndia ? 'IN' : 'US'
+      });
+      if (res && res.success) {
+        setIsCheckInModalOpen(false);
+        setDispatchSuccessMsg(`Truck ${newTruck.plate} checked into ${newTruck.dockId} in SQLite! Part B transit recorded.`);
+        setTimeout(() => setDispatchSuccessMsg(null), 4500);
+        onRefreshTrucks?.();
+        return;
+      }
+    }
     const updated = dockBays.map(b => {
       if (b.dock_id === newTruck.dockId) {
         return {

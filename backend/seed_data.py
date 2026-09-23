@@ -41,11 +41,21 @@ def init_db():
         fk_cam = db.query(CCTVCamera).filter(CCTVCamera.tenant_id == "TENANT-FK-BHW1").first()
         dfw_cam = db.query(CCTVCamera).filter(CCTVCamera.tenant_id == "TENANT-US-DFW").first()
         if not fk_cam or not dfw_cam:
-            # Delete old camera records with missing schema and re-seed
             db.query(CCTVCamera).delete()
             db.commit()
             seed_enterprise_cameras(db)
-            return
+
+        # Ensure all 3 tenants have seeded trucks
+        fk_trk = db.query(Truck).filter(Truck.tenant_id == "TENANT-FK-BHW1").first()
+        dfw_trk = db.query(Truck).filter(Truck.tenant_id == "TENANT-US-DFW").first()
+        if not fk_trk or not dfw_trk:
+            seed_enterprise_trucks(db)
+
+        # Ensure documents exist across tenants
+        fk_doc = db.query(EWayBill).filter(EWayBill.tenant_id == "TENANT-FK-BHW1").first()
+        dfw_doc = db.query(EWayBill).filter(EWayBill.tenant_id == "TENANT-US-DFW").first()
+        if not fk_doc or not dfw_doc:
+            seed_enterprise_documents(db)
 
         # Check if tenants already seeded
         existing_tenant = db.query(Tenant).first()
@@ -310,6 +320,216 @@ def seed_enterprise_cameras(db):
         )
     ]
     db.add_all(cameras)
+    db.commit()
+
+def seed_enterprise_trucks(db):
+    """Seeds multi-tenant trucks for Amazon BLR1, Flipkart Bhiwandi, and DFW Intermodal."""
+    now = datetime.utcnow()
+    # Check if FK trucks exist
+    if not db.query(Truck).filter(Truck.tenant_id == "TENANT-FK-BHW1").first():
+        fk_trucks = [
+            Truck(
+                id="TRK-FK-101",
+                tenant_id="TENANT-FK-BHW1",
+                plate_number="MH-04-KF-5521",
+                country="IN",
+                carrier_name="Gati-KWE Supply Chain",
+                driver_name="Santosh Shinde",
+                driver_phone="+91-98200-11223",
+                dock_number="Dock 01",
+                status="AT_DOCK",
+                arrival_time=now - timedelta(minutes=38),
+                dwell_minutes=38,
+                free_time_minutes=120,
+                detention_charge=0.0,
+                cargo_desc="22 Pallets (Consumer Electronics & Smartphones)",
+                eway_bill_id="EWB-6620-1192"
+            ),
+            Truck(
+                id="TRK-FK-102",
+                tenant_id="TENANT-FK-BHW1",
+                plate_number="MH-14-GH-9012",
+                country="IN",
+                carrier_name="Safexpress Logistics",
+                driver_name="Dilip Gaikwad",
+                driver_phone="+91-98200-44556",
+                dock_number="Dock 03",
+                status="DETENTION",
+                arrival_time=now - timedelta(minutes=155),
+                dwell_minutes=155,
+                free_time_minutes=120,
+                detention_charge=1283.33,
+                cargo_desc="28 Pallets (Festival Big Billion Home Appliances)",
+                eway_bill_id="EWB-6620-3341"
+            ),
+            Truck(
+                id="TRK-FK-103",
+                tenant_id="TENANT-FK-BHW1",
+                plate_number="MH-06-BQ-7744",
+                country="IN",
+                carrier_name="Mahindra Logistics",
+                driver_name="Vinod Sawant",
+                driver_phone="+91-98200-77889",
+                dock_number="Bay 02",
+                status="INBOUND",
+                arrival_time=now - timedelta(minutes=18),
+                dwell_minutes=18,
+                free_time_minutes=120,
+                detention_charge=0.0,
+                cargo_desc="16 Pallets (Fashion & Lifestyle Apparel)",
+                eway_bill_id="EWB-6620-9904"
+            )
+        ]
+        db.add_all(fk_trucks)
+
+    # Check if DFW trucks exist
+    if not db.query(Truck).filter(Truck.tenant_id == "TENANT-US-DFW").first():
+        dfw_trucks = [
+            Truck(
+                id="TRK-US-401",
+                tenant_id="TENANT-US-DFW",
+                plate_number="TX-49-B219",
+                country="US",
+                carrier_name="Swift Transportation US",
+                driver_name="Dave Miller",
+                driver_phone="+1-512-555-0199",
+                dock_number="Dock 01",
+                status="AT_DOCK",
+                arrival_time=now - timedelta(minutes=45),
+                dwell_minutes=45,
+                free_time_minutes=120,
+                detention_charge=0.0,
+                cargo_desc="26 Pallets (Industrial Automotive Equipment)",
+                eway_bill_id="BOL-US-88019"
+            ),
+            Truck(
+                id="TRK-US-402",
+                tenant_id="TENANT-US-DFW",
+                plate_number="OH-88-K902",
+                country="US",
+                carrier_name="Schneider National Intermodal",
+                driver_name="Marcus Vance",
+                driver_phone="+1-214-555-0142",
+                dock_number="Dock 03",
+                status="DETENTION",
+                arrival_time=now - timedelta(minutes=165),
+                dwell_minutes=165,
+                free_time_minutes=120,
+                detention_charge=56.25,
+                cargo_desc="32 Pallets (Cross-Dock BNSF Container Freight)",
+                eway_bill_id="BOL-US-99144"
+            ),
+            Truck(
+                id="TRK-US-403",
+                tenant_id="TENANT-US-DFW",
+                plate_number="AR-12-Z551",
+                country="US",
+                carrier_name="J.B. Hunt Transport",
+                driver_name="Brad Cooper",
+                driver_phone="+1-817-555-0188",
+                dock_number="Bay 04",
+                status="INBOUND",
+                arrival_time=now - timedelta(minutes=25),
+                dwell_minutes=25,
+                free_time_minutes=120,
+                detention_charge=0.0,
+                cargo_desc="20 Pallets (Cold Chain Perishables)",
+                eway_bill_id="BOL-US-77210"
+            ),
+            Truck(
+                id="TRK-US-404",
+                tenant_id="TENANT-US-DFW",
+                plate_number="AZ-73-M338",
+                country="US",
+                carrier_name="Knight-Swift Logistics",
+                driver_name="Sarah Jenkins",
+                driver_phone="+1-972-555-0123",
+                dock_number="Dock 02",
+                status="CLEARED",
+                arrival_time=now - timedelta(minutes=70),
+                departure_time=now - timedelta(minutes=15),
+                dwell_minutes=55,
+                free_time_minutes=120,
+                detention_charge=0.0,
+                cargo_desc="24 Pallets (Retail E-Commerce Goods)",
+                eway_bill_id="BOL-US-66502"
+            )
+        ]
+        db.add_all(dfw_trucks)
+
+    db.commit()
+
+def seed_enterprise_documents(db):
+    """Seeds documents for Flipkart Bhiwandi and DFW Intermodal if missing."""
+    now = datetime.utcnow()
+    # Check FK docs
+    if not db.query(EWayBill).filter(EWayBill.tenant_id == "TENANT-FK-BHW1").first():
+        fk_docs = [
+            EWayBill(
+                id="EWB-FK-01",
+                tenant_id="TENANT-FK-BHW1",
+                ewb_number="6620-1192-4401",
+                truck_plate="MH-04-KF-5521",
+                transporter="Gati-KWE Supply Chain",
+                doc_type="GST_EWAY_BILL",
+                cargo_description="22 Pallets (Consumer Electronics & Smartphones)",
+                status="ACTIVE",
+                qr_code_data="https://ewaybillgst.gov.in/verify/662011924401",
+                valid_until=now + timedelta(days=2),
+                generated_by_user_id="usr_admin_01",
+                generated_at=now - timedelta(hours=2)
+            ),
+            EWayBill(
+                id="EWB-FK-02",
+                tenant_id="TENANT-FK-BHW1",
+                ewb_number="6620-3341-8890",
+                truck_plate="MH-14-GH-9012",
+                transporter="Safexpress Logistics",
+                doc_type="GST_EWAY_BILL",
+                cargo_description="28 Pallets (Festival Big Billion Home Appliances)",
+                status="ACTIVE",
+                qr_code_data="https://ewaybillgst.gov.in/verify/662033418890",
+                valid_until=now + timedelta(days=3),
+                generated_by_user_id="usr_admin_01",
+                generated_at=now - timedelta(hours=4)
+            )
+        ]
+        db.add_all(fk_docs)
+
+    # Check DFW docs
+    if not db.query(EWayBill).filter(EWayBill.tenant_id == "TENANT-US-DFW").first():
+        dfw_docs = [
+            EWayBill(
+                id="BOL-DFW-01",
+                tenant_id="TENANT-US-DFW",
+                ewb_number="BOL-US-88019",
+                truck_plate="TX-49-B219",
+                transporter="Swift Transportation US",
+                doc_type="US_EBOL",
+                cargo_description="26 Pallets (Industrial Automotive Equipment)",
+                status="ACTIVE",
+                qr_code_data="https://fmcsa.dot.gov/verify/bol-us-88019",
+                valid_until=now + timedelta(days=5),
+                generated_by_user_id="usr_admin_01",
+                generated_at=now - timedelta(hours=1)
+            ),
+            EWayBill(
+                id="BOL-DFW-02",
+                tenant_id="TENANT-US-DFW",
+                ewb_number="BOL-US-99144",
+                truck_plate="OH-88-K902",
+                transporter="Schneider National Intermodal",
+                doc_type="US_EBOL",
+                cargo_description="32 Pallets (Cross-Dock BNSF Container Freight)",
+                status="ACTIVE",
+                qr_code_data="https://fmcsa.dot.gov/verify/bol-us-99144",
+                valid_until=now + timedelta(days=4),
+                generated_by_user_id="usr_admin_01",
+                generated_at=now - timedelta(hours=3)
+            )
+        ]
+        db.add_all(dfw_docs)
+
     db.commit()
 
 def seed_enterprise_data(db):

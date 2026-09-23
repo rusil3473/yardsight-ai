@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Truck, Clock, FileText, Send, CheckCircle2, QrCode } from 'lucide-react';
+import { Truck, Clock, FileText, Send, CheckCircle2, QrCode, Trash2, Edit, Plus } from 'lucide-react';
 
 interface TruckRecord {
   truck_id: string;
@@ -22,6 +22,10 @@ interface DockTrackerProps {
   trucks: TruckRecord[];
   onGenerateDocument: (truckId: string, docType: string) => void;
   onSendDispatch: (truckId: string) => void;
+  onUpdateStatus?: (truckId: string, status: string, dockNumber?: string) => void;
+  onDeleteTruck?: (truckId: string) => void;
+  onEditTruck?: (truck: any) => void;
+  onOpenCheckIn?: () => void;
   generatedDoc: any;
   marketMode: string;
 }
@@ -30,6 +34,10 @@ export const DockTurnaroundTracker: React.FC<DockTrackerProps> = ({
   trucks,
   onGenerateDocument,
   onSendDispatch,
+  onUpdateStatus,
+  onDeleteTruck,
+  onEditTruck,
+  onOpenCheckIn,
   generatedDoc,
   marketMode
 }) => {
@@ -53,13 +61,23 @@ export const DockTurnaroundTracker: React.FC<DockTrackerProps> = ({
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <span className="badge badge-critical">
             {trucks.filter((t) => t.is_detention).length} Detention Risk
           </span>
           <span className="badge badge-primary">
             {trucks.length} Trucks in Yard
           </span>
+          {onOpenCheckIn && (
+            <button
+              onClick={onOpenCheckIn}
+              className="btn-primary"
+              style={{ fontSize: '0.8rem', padding: '6px 14px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
+            >
+              <Plus size={14} />
+              <span>+ Check-In Truck</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -131,12 +149,77 @@ export const DockTurnaroundTracker: React.FC<DockTrackerProps> = ({
                 </div>
               </div>
 
-              {/* Action Buttons */}
+              {/* Action Buttons & Management Controls */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', justifyContent: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <select
+                    value={t.status || 'INBOUND'}
+                    onChange={(e) => onUpdateStatus?.(t.truck_id, e.target.value, (t as any).assigned_bay || (t as any).dock_number)}
+                    style={{
+                      flex: 1,
+                      background: 'hsla(215, 30%, 18%, 0.9)',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: '8px',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.74rem',
+                      fontWeight: 700,
+                      padding: '6px 8px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="INBOUND">STATUS: INBOUND</option>
+                    <option value="AT_DOCK">STATUS: AT DOCK</option>
+                    <option value="DETENTION">STATUS: DETENTION</option>
+                    <option value="CLEARED">STATUS: CLEARED</option>
+                  </select>
+
+                  {onEditTruck && (
+                    <button
+                      onClick={() => onEditTruck(t)}
+                      title="Edit Truck Details"
+                      style={{
+                        background: 'hsla(215, 30%, 20%, 0.8)',
+                        border: '1px solid var(--border-subtle)',
+                        borderRadius: '8px',
+                        color: 'var(--text-secondary)',
+                        padding: '7px 8px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center'
+                      }}
+                    >
+                      <Edit size={13} />
+                    </button>
+                  )}
+
+                  {onDeleteTruck && (
+                    <button
+                      onClick={() => {
+                        if (confirm(`Release and remove truck ${t.plate_number} (${t.carrier_name}) from yard registry?`)) {
+                          onDeleteTruck(t.truck_id);
+                        }
+                      }}
+                      title="Release / Delete Truck"
+                      style={{
+                        background: 'hsla(0, 84%, 60%, 0.12)',
+                        border: '1px solid hsla(0, 84%, 60%, 0.3)',
+                        borderRadius: '8px',
+                        color: '#f87171',
+                        padding: '7px 8px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center'
+                      }}
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  )}
+                </div>
+
                 <button
                   onClick={() => onGenerateDocument(t.truck_id, marketMode === 'IN_GST' ? 'GST_EWAY_BILL' : 'US_EBOL')}
                   className="btn-primary"
-                  style={{ fontSize: '0.82rem', padding: '9px 16px', borderRadius: '10px' }}
+                  style={{ fontSize: '0.8rem', padding: '8px 14px', borderRadius: '10px' }}
                 >
                   <FileText size={14} />
                   <span>{marketMode === 'IN_GST' ? 'Generate GST E-Way Bill' : 'Generate US eBOL'}</span>
@@ -147,8 +230,8 @@ export const DockTurnaroundTracker: React.FC<DockTrackerProps> = ({
                   disabled={isDispatched}
                   className="btn-secondary"
                   style={{
-                    fontSize: '0.82rem',
-                    padding: '9px 16px',
+                    fontSize: '0.8rem',
+                    padding: '8px 14px',
                     borderRadius: '10px',
                     borderColor: isDispatched ? 'var(--primary)' : undefined,
                     color: isDispatched ? 'var(--primary)' : undefined

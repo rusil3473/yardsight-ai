@@ -110,9 +110,33 @@ class TruckStatusUpdateRequest(BaseModel):
     status: str  # "INBOUND", "AT_DOCK", "DETENTION", "CLEARED"
     dock_number: Optional[str] = None
 
+class TruckCreateRequest(BaseModel):
+    plate_number: str
+    carrier_name: str
+    driver_name: Optional[str] = "Driver"
+    driver_phone: Optional[str] = "+91-98765-00000"
+    dock_number: Optional[str] = "Bay 01"
+    status: Optional[str] = "INBOUND"
+    cargo_desc: Optional[str] = "Standard Pallet Freight"
+    tenant_id: Optional[str] = "TENANT-AMZN-BLR1"
+    country: Optional[str] = "IN"
+    free_time_minutes: Optional[int] = 120
+
+class TruckUpdateRequest(BaseModel):
+    plate_number: Optional[str] = None
+    carrier_name: Optional[str] = None
+    driver_name: Optional[str] = None
+    driver_phone: Optional[str] = None
+    dock_number: Optional[str] = None
+    status: Optional[str] = None
+    cargo_desc: Optional[str] = None
+    country: Optional[str] = None
+    free_time_minutes: Optional[int] = None
+
 class DocumentGenRequest(BaseModel):
     truck_id: str
     doc_type: str = "GST_EWAY_BILL"  # "GST_EWAY_BILL" or "US_EBOL"
+    tenant_id: Optional[str] = None
 
 class DispatchAlertRequest(BaseModel):
     truck_id: str
@@ -405,9 +429,12 @@ def update_tenant_settings(
 
 # --- Fleet & Dwell Operations (SQLite Persisted) ---
 @app.get("/api/dwell/trucks")
-def get_dwell_trucks(db: Session = Depends(get_db)):
+def get_dwell_trucks(tenant_id: Optional[str] = None, db: Session = Depends(get_db)):
     """Fetches real-time dwell metrics from SQLite database with calculated detention fees."""
-    trucks = db.query(Truck).all()
+    query = db.query(Truck)
+    if tenant_id:
+        query = query.filter(Truck.tenant_id == tenant_id)
+    trucks = query.all()
     if not trucks:
         return dock_tracker.get_yard_dwell_metrics()
 
@@ -429,6 +456,136 @@ def get_dwell_trucks(db: Session = Depends(get_db)):
 
     db.commit()
     return results
+
+@app.post("/api/trucks")
+def create_truck(
+    req: TruckCreateRequest,
+    db: Session = Depends(get_db),
+    user: Dict[str, Any] = Depends(require_role(["corporate_admin", "yard_master", "security_guard"]))
+):
+    """Creates a new truck / gate check-in entry in SQLite with audit trail."""
+    import uuid
+    tenant_id = req.tenant_id or user.get("tenant_id", "TENANT-AMZN-BLR1")
+    truck_id = f"TRK-{uuid.uuid4().hex[:6].upper()}"
+    now = datetime.utcnow()
+    
+    new_truck = Truck(
+        id=truck_id,
+        tenant_id=tenant_id,
+        plate_number=req.plate_number.strip().upper(),
+        country=req.country or ("IN" if "BLR" in tenant_id or "BHW" in tenant_id else "US"),
+        carrier_name=req.carrier_name.strip(),
+        driver_name=req.driver_name.strip() if req.driver_name else "Driver",
+        driver_phone=req.driver_phone.strip() if req.driver_phone else "+91-98765-00000",
+        dock_number=req.dock_number or "Bay 01",
+        status=req.status or "INBOUND",
+        arrival_time=now,
+        dwell_minutes=0,
+        free_time_minutes=req.free_time_minutes or 120,
+        detention_charge=0.0,
+        cargo_desc=req.cargo_desc or "Standard Pallet Freight",
+        eway_bill_id=f"EWB-{int(now.timestamp())}"
+    )
+    db.add(new_truck)
+    
+    audit = AuditLog(
+        id=f"AUD-{uuid.uuid4().hex[:8]}",
+        tenant_id=tenant_id,
+        user_id=user.get("sub", "usr_admin"),
+        action="TRUCK_CHECKIN",
+        details=f"Truck {new_truck.plate_number} ({new_truck.carrier_name}) checked into {new_truck.dock_number}",
+        timestamp=now
+    )
+    db.add(audit)
+    db.commit()
+    db.refresh(new_truck)
+    return {
+        "status": "success",
+        "truck": new_truck.to_dict(),
+        "message": f"Truck {new_truck.plate_number} checked into {new_truck.dock_number} successfully"
+    }
+
+@app.put("/api/trucks/{truck_id}")
+def update_truck(
+    truck_id: str,
+    req: TruckUpdateRequest,
+    db: Session = Depends(get_db),
+    user: Dict[str, Any] = Depends(require_role(["corporate_admin", "yard_master", "security_guard"]))
+):
+    """Updates truck details and status in SQLite with audit trail."""
+    import uuid
+    trk = db.query(Truck).filter(Truck.id == truck_id).first()
+    if not trk:
+        raise HTTPException(status_code=404, detail=f"Truck '{truck_id}' not found")
+        
+    if req.plate_number:
+        trk.plate_number = req.plate_number.strip().upper()
+    if req.carrier_name:
+        trk.carrier_name = req.carrier_name.strip()
+    if req.driver_name:
+        trk.driver_name = req.driver_name.strip()
+    if req.driver_phone:
+        trk.driver_phone = req.driver_phone.strip()
+    if req.dock_number:
+        trk.dock_number = req.dock_number
+    if req.cargo_desc:
+        trk.cargo_desc = req.cargo_desc
+    if req.country:
+        trk.country = req.country
+    if req.free_time_minutes is not None:
+        trk.free_time_minutes = req.free_time_minutes
+    if req.status:
+        trk.status = req.status
+        if req.status == "CLEARED":
+            trk.departure_time = datetime.utcnow()
+            
+    audit = AuditLog(
+        id=f"AUD-{uuid.uuid4().hex[:8]}",
+        tenant_id=trk.tenant_id,
+        user_id=user.get("sub", "usr_admin"),
+        action="TRUCK_UPDATE",
+        details=f"Truck {trk.plate_number} updated: status={trk.status}, dock={trk.dock_number}",
+        timestamp=datetime.utcnow()
+    )
+    db.add(audit)
+    db.commit()
+    db.refresh(trk)
+    return {
+        "status": "success",
+        "truck": trk.to_dict(),
+        "message": f"Truck {trk.plate_number} updated successfully"
+    }
+
+@app.delete("/api/trucks/{truck_id}")
+def delete_truck(
+    truck_id: str,
+    db: Session = Depends(get_db),
+    user: Dict[str, Any] = Depends(require_role(["corporate_admin", "yard_master"]))
+):
+    """Deletes / clears a truck from the yard in SQLite with audit trail."""
+    import uuid
+    trk = db.query(Truck).filter(Truck.id == truck_id).first()
+    if not trk:
+        raise HTTPException(status_code=404, detail=f"Truck '{truck_id}' not found")
+        
+    tenant_id = trk.tenant_id
+    plate = trk.plate_number
+    db.delete(trk)
+    
+    audit = AuditLog(
+        id=f"AUD-{uuid.uuid4().hex[:8]}",
+        tenant_id=tenant_id,
+        user_id=user.get("sub", "usr_admin"),
+        action="TRUCK_RELEASE",
+        details=f"Truck {plate} ({truck_id}) checked out / removed from yard registry",
+        timestamp=datetime.utcnow()
+    )
+    db.add(audit)
+    db.commit()
+    return {
+        "status": "success",
+        "message": f"Truck {plate} deleted and dock bay released"
+    }
 
 @app.post("/api/trucks/status")
 def update_truck_status(
@@ -500,9 +657,12 @@ def resolve_leak_status(db: Session = Depends(get_db), user: Dict[str, Any] = De
 
 # --- E-Way Bills & eBOL Persistence ---
 @app.get("/api/documents/list")
-def list_documents(db: Session = Depends(get_db)):
-    """Lists all generated transport documents from SQLite database."""
-    docs = db.query(EWayBill).order_by(EWayBill.generated_at.desc()).all()
+def list_documents(tenant_id: Optional[str] = None, db: Session = Depends(get_db)):
+    """Lists all generated transport documents from SQLite database, optionally filtered by tenant."""
+    query = db.query(EWayBill)
+    if tenant_id:
+        query = query.filter(EWayBill.tenant_id == tenant_id)
+    docs = query.order_by(EWayBill.generated_at.desc()).all()
     return {"documents": [d.to_dict() for d in docs]}
 
 @app.post("/api/documents/generate")
@@ -514,18 +674,20 @@ def generate_documents(
     trk = db.query(Truck).filter(Truck.id == req.truck_id).first()
     plate = trk.plate_number if trk else "MH-12-RN-4819"
     carrier = trk.carrier_name if trk else "Tata Logistics Express"
+    cargo = trk.cargo_desc if trk and trk.cargo_desc else ("24 Pallets (Commercial FMCG / Electronics)" if req.doc_type == "GST_EWAY_BILL" else "24 Pallets (General Freight)")
+    target_tenant = req.tenant_id or (trk.tenant_id if trk else user.get("tenant_id", "TENANT-AMZN-BLR1"))
 
     if req.doc_type == "GST_EWAY_BILL":
         doc = eway_engine.generate_gst_eway_bill(
             vehicle_number=plate,
             transporter_name=carrier,
-            cargo_description="24 Pallets (Commercial FMCG / Electronics)"
+            cargo_description=cargo
         )
     else:
         doc = eway_engine.generate_us_ebol(
             truck_plate=plate,
             carrier_name=carrier,
-            cargo_description="24 Pallets (General Freight)"
+            cargo_description=cargo
         )
     
     doc["generated_by"] = user.get("name", "Corporate Operator")
@@ -537,12 +699,12 @@ def generate_documents(
         doc_num = doc.get("eway_bill_number", doc.get("bol_number", f"DOC-{int(datetime.utcnow().timestamp())}"))
         ewb_record = EWayBill(
             id=f"EWB-{int(datetime.utcnow().timestamp())}-{uuid.uuid4().hex[:6]}",
-            tenant_id=user.get("tenant_id", "TENANT-AMZN-BLR1"),
+            tenant_id=target_tenant,
             ewb_number=doc_num,
             truck_plate=plate,
             transporter=carrier,
             doc_type=req.doc_type,
-            cargo_description=doc.get("cargo_description", "Commercial Freight"),
+            cargo_description=doc.get("cargo_description", cargo),
             status="ACTIVE",
             qr_code_data=doc.get("qr_code_url", ""),
             generated_by_user_id=user.get("sub", "usr_admin"),
@@ -556,6 +718,26 @@ def generate_documents(
         print(f"[WARN] EWayBill persistence note: {e}")
 
     return doc
+
+@app.delete("/api/documents/{doc_id}")
+def delete_document(
+    doc_id: str,
+    db: Session = Depends(get_db),
+    user: Dict[str, Any] = Depends(require_role(["corporate_admin", "yard_master"]))
+):
+    """Deletes an E-Way Bill / eBOL from SQLite."""
+    doc = db.query(EWayBill).filter((EWayBill.id == doc_id) | (EWayBill.ewb_number == doc_id)).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail=f"Document '{doc_id}' not found")
+    
+    tenant_id = doc.tenant_id
+    ewb_num = doc.ewb_number
+    db.delete(doc)
+    db.commit()
+    return {
+        "status": "success",
+        "message": f"Document {ewb_num} deleted from compliance register."
+    }
 
 @app.post("/api/dispatch/alert")
 def send_dispatch_alert(
