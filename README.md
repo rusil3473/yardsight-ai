@@ -59,30 +59,47 @@ YardSight AI fuses classical computer vision with cutting-edge Vision-Language M
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Start & Submission Setup
 
-### 1. Clone & Install
+### 1. Start the Backend API Server (FastAPI + OpenCV + SQLite)
 ```bash
-git clone https://github.com/rusil3473/yardsight-ai.git
-cd yardsight-ai
-npm install
+cd backend
+pip install -r requirements.txt  # Or: pip install fastapi uvicorn opencv-python sqlalchemy pydantic pytest
+python -m uvicorn app:app --host 127.0.0.1 --port 8001 --reload
 ```
+API docs available at: `http://127.0.0.1:8001/docs`  
+Health check: `http://127.0.0.1:8001/health`
 
-### 2. Launch Local Dev Server
+### 2. Run Backend Automated Test Suite
 ```bash
+cd backend
+python -m pytest -v test_business_intelligence.py test_yardsight.py
+```
+*(23/23 tests passing: OpenCV perspective homography ANPR, puddle leak detection, dock dwell tracking, e-Way bills, multi-facility CRUD, Redis LRU cache, RBAC authorization guards)*
+
+### 3. Start Frontend UI
+```bash
+cd frontend
+npm install
 npm run dev
 ```
-Open `http://localhost:5173` in your browser.
+Navigate to `http://localhost:5174` (or `http://localhost:5173`).
 
-### 3. Run Automated Unit Tests
+### 4. Build Optimized Production Bundle
 ```bash
-npm test
-```
-
-### 4. Build Production Bundle
-```bash
+cd frontend
 npm run build
 ```
+
+---
+
+## 🏛️ RESTful CRUD API Endpoints
+- `POST /anpr/unwarp`: OpenCV 4.10 perspective homography transformation and text extraction.
+- `POST /api/leak/detect`: Concrete specular puddle and hydrocarbon chemical sheen classifier.
+- `POST /api/leak/actuator/pump`, `POST /api/leak/actuator/forklift`: Physical facility actuator triggers.
+- `GET /api/cameras`, `POST /api/cameras`, `PUT /api/cameras/{id}`, `DELETE /api/cameras/{id}`: Real multi-RTSP camera stream management.
+- `GET /api/eway-bills`, `POST /api/eway-bills`, `GET /api/ebol`: India GST e-Way bills and US electronic BOL generation.
+- `POST /api/mcp/execute`: Model Context Protocol (MCP) agent tool invocation with schema-validated parameters.
 
 ---
 

@@ -1,164 +1,258 @@
-import React from 'react';
-import { Camera, AlertTriangle, ShieldCheck, Activity, Eye } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { CameraFeed } from '../types';
-
-interface CctvMatrixProps {
-  feeds: CameraFeed[];
-  selectedCamera: CameraFeed | null;
-  onSelectCamera: (feed: CameraFeed) => void;
-  onTriggerAlert: (feed: CameraFeed) => void;
-}
+import type {
+  CctvLayoutMode,
+  MatrixStatus,
+  LiveDetectionEntity,
+  CctvMatrixProps,
+} from './cctv/types';
+import { CctvTopBar } from './cctv/CctvTopBar';
+import { CctvFeedViewport } from './cctv/CctvFeedViewport';
+import { CctvInspectModal } from './cctv/CctvInspectModal';
+import { CctvAddCameraModal } from './cctv/CctvAddCameraModal';
+import { CctvAddNvrModal } from './cctv/CctvAddNvrModal';
+import { CctvSyncChannelsModal } from './cctv/CctvSyncChannelsModal';
 
 export const CctvMatrix: React.FC<CctvMatrixProps> = ({
   feeds,
   selectedCamera,
   onSelectCamera,
   onTriggerAlert,
+  onRefreshCameras,
+  onOpenNimbus,
 }) => {
+  // Navigation & Layout (Default to '4' for clear industrial multi-view)
+  const [layoutMode, setLayoutMode] = useState<CctvLayoutMode>('4');
+  const [currentPage, setCurrentPage] = useState<number>(1);
+
+  // Modals
+  const [inspectModalFeed, setInspectModalFeed] = useState<CameraFeed | null>(null);
+  const [isAddCameraModalOpen, setIsAddCameraModalOpen] = useState<boolean>(false);
+  const [isAddNvrModalOpen, setIsAddNvrModalOpen] = useState<boolean>(false);
+  const [isSyncModalOpen, setIsSyncModalOpen] = useState<boolean>(false);
+
+  // Streaming & Health State
+  const [streamingFeedIds, setStreamingFeedIds] = useState<Set<string>>(new Set());
+  const [streamErrorMap, setStreamErrorMap] = useState<Record<string, boolean>>({});
+  const [retryKey, setRetryKey] = useState<number>(0);
+  const [liveDetections, setLiveDetections] = useState<Record<string, LiveDetectionEntity[]>>({});
+
+  // Real-time Clock in Indian Standard Time (IST)
+  const getLiveTimestamp = () => {
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(
+      now.getHours()
+    )}:${pad(now.getMinutes())}:${pad(now.getSeconds())} IST`;
+  };
+
+  const [currentTime, setCurrentTime] = useState<string>(() => getLiveTimestamp());
+  const [matrixStatus, setMatrixStatus] = useState<MatrixStatus>({
+    nvr_online: true,
+    nvr_serial: 'BE124E0PCA95532',
+    total_channels: 32,
+    cameras: {},
+  });
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(getLiveTimestamp());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Poll NVR & Hardware Matrix Connectivity Status
+  useEffect(() => {
+    const fetchMatrixStatus = async () => {
+      try {
+        const resp = await fetch('http://127.0.0.1:8001/api/cameras/matrix/status');
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data && typeof data === 'object') {
+            setMatrixStatus((prev) => ({
+              nvr_online: data.nvr_online ?? prev.nvr_online ?? true,
+              nvr_serial: data.nvr_serial ?? prev.nvr_serial ?? 'BE124E0PCA95532',
+              total_channels: data.total_channels ?? prev.total_channels ?? 32,
+              cameras:
+                data.cameras && typeof data.cameras === 'object'
+                  ? { ...prev.cameras, ...data.cameras }
+                  : prev.cameras,
+            }));
+          }
+        }
+      } catch {
+        // Ignore network drop
+      }
+    };
+    fetchMatrixStatus();
+    const interval = setInterval(fetchMatrixStatus, 8000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Pagination & Layout Calculations
+  const pageSize =
+    layoutMode === 'single'
+      ? 1
+      : layoutMode === '4'
+      ? 4
+      : layoutMode === '8'
+      ? 8
+      : layoutMode === '9'
+      ? 9
+      : layoutMode === '16'
+      ? 16
+      : feeds.length || 32;
+
+  // Sort feeds deterministically by channel and attach real-time matrix status
+  const sortedFeeds = useMemo(() => {
+    return [...feeds]
+      .sort((a, b) => {
+        const chA = (a as any).dmss_channel ?? (parseInt(a.id?.replace(/\D/g, '') || '0', 10) || 0);
+        const chB = (b as any).dmss_channel ?? (parseInt(b.id?.replace(/\D/g, '') || '0', 10) || 0);
+        return chA - chB;
+      })
+      .map((f) => {
+        const liveInfo = matrixStatus.cameras[f.id.toUpperCase()];
+        return {
+          ...f,
+          status: liveInfo?.status ? (liveInfo.status as any) : f.status,
+        };
+      });
+  }, [feeds, matrixStatus.cameras]);
+
+  const totalChannels = sortedFeeds.length || 32;
+  const totalPages = Math.max(1, Math.ceil(totalChannels / pageSize));
+  const activePage = Math.min(currentPage, totalPages);
+  const startIndex = (activePage - 1) * pageSize;
+  const visibleFeeds = sortedFeeds.slice(startIndex, startIndex + pageSize);
+
+  const getSnapshotUrl = useCallback(
+    (feedId: string, tick?: number) => {
+      const base = `http://127.0.0.1:8001/api/cameras/${feedId.toUpperCase()}/snapshot`;
+      return tick ? `${base}?t=${tick}` : base;
+    },
+    []
+  );
+
+  const handleToggleStream = (feedId: string) => {
+    setStreamingFeedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(feedId)) next.delete(feedId);
+      else next.add(feedId);
+      return next;
+    });
+  };
+
+  const handleRetryStream = (feedId: string) => {
+    setStreamErrorMap((prev) => ({ ...prev, [feedId]: false }));
+    setRetryKey(Date.now());
+  };
+
+  const handleTelemetryUpdate = useCallback((camId: string, telemetry: any[]) => {
+    setLiveDetections((prev) => ({ ...prev, [camId]: telemetry }));
+  }, []);
+
+  const getSnapshotUrlWrapper = useCallback(
+    (id: string, tick?: number) => {
+      return getSnapshotUrl(id, tick ?? retryKey);
+    },
+    [getSnapshotUrl, retryKey]
+  );
+
+  const gridColsClass =
+    layoutMode === 'single'
+      ? 'grid-cols-1 max-w-4xl mx-auto'
+      : layoutMode === '4'
+      ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'
+      : layoutMode === '8'
+      ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4'
+      : layoutMode === '9'
+      ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
+      : layoutMode === '16'
+      ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4'
+      : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 2xl:grid-cols-8';
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {feeds.map(feed => {
-        const isSelected = selectedCamera?.id === feed.id;
-        const hasCritical = feed.detections.some(d => d.severity === 'critical');
+    <div className="space-y-4">
+      {/* Telemetry & Controls Bar */}
+      <CctvTopBar
+        matrixStatus={matrixStatus}
+        totalChannels={totalChannels}
+        layoutMode={layoutMode}
+        currentPage={activePage}
+        totalPages={totalPages}
+        onLayoutChange={(mode) => {
+          setLayoutMode(mode);
+          setCurrentPage(1);
+        }}
+        onPageChange={(p) => setCurrentPage(p)}
+        onOpenAddCamera={() => setIsAddCameraModalOpen(true)}
+        onOpenAddNvr={() => setIsAddNvrModalOpen(true)}
+        onOpenSyncModal={() => setIsSyncModalOpen(true)}
+      />
 
-        return (
-          <div
+      {/* Dynamic Multi-Channel Camera Grid */}
+      <div className={`grid gap-3 ${gridColsClass}`}>
+        {visibleFeeds.map((feed) => (
+          <CctvFeedViewport
             key={feed.id}
-            onClick={() => onSelectCamera(feed)}
-            className={`group relative rounded-xl overflow-hidden border transition-all cursor-pointer bg-slate-900/80 backdrop-blur-md shadow-xl ${
-              isSelected
-                ? 'border-cyan-400 ring-2 ring-cyan-500/40'
-                : hasCritical
-                ? 'border-red-500/80 shadow-red-500/20'
-                : 'border-slate-800 hover:border-slate-700'
-            }`}
-          >
-            {/* Top Camera Status Bar */}
-            <div className="bg-slate-950/90 px-4 py-2 flex items-center justify-between border-b border-slate-800/80 text-xs font-mono">
-              <div className="flex items-center space-x-2">
-                <span className="relative flex h-2 w-2">
-                  <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
-                    hasCritical ? 'bg-red-400' : 'bg-emerald-400'
-                  }`} />
-                  <span className={`relative inline-flex rounded-full h-2 w-2 ${
-                    hasCritical ? 'bg-red-500' : 'bg-emerald-500'
-                  }`} />
-                </span>
-                <span className="font-bold text-slate-200 uppercase tracking-wider">{feed.id}: {feed.name}</span>
-              </div>
-              <div className="flex items-center space-x-3 text-slate-400">
-                <span>{feed.resolution}</span>
-                <span className="text-cyan-400 font-bold">{feed.fps} FPS</span>
-                <span className="px-1.5 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300">RTSP H.265</span>
-              </div>
-            </div>
+            feed={feed}
+            isStreaming={streamingFeedIds.has(feed.id)}
+            isSelected={selectedCamera?.id === feed.id}
+            streamError={!!streamErrorMap[feed.id]}
+            currentTime={currentTime}
+            layoutMode={layoutMode}
+            liveDetections={liveDetections[feed.id]}
+            onToggleStream={() => handleToggleStream(feed.id)}
+            onInspect={() => setInspectModalFeed(feed)}
+            onTriggerAlert={() => onTriggerAlert(feed)}
+            onSelectCamera={() => {
+              onSelectCamera(feed);
+              setInspectModalFeed(feed);
+            }}
+            onRetryStream={() => handleRetryStream(feed.id)}
+            onTelemetryUpdate={handleTelemetryUpdate}
+            getSnapshotUrl={getSnapshotUrlWrapper}
+          />
+        ))}
+      </div>
 
-            {/* Video Canvas / Viewport Simulation */}
-            <div className="relative aspect-video w-full bg-slate-950 flex items-center justify-center overflow-hidden">
-              {/* Dynamic Industrial Backdrop Canvas Graphic */}
-              <div
-                className="absolute inset-0 opacity-40 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-                style={{
-                  backgroundImage: feed.id === 'cam-01'
-                    ? 'radial-gradient(ellipse at center, #1e293b 0%, #090d16 100%)'
-                    : feed.id === 'cam-02'
-                    ? 'radial-gradient(ellipse at center, #1f2937 0%, #030712 100%)'
-                    : feed.id === 'cam-03'
-                    ? 'radial-gradient(ellipse at center, #27272a 0%, #09090b 100%)'
-                    : 'radial-gradient(ellipse at center, #18181b 0%, #020617 100%)',
-                }}
-              />
+      {/* Inspect Channel Modal */}
+      {inspectModalFeed && (
+        <CctvInspectModal
+          feed={inspectModalFeed}
+          onClose={() => setInspectModalFeed(null)}
+          matrixStatus={matrixStatus}
+          liveDetections={liveDetections[inspectModalFeed.id]}
+          currentTime={currentTime}
+          getSnapshotUrl={getSnapshotUrl}
+          onOpenNimbus={onOpenNimbus}
+          onRefreshCameras={onRefreshCameras}
+        />
+      )}
 
-              {/* Grid / Perspective Lines HUD */}
-              <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b15_1px,transparent_1px),linear-gradient(to_bottom,#1e293b15_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
+      {/* Add Camera Modal */}
+      <CctvAddCameraModal
+        isOpen={isAddCameraModalOpen}
+        onClose={() => setIsAddCameraModalOpen(false)}
+        onSuccess={onRefreshCameras}
+      />
 
-              {/* Live Overlay Reticle & Scanline */}
-              <div className="absolute inset-0 pointer-events-none opacity-30 bg-gradient-to-b from-transparent via-cyan-500/10 to-transparent h-16 animate-pulse" />
+      {/* Add NVR Gateway Modal */}
+      <CctvAddNvrModal
+        isOpen={isAddNvrModalOpen}
+        onClose={() => setIsAddNvrModalOpen(false)}
+        onSuccess={onRefreshCameras}
+      />
 
-              {/* Simulated Camera Scene Representation */}
-              <div className="relative z-10 flex flex-col items-center justify-center text-center p-6 space-y-2">
-                <div className="p-3 rounded-full bg-slate-900/90 border border-slate-700 text-slate-300 shadow-inner">
-                  <Camera className="w-8 h-8 text-cyan-400" />
-                </div>
-                <div className="text-sm font-semibold text-slate-200">{feed.location}</div>
-                <div className="text-xs text-slate-400 font-mono flex items-center space-x-2">
-                  <Eye className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>{feed.cameraAngle}</span>
-                </div>
-              </div>
-
-              {/* Real-Time Neural Bounding Boxes */}
-              {feed.detections.map(det => {
-                const isCrit = det.severity === 'critical';
-                const isWarn = det.severity === 'warning';
-                const colorClass = isCrit
-                  ? 'border-red-500 bg-red-500/10 text-red-400'
-                  : isWarn
-                  ? 'border-amber-400 bg-amber-400/10 text-amber-300'
-                  : 'border-cyan-400 bg-cyan-400/10 text-cyan-300';
-
-                return (
-                  <div
-                    key={det.id}
-                    className={`absolute border-2 rounded transition-all animate-pulse pointer-events-none ${colorClass}`}
-                    style={{
-                      left: `${det.bbox.x}%`,
-                      top: `${det.bbox.y}%`,
-                      width: `${det.bbox.w}%`,
-                      height: `${det.bbox.h}%`,
-                    }}
-                  >
-                    <span className="absolute -top-5 left-0 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-950/90 border border-current whitespace-nowrap shadow">
-                      {det.label} ({(det.confidence * 100).toFixed(0)}%)
-                    </span>
-                  </div>
-                );
-              })}
-
-              {/* Live Timestamp Watermark */}
-              <div className="absolute bottom-2 left-2 z-10 font-mono text-[10px] text-slate-400 bg-slate-950/80 px-2 py-1 rounded border border-slate-800">
-                {new Date().toISOString()} • ENCODER H.265-NVENC
-              </div>
-
-              {/* Quick Action Button */}
-              <div className="absolute bottom-2 right-2 z-10">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onTriggerAlert(feed);
-                  }}
-                  className="px-2.5 py-1 text-xs font-medium rounded-lg bg-slate-800/90 hover:bg-cyan-600 hover:text-white text-slate-300 border border-slate-700 transition flex items-center space-x-1 backdrop-blur"
-                >
-                  <Activity className="w-3.5 h-3.5" />
-                  <span>Inspect Feed</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Bottom Feed Summary */}
-            <div className="p-3 bg-slate-950/60 flex items-center justify-between text-xs">
-              <div className="flex items-center space-x-2">
-                <span className="text-slate-400 font-mono">Detections:</span>
-                {feed.detections.length === 0 ? (
-                  <span className="text-emerald-400 font-medium flex items-center space-x-1">
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    <span>Zone Secure</span>
-                  </span>
-                ) : (
-                  <span className={`font-semibold flex items-center space-x-1 ${
-                    hasCritical ? 'text-red-400' : 'text-amber-400'
-                  }`}>
-                    <AlertTriangle className="w-3.5 h-3.5" />
-                    <span>{feed.detections.length} Target(s)</span>
-                  </span>
-                )}
-              </div>
-              <span className="text-slate-500 font-mono text-[11px]">RTSP://10.240.1.{feed.id.slice(-2)}:554/live</span>
-            </div>
-          </div>
-        );
-      })}
+      {/* Auto-Sync NVR Channels Modal */}
+      <CctvSyncChannelsModal
+        isOpen={isSyncModalOpen}
+        onClose={() => setIsSyncModalOpen(false)}
+        onSuccess={onRefreshCameras}
+      />
     </div>
   );
 };
+
+export default CctvMatrix;
