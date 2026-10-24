@@ -155,3 +155,17 @@ def test_camera_edge_cases():
 
     # 4. 422 on invalid camera creation (missing required fields)
     assert client.post("/api/cameras", json={"invalid_field": 123}).status_code == 422
+
+
+def test_lightweight_nvr_channel_verification():
+    """Validates testing all NVR channels in lightweight mode without OpenCV AI overhead."""
+    resp = client.get("/api/cameras/nvr/test-channels?serial_number=BE124E0PCA95532&total_channels=8")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "SUCCESS"
+    assert data["nvr_serial"] == "BE124E0PCA95532"
+    assert data["opencv_ai_mode"] == "PAUSED_LIGHTWEIGHT"
+    assert data["cpu_ram_impact"] == "ZERO_EXHAUSTION"
+    assert len(data["channels"]) == 8
+    assert data["channels"][0]["channel"] == 1
+    assert "stream_url" in data["channels"][0]

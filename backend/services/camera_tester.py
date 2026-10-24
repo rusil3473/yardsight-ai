@@ -1,7 +1,6 @@
 """YardSight AI - CCTV Stream Connectivity Tester (<80 lines)."""
 import time, socket, cv2, sys
 from schemas.camera import CameraTestRequest, CameraTestResponse
-from dahua_p2p_bridge import DahuaP2PBridge
 from services.dolynk_service import dolynk_service
 
 def test_camera_connectivity(req: CameraTestRequest) -> CameraTestResponse:
@@ -27,6 +26,7 @@ def test_camera_connectivity(req: CameraTestRequest) -> CameraTestResponse:
         return CameraTestResponse(status="OFFLINE", reachable=False, latency_ms=round((time.time() - t0) * 1000, 2), message="Device busy or not found.")
 
     if st in ["DMSS", "DOLYNK", "NVR_BATCH"]:
+        from dahua_p2p_bridge import DahuaP2PBridge
         sn = req.dmss_serial or "AG07AA7PCA3D3B6"
         dolynk_res = dolynk_service.test_connection(device_sn=sn)
         if dolynk_res.get("success") and dolynk_res.get("optical_frame_buffered"):
