@@ -13,6 +13,8 @@ class DahuaP2PTunnel:
     def __init__(self, serial: str = "AG07AA7PCA3D3B6", user: str = "admin", pwd: str = "Shri@21*", local_port: int = 1554):
         self.serial, self.user, self.pwd, self.local_port = serial, user, pwd, local_port
         self.running, self.relay_sock, self.agent_host, self.agent_port = False, None, None, None
+        self.srv = None
+        self.last_recv_time = time.time()
         self.sent, self.recv_bytes, self.count, self.lmid, self.rmid = 0, 0, 0, 0, 0
         self.tx_queue = queue.Queue()
         self.realms: Dict[int, queue.Queue] = {}
@@ -20,6 +22,24 @@ class DahuaP2PTunnel:
         self.reorder_buffer: Dict[int, bytes] = {}
         self.last_gap_time = 0.0
         self.tx_lock = threading.Lock()
+
+    def stop(self):
+        """Cleanly terminates relay tunnel, closing listening and UDP sockets."""
+        self.running = False
+        try:
+            if self.srv:
+                self.srv.close()
+                self.srv = None
+        except Exception: pass
+        try:
+            if self.relay_sock:
+                self.relay_sock.close()
+                self.relay_sock = None
+        except Exception: pass
+        for evt in list(self.conn_events.values()):
+            evt.set()
+        self.realms.clear()
+        self.conn_events.clear()
 
     def start(self):
         """Initializes cloud relay handshake, PTCP sync, and background proxy workers."""
@@ -35,6 +55,7 @@ class DahuaP2PTunnel:
         data, _ = self.relay_sock.recvfrom(4096)
         _, _, _, _, remote_lmid, _ = struct.unpack("!4sIIIII", data[:24])
         self.recv_bytes, self.rmid, self.running = len(data[24:]), remote_lmid, True
+        self.last_recv_time = time.time()
 
         for target in (self._writer_loop, self._reader_loop, self._heartbeat_loop, self._tcp_server):
             threading.Thread(target=target, daemon=True).start()
@@ -53,7 +74,8 @@ class DahuaP2PTunnel:
                 self.lmid += 1
                 if len(body) > 0 and not is_sync:
                     self.count += 1
-                self.relay_sock.sendto(pkt, (self.agent_host, self.agent_port))
+                if self.relay_sock:
+                    self.relay_sock.sendto(pkt, (self.agent_host, self.agent_port))
         except Exception:
             pass
 
@@ -89,10 +111,16 @@ class DahuaP2PTunnel:
                 cursor += 12
 
     def _reader_loop(self):
+        if not self.relay_sock: return
         self.relay_sock.settimeout(0.5)
         while self.running:
             try: data, _ = self.relay_sock.recvfrom(65535)
-            except socket.timeout: continue
+            except socket.timeout:
+                if len(self.realms) > 0 and (time.time() - self.last_recv_time > 15.0):
+                    print(f"[TUNNEL SILENCE] No packets from Dahua relay for >15s with active clients. Triggering reconnection.")
+                    self.stop()
+                    break
+                continue
             except socket.error as e:
                 if getattr(e, 'winerror', None) == 10054: continue
                 break
@@ -102,6 +130,7 @@ class DahuaP2PTunnel:
                 magic, s_seq, s_ack, s_pid, remote_lmid, s_rmid = struct.unpack("!4sIIIII", data[:24])
                 body = data[24:]
                 self.rmid = remote_lmid
+                self.last_recv_time = time.time()
                 if len(body) == 0:
                     continue
 
@@ -147,28 +176,32 @@ class DahuaP2PTunnel:
 
                 # Acknowledge cumulative contiguous stream
                 self._send_ptcp(b"")
-            except Exception as e:
+            except Exception:
                 pass
 
     def _tcp_server(self):
         try:
-            srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            srv.bind(("127.0.0.1", self.local_port))
-            srv.listen(5)
+            self.srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            self.srv.bind(("127.0.0.1", self.local_port))
+            self.srv.listen(10)
+            self.srv.settimeout(1.0)
             print(f"[TUNNEL TCP] Listening on 127.0.0.1:{self.local_port}")
         except Exception as e:
             print(f"[TUNNEL TCP BIND ERR] {e}")
             return
         while self.running:
             try:
-                c, _ = srv.accept()
+                c, _ = self.srv.accept()
                 realm = random.randint(0x1000, 0xFFFFFF)
                 q, conn_evt = queue.Queue(), threading.Event()
                 self.realms[realm], self.conn_events[realm] = q, conn_evt
                 print(f"[TUNNEL TCP] Accepted client! realm=0x{realm:x}")
                 threading.Thread(target=self._client_worker, args=(c, realm, q, conn_evt), daemon=True).start()
-            except Exception: break
+            except socket.timeout:
+                continue
+            except Exception:
+                break
 
     def _client_worker(self, client, realm, q, conn_evt):
         handle_tcp_proxy(client, realm, q, self.tx_queue, conn_evt, lambda: self.running)

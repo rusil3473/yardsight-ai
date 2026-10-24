@@ -28,6 +28,8 @@ class DahuaOpticalWorker:
             if tunnel and tunnel.running:
                 return tunnel
             try:
+                if tunnel:
+                    tunnel.stop()
                 port = 1554 if serial == self.default_serial else (1555 + len(self._tunnels))
                 tunnel = DahuaP2PTunnel(serial=serial, local_port=port)
                 tunnel.start()
@@ -56,10 +58,10 @@ class DahuaOpticalWorker:
         if frame is None or frame.size == 0:
             return True
         h, w = frame.shape[:2]
-        # 1. White saturated staircase artifacts (>45% pure blown-out white)
+        # 1. White saturated staircase artifacts (>90% pure blown-out white)
         sample = frame[::4, ::4]
         white_pixels = np.count_nonzero(np.all(sample > 245, axis=-1))
-        if white_pixels / (sample.shape[0] * sample.shape[1]) > 0.45:
+        if white_pixels / (sample.shape[0] * sample.shape[1]) > 0.90:
             return True
 
         # 2. Synthetic mid-gray macroblock packet loss tearing (pure flat untextured 128,128,128 fill)
@@ -87,7 +89,7 @@ class DahuaOpticalWorker:
             try:
                 tunnel = self._get_or_start_tunnel(serial)
                 if not tunnel:
-                    time.sleep(3.0)
+                    time.sleep(2.0)
                     continue
 
                 port = tunnel.local_port
@@ -96,16 +98,16 @@ class DahuaOpticalWorker:
                 cap = cv2.VideoCapture(rtsp_url, cv2.CAP_FFMPEG)
                 cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
                 if not cap.isOpened():
-                    time.sleep(15.0 if channel > 1 else 4.0)
+                    time.sleep(5.0 if channel > 2 else 2.0)
                     continue
 
                 print(f"[DHP2P WORKER] Live RTSP stream connected for {serial} CH{channel}!")
                 consecutive_fails = 0
-                while self.running and consecutive_fails < 100:
+                while self.running and consecutive_fails < 200:
                     ret, frame = cap.read()
                     if not ret or frame is None:
                         consecutive_fails += 1
-                        time.sleep(0.05)
+                        time.sleep(0.04)
                         continue
 
                     if not self._is_corrupted(frame):
@@ -125,9 +127,9 @@ class DahuaOpticalWorker:
                 cap.release()
             except Exception as e:
                 print(f"[DHP2P INGEST ERR CH{channel}] {e}")
-            time.sleep(15.0 if channel > 1 else 3.0)
+            time.sleep(3.0 if channel > 2 else 1.5)
 
-    def get_latest_frame(self, serial: Optional[str] = None, channel: int = 0, max_age_seconds: float = 30.0) -> Optional[np.ndarray]:
+    def get_latest_frame(self, serial: Optional[str] = None, channel: int = 0, max_age_seconds: float = 60.0) -> Optional[np.ndarray]:
         """Returns the most recent authentic optical frame from memory if fresh (< max_age_seconds)."""
         sn = serial or self.default_serial
         with self._lock:
