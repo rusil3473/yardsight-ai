@@ -15,6 +15,16 @@
     "moduleDetection": "force",
     "noEmit": true,
     "jsx": "react-jsx",
+    "paths": {
+      "@packages/standards": ["../packages/standards/src/index.ts"],
+      "@packages/standards/*": ["../packages/standards/src/*"],
+      "@packages/events": ["../packages/events/src/index.ts"],
+      "@packages/events/*": ["../packages/events/src/*"],
+      "@packages/auth": ["../packages/auth/src/index.ts"],
+      "@packages/auth/*": ["../packages/auth/src/*"],
+      "@packages/rbac": ["../packages/rbac/src/index.ts"],
+      "@packages/rbac/*": ["../packages/rbac/src/*"]
+    },
 
     /* Linting */
     "noUnusedLocals": true,

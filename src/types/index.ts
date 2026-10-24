@@ -23,7 +23,7 @@ export interface CameraFeed {
   name: string;
   location: string;
   rtspUrl: string;
-  status: 'ONLINE' | 'DEGRADED' | 'OFFLINE';
+  status: 'ONLINE' | 'DEGRADED' | 'OFFLINE' | 'CONNECTING';
   fps: number;
   resolution: string;
   detections: Detection[];
@@ -42,6 +42,9 @@ export interface PlateRecord {
   status: 'authorized' | 'flagged' | 'quarantine';
   driverName?: string;
   carrier: string;
+  originalPlate?: string;
+  isCorrected?: boolean;
+  correctedBy?: string;
 }
 
 export interface SpillIncident {

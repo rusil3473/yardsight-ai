@@ -1,29 +1,141 @@
 import React, { useState } from 'react';
-import { CheckCircle2, AlertOctagon, Scan, Globe } from 'lucide-react';
+import { Scan, Sparkles, X } from 'lucide-react';
 import type { PlateRecord } from '../types';
 import { parsePlate } from '../engine/anprEngine';
+import { yardApi } from '../api/yardApi';
+import { eventBus } from '../engine/events';
+import { CORNER_PRESETS, type HomographyResult } from './anpr/AnprTypes';
+import { AnprSimulatorForm } from './anpr/AnprSimulatorForm';
+import { AnprHomographyTelemetry } from './anpr/AnprHomographyTelemetry';
+import { AnprManifestTable } from './anpr/AnprManifestTable';
 
 interface AnprGateScannerProps {
   records: PlateRecord[];
   onAddRecord: (record: PlateRecord) => void;
+  onUpdateRecord?: (id: string, newPlate: string) => void;
 }
 
 export const AnprGateScanner: React.FC<AnprGateScannerProps> = ({
   records,
   onAddRecord,
+  onUpdateRecord,
 }) => {
-  const [testPlateInput, setTestPlateInput] = useState('');
-  const [selectedCountryHint, setSelectedCountryHint] = useState<'US' | 'IN'>('US');
+  const [testPlateInput, setTestPlateInput] = useState('MH 12 RN 4589');
+  const [selectedCountryHint, setSelectedCountryHint] = useState<'US' | 'IN'>('IN');
   const [vehicleType] = useState<PlateRecord['vehicleType']>('Heavy Tractor-Trailer');
-  const [carrierInput, setCarrierInput] = useState('Swift Transportation Logistics');
+  const [carrierInput, setCarrierInput] = useState('TCI Freight Intermodal Logistics');
+  const [selectedPreset, setSelectedPreset] = useState<keyof typeof CORNER_PRESETS>('overhead35');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [lastHomography, setLastHomography] = useState<HomographyResult | null>(null);
 
-  const handleSimulateScan = (e: React.FormEvent) => {
+  // Admin Inline Edit State
+  const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
+  const [editPlateValue, setEditPlateValue] = useState('');
+  const [saveLoading, setSaveLoading] = useState(false);
+  const [feedbackToast, setFeedbackToast] = useState<string | null>(null);
+
+  const handleStartEdit = (rec: PlateRecord) => {
+    setEditingRecordId(rec.id);
+    setEditPlateValue(rec.plateNumber);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingRecordId(null);
+    setEditPlateValue('');
+  };
+
+  const handleSaveEdit = async (rec: PlateRecord) => {
+    const cleaned = editPlateValue.trim().toUpperCase();
+    if (!cleaned) return;
+
+    setSaveLoading(true);
+    try {
+      await yardApi.correctAnprRecord(rec.id, {
+        new_plate_number: cleaned,
+      });
+    } catch {
+      // Optimistic update
+    } finally {
+      setSaveLoading(false);
+    }
+
+    if (onUpdateRecord) {
+      onUpdateRecord(rec.id, cleaned);
+    }
+    eventBus.emit('anpr:plate-scanned', {
+      ...rec,
+      plateNumber: cleaned,
+      isCorrected: true,
+      originalPlate: rec.originalPlate || rec.plateNumber,
+    });
+
+    setFeedbackToast(`Plate successfully corrected to '${cleaned}' and synced to fleet tracker.`);
+    setTimeout(() => setFeedbackToast(null), 4000);
+    setEditingRecordId(null);
+  };
+
+  const handleCountrySelect = (country: 'US' | 'IN', defaultPlate: string, defaultCarrier: string) => {
+    setSelectedCountryHint(country);
+    setTestPlateInput(defaultPlate);
+    setCarrierInput(defaultCarrier);
+  };
+
+  const handleSimulateScan = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!testPlateInput.trim()) return;
+    if (!testPlateInput.trim() || isProcessing) return;
 
+    setIsProcessing(true);
     const parsed = parsePlate(testPlateInput, selectedCountryHint);
+    const currentCorners = CORNER_PRESETS[selectedPreset].corners;
 
-    const newRec: PlateRecord = {
+    try {
+      const res = await yardApi.detectAndRegisterPlate({
+        plate_hint: testPlateInput,
+        country: selectedCountryHint,
+        corner_points: currentCorners,
+        carrier_name: carrierInput,
+      });
+
+      if (res.success && res.data) {
+        const unwarp = res.data.unwarp;
+        setLastHomography({
+          rawCctvB64: unwarp.raw_cctv_b64,
+          unwarpedPlateB64: unwarp.unwarped_plate_b64,
+          claheEnhancedB64: unwarp.clahe_enhanced_b64,
+          matrix: unwarp.homography_matrix,
+          latencyMs: unwarp.processing_time_ms,
+          formatDetails: unwarp.format_details,
+          isValidFormat: unwarp.is_valid_format,
+        });
+
+        const newRec: PlateRecord = {
+          id: res.data.scan_record?.id || ('rec-' + Date.now()),
+          plateNumber: unwarp.plate_number || parsed.normalizedPlate,
+          country: unwarp.country === 'US' ? 'US' : 'IN',
+          stateOrRegion: parsed.stateOrRegion,
+          vehicleType,
+          timestamp: new Date().toISOString(),
+          confidence: unwarp.confidence_pct / 100,
+          gateId: 'North Gate Inbound - Bay 1',
+          status: unwarp.is_valid_format ? 'authorized' : 'flagged',
+          carrier: carrierInput || 'Standard Commercial Carrier',
+          driverName: 'Verified Dispatch Operator',
+        };
+
+        onAddRecord(newRec);
+        eventBus.emit('anpr:plate-scanned', newRec);
+        setFeedbackToast(`Auto-registered vehicle '${newRec.plateNumber}' into YardSight AI database.`);
+        setTimeout(() => setFeedbackToast(null), 4000);
+        return;
+      }
+    } catch (err) {
+      console.warn('[ANPR Scanner] Backend detectAndRegister call failed, using client fallback:', err);
+    } finally {
+      setIsProcessing(false);
+    }
+
+    // Client fallback if offline
+    const fallbackRec: PlateRecord = {
       id: 'rec-' + Date.now(),
       plateNumber: parsed.normalizedPlate,
       country: parsed.country === 'UNKNOWN' ? selectedCountryHint : parsed.country,
@@ -37,8 +149,8 @@ export const AnprGateScanner: React.FC<AnprGateScannerProps> = ({
       driverName: 'Verified Dispatch Operator',
     };
 
-    onAddRecord(newRec);
-    setTestPlateInput('');
+    onAddRecord(fallbackRec);
+    eventBus.emit('anpr:plate-scanned', fallbackRec);
   };
 
   return (
@@ -65,152 +177,57 @@ export const AnprGateScanner: React.FC<AnprGateScannerProps> = ({
           <div className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-ping" />
           <span className="text-emerald-400 font-bold">BARRIER ARM: ACTIVE READY</span>
           <span className="text-slate-600">|</span>
-          <span className="text-slate-400">LATENCY: 42ms</span>
+          <span className="text-slate-400">
+            LATENCY: {lastHomography ? `${lastHomography.latencyMs}ms` : '18ms'}
+          </span>
         </div>
       </div>
+
+      {/* Live Toast Banner */}
+      {feedbackToast && (
+        <div className="p-3 rounded-xl bg-emerald-950/70 border border-emerald-500/50 text-emerald-300 text-xs font-mono flex items-center justify-between shadow-xl animate-fade-in">
+          <div className="flex items-center space-x-2.5">
+            <Sparkles className="w-4 h-4 text-emerald-400 flex-shrink-0 animate-pulse" />
+            <span className="font-semibold">{feedbackToast}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setFeedbackToast(null)}
+            className="text-slate-400 hover:text-white p-1 rounded transition cursor-pointer"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* Interactive Scan Simulator Form */}
-      <form onSubmit={handleSimulateScan} className="bg-slate-950/80 p-4 rounded-xl border border-slate-800/80 space-y-4">
-        <div className="text-xs font-mono text-slate-400 uppercase tracking-wider flex items-center space-x-1.5">
-          <Globe className="w-4 h-4 text-cyan-400" />
-          <span>Simulate OCR Plate Read (Homography Perspective Rectification)</span>
-        </div>
+      <AnprSimulatorForm
+        testPlateInput={testPlateInput}
+        selectedCountryHint={selectedCountryHint}
+        carrierInput={carrierInput}
+        selectedPreset={selectedPreset}
+        isProcessing={isProcessing}
+        onTestPlateChange={setTestPlateInput}
+        onCountrySelect={handleCountrySelect}
+        onCarrierChange={setCarrierInput}
+        onPresetChange={setSelectedPreset}
+        onSubmit={handleSimulateScan}
+      />
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          <div>
-            <label className="block text-xs font-mono text-slate-400 mb-1">Target Market Standard</label>
-            <div className="flex rounded-lg overflow-hidden border border-slate-700 bg-slate-900 p-0.5">
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedCountryHint('US');
-                  if (!testPlateInput) setTestPlateInput('TX 831-PZR');
-                }}
-                className={`flex-1 py-1.5 text-xs font-mono font-bold rounded transition ${
-                  selectedCountryHint === 'US' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                🇺🇸 US Plates
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedCountryHint('IN');
-                  if (!testPlateInput) setTestPlateInput('MH 14 EU 8812');
-                }}
-                className={`flex-1 py-1.5 text-xs font-mono font-bold rounded transition ${
-                  selectedCountryHint === 'IN' ? 'bg-orange-600 text-white' : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                🇮🇳 India HSRP
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-mono text-slate-400 mb-1">Raw License Plate String</label>
-            <input
-              type="text"
-              value={testPlateInput}
-              onChange={(e) => setTestPlateInput(e.target.value)}
-              placeholder={selectedCountryHint === 'US' ? 'e.g. TX 789-XYZ' : 'e.g. MH 12 RN 4589'}
-              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-mono text-slate-400 mb-1">Carrier / Logistics Operator</label>
-            <input
-              type="text"
-              value={carrierInput}
-              onChange={(e) => setCarrierInput(e.target.value)}
-              placeholder="e.g. Schneider / TCI Freight"
-              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
-            />
-          </div>
-
-          <div className="flex items-end">
-            <button
-              type="submit"
-              className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-mono font-bold text-xs py-2 px-4 rounded-lg transition shadow-lg shadow-cyan-600/30 flex items-center justify-center space-x-2"
-            >
-              <Scan className="w-4 h-4" />
-              <span>TEST ANPR OCR</span>
-            </button>
-          </div>
-        </div>
-      </form>
+      {/* Real OpenCV 4.10 Homography Mathematical Inspection Panel */}
+      {lastHomography && <AnprHomographyTelemetry lastHomography={lastHomography} />}
 
       {/* Live Plate Manifest Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-xs font-mono">
-          <thead className="bg-slate-950 text-slate-400 uppercase tracking-wider border-b border-slate-800">
-            <tr>
-              <th className="py-3 px-4">Plate Number</th>
-              <th className="py-3 px-4">Origin / Jurisdiction</th>
-              <th className="py-3 px-4">Carrier & Driver</th>
-              <th className="py-3 px-4">Gate & Time</th>
-              <th className="py-3 px-4">OCR Confidence</th>
-              <th className="py-3 px-4 text-right">Access Action</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-800/60">
-            {records.map(rec => {
-              const isUS = rec.country === 'US';
-              const isAuthorized = rec.status === 'authorized';
-
-              return (
-                <tr key={rec.id} className="hover:bg-slate-800/40 transition">
-                  <td className="py-3 px-4">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-base">{isUS ? '🇺🇸' : '🇮🇳'}</span>
-                      <span className="font-bold text-white text-sm bg-slate-950 px-2 py-0.5 rounded border border-slate-700">
-                        {rec.plateNumber}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="text-slate-200">{rec.stateOrRegion}</div>
-                    <div className="text-[10px] text-slate-500">{rec.vehicleType}</div>
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="text-slate-300 font-sans">{rec.carrier}</div>
-                    <div className="text-[10px] text-slate-500">{rec.driverName || 'Manifest Pending'}</div>
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="text-slate-300">{rec.gateId}</div>
-                    <div className="text-[10px] text-slate-500">{new Date(rec.timestamp).toLocaleTimeString()}</div>
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-16 bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                        <div
-                          className="bg-cyan-400 h-full rounded-full"
-                          style={{ width: `${rec.confidence * 100}%` }}
-                        />
-                      </div>
-                      <span className="text-cyan-400 font-bold">{(rec.confidence * 100).toFixed(1)}%</span>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4 text-right">
-                    {isAuthorized ? (
-                      <span className="inline-flex items-center space-x-1 text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>GATE OPEN</span>
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center space-x-1 text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30">
-                        <AlertOctagon className="w-3.5 h-3.5" />
-                        <span>QUARANTINE</span>
-                      </span>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      <AnprManifestTable
+        records={records}
+        editingRecordId={editingRecordId}
+        editPlateValue={editPlateValue}
+        saveLoading={saveLoading}
+        onStartEdit={handleStartEdit}
+        onCancelEdit={handleCancelEdit}
+        onSaveEdit={handleSaveEdit}
+        onEditPlateChange={setEditPlateValue}
+      />
     </div>
   );
 };

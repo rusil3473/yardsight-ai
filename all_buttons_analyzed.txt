@@ -1,0 +1,687 @@
+FILE: src\App.tsx:221
+TEXT: {activeSpillsCount} ACTIVE HAZARD
+SUBMIT: False
+HANDLER: () => setActiveSpillModal(spills[0])
+--------------------------------------------------
+FILE: src\App.tsx:232
+TEXT: Incident Dispatch
+SUBMIT: False
+HANDLER: () => setIsAlertModalOpen(true)
+--------------------------------------------------
+FILE: src\App.tsx:243
+TEXT: Export Audit PDF
+SUBMIT: False
+HANDLER: () => setIsAuditOpen(true)
+--------------------------------------------------
+FILE: src\App.tsx:347
+TEXT: Open Actuator Interlock Modal
+SUBMIT: False
+HANDLER: () => setActiveSpillModal(spills[0])
+--------------------------------------------------
+FILE: src\App.tsx:438
+TEXT: Dispatch Pump
+SUBMIT: False
+HANDLER: () => setActiveSpillModal(s)
+--------------------------------------------------
+FILE: src\components\AnprGateScanner.tsx:237
+TEXT: 
+SUBMIT: False
+HANDLER: () => setFeedbackToast(null)
+--------------------------------------------------
+FILE: src\components\AnprGateScanner.tsx:276
+TEXT: 🇺🇸 US Plates
+SUBMIT: False
+HANDLER: () => {
+                  setSelectedCountryHint('US');
+                  setTestPlateInput('TX 942-WKY');
+                  setCarrierInput('Schneider National Intermodal');
+                }
+--------------------------------------------------
+FILE: src\components\AnprGateScanner.tsx:289
+TEXT: 🇮🇳 India HSRP
+SUBMIT: False
+HANDLER: () => {
+                  setSelectedCountryHint('IN');
+                  setTestPlateInput('MH 12 RN 4589');
+                  setCarrierInput('TCI Freight Intermodal Logistics');
+                }
+--------------------------------------------------
+FILE: src\components\AnprGateScanner.tsx:328
+TEXT: {isProcessing ? 'CALCULATING H...' : 'EXECUTE OPENCV UNWARP'}
+SUBMIT: True
+HANDLER: 
+--------------------------------------------------
+FILE: src\components\AnprGateScanner.tsx:459
+TEXT: 
+SUBMIT: False
+HANDLER: () => handleSaveEdit(rec)
+--------------------------------------------------
+FILE: src\components\AnprGateScanner.tsx:468
+TEXT: 
+SUBMIT: False
+HANDLER: handleCancelEdit
+--------------------------------------------------
+FILE: src\components\AnprGateScanner.tsx:496
+TEXT: 
+SUBMIT: False
+HANDLER: () => handleStartEdit(rec)
+--------------------------------------------------
+FILE: src\components\AuditReportModal.tsx:158
+TEXT: 
+SUBMIT: False
+HANDLER: onClose
+--------------------------------------------------
+FILE: src\components\AuditReportModal.tsx:187
+TEXT: CANCEL
+SUBMIT: False
+HANDLER: onClose
+--------------------------------------------------
+FILE: src\components\AuditReportModal.tsx:194
+TEXT: DOWNLOAD AUDIT PDF
+SUBMIT: False
+HANDLER: handleDownloadPdf
+--------------------------------------------------
+FILE: src\components\BusinessIntelligenceTab.tsx:125
+TEXT: Export ERP (JSON)
+SUBMIT: False
+HANDLER: () => handleExport('json')
+--------------------------------------------------
+FILE: src\components\BusinessIntelligenceTab.tsx:133
+TEXT: Tally XML
+SUBMIT: False
+HANDLER: () => handleExport('tally_xml')
+--------------------------------------------------
+FILE: src\components\DockTurnaroundTracker.tsx:72
+TEXT: + Check-In Truck
+SUBMIT: False
+HANDLER: onOpenCheckIn
+--------------------------------------------------
+FILE: src\components\DockTurnaroundTracker.tsx:177
+TEXT: 
+SUBMIT: False
+HANDLER: () => onEditTruck(t)
+--------------------------------------------------
+FILE: src\components\DockTurnaroundTracker.tsx:196
+TEXT: 
+SUBMIT: False
+HANDLER: () => {
+                        if (confirm(`Release and remove truck ${t.plate_number} (${t.carrier_name}) from yard registry?`)) {
+                          onDeleteTruck(t.truck_id);
+                        }
+                      }
+--------------------------------------------------
+FILE: src\components\DockTurnaroundTracker.tsx:219
+TEXT: {marketMode === 'IN_GST' ? 'Generate GST E-Way Bill' : 'Generate US eBOL'}
+SUBMIT: False
+HANDLER: () => onGenerateDocument(t.truck_id, marketMode === 'IN_GST' ? 'GST_EWAY_BILL' : 'US_EBOL')
+--------------------------------------------------
+FILE: src\components\DockTurnaroundTracker.tsx:228
+TEXT: {isDispatched ? : } {isDispatched ? 'Driver WhatsApp Sent' : 'WhatsApp Gate Clearance'}
+SUBMIT: False
+HANDLER: () => handleDispatch(t.truck_id)
+--------------------------------------------------
+FILE: src\components\DockTurnaroundTracker.tsx:312
+TEXT: Print Document Certificate →
+SUBMIT: False
+HANDLER: () => window.print()
+--------------------------------------------------
+FILE: src\components\EnterpriseAuthPortal.tsx:147
+TEXT: {p.title.split(' ')[0]} {p.scope}
+SUBMIT: False
+HANDLER: () => handleSelectRolePreset(p)
+--------------------------------------------------
+FILE: src\components\EnterpriseAuthPortal.tsx:214
+TEXT: {showPassword ? : }
+SUBMIT: False
+HANDLER: () => setShowPassword(!showPassword)
+--------------------------------------------------
+FILE: src\components\EnterpriseAuthPortal.tsx:225
+TEXT: {isSubmitting ? ( <> Signing In as {selectedRole.replace('_', ' ')}... ) : ( <> Sign In as {selectedRole === 'corporate_admin' ? 'Facility Admin' : selectedRole === 'yard_master' ? 'Yard Master' : 'Security Guard'} )}
+SUBMIT: True
+HANDLER: 
+--------------------------------------------------
+FILE: src\components\EnterpriseAuthPortal.tsx:248
+TEXT: New Customer? Setup Your Facility
+SUBMIT: False
+HANDLER: onOpenOnboarding
+--------------------------------------------------
+FILE: src\components\EWayBillsTab.tsx:108
+TEXT: 🇮🇳 India GST EWB-01
+SUBMIT: False
+HANDLER: () => setDocType('GST_EWAY_BILL')
+--------------------------------------------------
+FILE: src\components\EWayBillsTab.tsx:117
+TEXT: 🇺🇸 US Electronic BOL
+SUBMIT: False
+HANDLER: () => setDocType('US_EBOL')
+--------------------------------------------------
+FILE: src\components\EWayBillsTab.tsx:165
+TEXT: {isLoading ? 'GENERATING...' : 'GENERATE TRANSPORT SEAL'}
+SUBMIT: False
+HANDLER: handleGenerate
+--------------------------------------------------
+FILE: src\components\EWayBillsTab.tsx:186
+TEXT: Download Signed Receipt (.txt)
+SUBMIT: False
+HANDLER: handleDownloadStatement
+--------------------------------------------------
+FILE: src\components\FleetTrackTab.tsx:130
+TEXT: + Check-In Truck
+SUBMIT: False
+HANDLER: () => {
+              setEditingTruck(null);
+              setIsTruckModalOpen(true);
+            }
+--------------------------------------------------
+FILE: src\components\HomeOverviewTab.tsx:234
+TEXT: + Inbound Check-In
+SUBMIT: False
+HANDLER: () => setIsCheckInModalOpen(true)
+--------------------------------------------------
+FILE: src\components\HomeOverviewTab.tsx:247
+TEXT: Live CCTV Matrix
+SUBMIT: False
+HANDLER: () => onNavigateTab('video')
+--------------------------------------------------
+FILE: src\components\HomeOverviewTab.tsx:256
+TEXT: 
+SUBMIT: False
+HANDLER: () => onNavigateTab('scale')
+--------------------------------------------------
+FILE: src\components\HomeOverviewTab.tsx:286
+TEXT: Check-In First Truck
+SUBMIT: False
+HANDLER: () => setIsCheckInModalOpen(true)
+--------------------------------------------------
+FILE: src\components\HomeOverviewTab.tsx:293
+TEXT: Connect CCTV Stream
+SUBMIT: False
+HANDLER: () => onNavigateTab('video')
+--------------------------------------------------
+FILE: src\components\IncidentAlertModal.tsx:60
+TEXT: 
+SUBMIT: False
+HANDLER: onClose
+--------------------------------------------------
+FILE: src\components\IncidentAlertModal.tsx:86
+TEXT: WhatsApp
+SUBMIT: False
+HANDLER: () => setChannel('whatsapp')
+--------------------------------------------------
+FILE: src\components\IncidentAlertModal.tsx:95
+TEXT: SMS
+SUBMIT: False
+HANDLER: () => setChannel('sms')
+--------------------------------------------------
+FILE: src\components\IncidentAlertModal.tsx:110
+TEXT: 🇮🇳 India (+91)
+SUBMIT: False
+HANDLER: () => {
+                      setMarketPrefix('IN');
+                      setRecipient('+91 98765 43210');
+                    }
+--------------------------------------------------
+FILE: src\components\IncidentAlertModal.tsx:122
+TEXT: 🇺🇸 US (+1)
+SUBMIT: False
+HANDLER: () => {
+                      setMarketPrefix('US');
+                      setRecipient('+1 (512) 555-0199');
+                    }
+--------------------------------------------------
+FILE: src\components\IncidentAlertModal.tsx:172
+TEXT: CANCEL
+SUBMIT: False
+HANDLER: onClose
+--------------------------------------------------
+FILE: src\components\IncidentAlertModal.tsx:179
+TEXT: SEND EMERGENCY NOTIFICATION
+SUBMIT: True
+HANDLER: 
+--------------------------------------------------
+FILE: src\components\NimbusFloatingCopilot.tsx:74
+TEXT: NIMBUS COPILOT
+SUBMIT: False
+HANDLER: () => setIsOpen(true)
+--------------------------------------------------
+FILE: src\components\NimbusFloatingCopilot.tsx:108
+TEXT: 
+SUBMIT: False
+HANDLER: () => setIsOpen(false)
+--------------------------------------------------
+FILE: src\components\NimbusFloatingCopilot.tsx:119
+TEXT: Truck Plates
+SUBMIT: False
+HANDLER: () => handleSend('Summarize inbound vehicle plates')
+--------------------------------------------------
+FILE: src\components\NimbusFloatingCopilot.tsx:126
+TEXT: Briquette Line
+SUBMIT: False
+HANDLER: () => handleSend('Check briquette line throughput and debris status')
+--------------------------------------------------
+FILE: src\components\NimbusFloatingCopilot.tsx:133
+TEXT: Worker Safety
+SUBMIT: False
+HANDLER: () => handleSend('Audit on-floor workers in safety zone')
+--------------------------------------------------
+FILE: src\components\NimbusFloatingCopilot.tsx:193
+TEXT: 
+SUBMIT: True
+HANDLER: 
+--------------------------------------------------
+FILE: src\components\NimbusHub.tsx:171
+TEXT: {isSyncing ? 'Syncing...' : 'Sync Context'}
+SUBMIT: False
+HANDLER: fetchContext
+--------------------------------------------------
+FILE: src\components\NimbusHub.tsx:365
+TEXT: {q}
+SUBMIT: False
+HANDLER: () => handleSendMessage(q)
+--------------------------------------------------
+FILE: src\components\NimbusHub.tsx:437
+TEXT: Send
+SUBMIT: True
+HANDLER: 
+--------------------------------------------------
+FILE: src\components\ScaleSettingsTab.tsx:92
+TEXT: Refresh Telemetry
+SUBMIT: False
+HANDLER: loadMetrics
+--------------------------------------------------
+FILE: src\components\ScaleSettingsTab.tsx:110
+TEXT: 🇮🇳 Navi Mumbai Hub (TENANT-MY-HUB)
+SUBMIT: False
+HANDLER: () => setActiveTenant('TENANT-MY-HUB')
+--------------------------------------------------
+FILE: src\components\ScaleSettingsTab.tsx:119
+TEXT: 🇮🇳 Bengaluru Dry Port (TENANT-BLR-02)
+SUBMIT: False
+HANDLER: () => setActiveTenant('TENANT-BLR-02')
+--------------------------------------------------
+FILE: src\components\Sidebar.tsx:169
+TEXT: {isCollapsed ? : }
+SUBMIT: False
+HANDLER: onToggleCollapse
+--------------------------------------------------
+FILE: src\components\Sidebar.tsx:182
+TEXT: FACILITY {tenant.name}
+SUBMIT: False
+HANDLER: () => setIsFacilityMenuOpen(!isFacilityMenuOpen)
+--------------------------------------------------
+FILE: src\components\Sidebar.tsx:200
+TEXT: {t.name} {t.location} {tenant.tenant_id === t.tenant_id && }
+SUBMIT: False
+HANDLER: () => {
+                    switchTenant(t.tenant_id);
+                    setIsFacilityMenuOpen(false);
+                  }
+--------------------------------------------------
+FILE: src\components\Sidebar.tsx:225
+TEXT: 🇮🇳 IN GST
+SUBMIT: False
+HANDLER: () => onSelectMarketMode('IN_GST')
+--------------------------------------------------
+FILE: src\components\Sidebar.tsx:236
+TEXT: 🇺🇸 US eBOL
+SUBMIT: False
+HANDLER: () => onSelectMarketMode('US_FREIGHT')
+--------------------------------------------------
+FILE: src\components\Sidebar.tsx:258
+TEXT: {!isCollapsed && ( {item.label} {item.badge && ( {item.badge} )} )}
+SUBMIT: False
+HANDLER: () => onSelectTab(item.id)
+--------------------------------------------------
+FILE: src\components\Sidebar.tsx:299
+TEXT: {user.role.replace('_', ' ').toUpperCase()}
+SUBMIT: False
+HANDLER: () => setIsRoleMenuOpen(!isRoleMenuOpen)
+--------------------------------------------------
+FILE: src\components\Sidebar.tsx:312
+TEXT: 
+SUBMIT: False
+HANDLER: logout
+--------------------------------------------------
+FILE: src\components\Sidebar.tsx:330
+TEXT: {r === 'corporate_admin' ? 'Facility Admin' : r === 'yard_master' ? 'Yard Master' : 'Security Guard'} {user.role === r && }
+SUBMIT: False
+HANDLER: () => {
+                  switchRole(r);
+                  setIsRoleMenuOpen(false);
+                }
+--------------------------------------------------
+FILE: src\components\SpillAnalysisModal.tsx:78
+TEXT: 
+SUBMIT: False
+HANDLER: onClose
+--------------------------------------------------
+FILE: src\components\SpillAnalysisModal.tsx:186
+TEXT: {isActuating ? 'ENERGIZING...' : 'ACTUATE FLOOD SUMP PUMP'}
+SUBMIT: False
+HANDLER: handleTriggerPump
+--------------------------------------------------
+FILE: src\components\SpillAnalysisModal.tsx:198
+TEXT: DISMISS
+SUBMIT: False
+HANDLER: onClose
+--------------------------------------------------
+FILE: src\components\SpillAnalysisModal.tsx:205
+TEXT: DISPATCH HAZMAT RESPONSE TEAM
+SUBMIT: False
+HANDLER: () => {
+                onDispatchContainment(spill.id);
+                onClose();
+              }
+--------------------------------------------------
+FILE: src\components\TruckModal.tsx:128
+TEXT: 
+SUBMIT: False
+HANDLER: onClose
+--------------------------------------------------
+FILE: src\components\TruckModal.tsx:260
+TEXT: Cancel
+SUBMIT: False
+HANDLER: onClose
+--------------------------------------------------
+FILE: src\components\TruckModal.tsx:267
+TEXT: {isSubmitting ? ( Saving... ) : isEditing ? ( <> Update Truck ) : ( <> Register & Check-In )}
+SUBMIT: True
+HANDLER: 
+--------------------------------------------------
+FILE: src\components\VlmChatAssistant.tsx:132
+TEXT: {q}
+SUBMIT: False
+HANDLER: () => handleSend(q)
+--------------------------------------------------
+FILE: src\components\VlmChatAssistant.tsx:158
+TEXT: 
+SUBMIT: True
+HANDLER: 
+--------------------------------------------------
+FILE: src\components\WebRtcVideoPlayer.tsx:142
+TEXT: Retry WebRTC
+SUBMIT: False
+HANDLER: () => setReconnectKey(prev => prev + 1)
+--------------------------------------------------
+FILE: src\components\cctv\CctvAddCameraModal.tsx:107
+TEXT: 
+SUBMIT: False
+HANDLER: onClose
+--------------------------------------------------
+FILE: src\components\cctv\CctvAddCameraModal.tsx:332
+TEXT: Cancel
+SUBMIT: False
+HANDLER: onClose
+--------------------------------------------------
+FILE: src\components\cctv\CctvAddCameraModal.tsx:339
+TEXT: {isSaving ? ( <> Saving Channel... ) : ( <> Register Camera )}
+SUBMIT: True
+HANDLER: 
+--------------------------------------------------
+FILE: src\components\cctv\CctvAddNvrModal.tsx:57
+TEXT: 
+SUBMIT: False
+HANDLER: onClose
+--------------------------------------------------
+FILE: src\components\cctv\CctvAddNvrModal.tsx:129
+TEXT: {count} CH
+SUBMIT: False
+HANDLER: () => setChannels(count)
+--------------------------------------------------
+FILE: src\components\cctv\CctvAddNvrModal.tsx:152
+TEXT: Cancel
+SUBMIT: False
+HANDLER: onClose
+--------------------------------------------------
+FILE: src\components\cctv\CctvAddNvrModal.tsx:159
+TEXT: {isSaving ? ( <> Connecting NVR... ) : ( <> Connect & Auto-Provision )}
+SUBMIT: True
+HANDLER: 
+--------------------------------------------------
+FILE: src\components\cctv\CctvFeedViewport.tsx:134
+TEXT: Retry Stream
+SUBMIT: False
+HANDLER: (e) => {
+                e.stopPropagation();
+                onRetryStream();
+              }
+--------------------------------------------------
+FILE: src\components\cctv\CctvFeedViewport.tsx:200
+TEXT: 
+SUBMIT: False
+HANDLER: (e) => {
+              e.stopPropagation();
+              onInspect();
+            }
+--------------------------------------------------
+FILE: src\components\cctv\CctvFeedViewport.tsx:211
+TEXT: 
+SUBMIT: False
+HANDLER: (e) => {
+              e.stopPropagation();
+              onToggleStream();
+            }
+--------------------------------------------------
+FILE: src\components\cctv\CctvFeedViewport.tsx:222
+TEXT: 
+SUBMIT: False
+HANDLER: (e) => {
+              e.stopPropagation();
+              onTriggerAlert();
+            }
+--------------------------------------------------
+FILE: src\components\cctv\CctvInspectModal.tsx:167
+TEXT: 
+SUBMIT: False
+HANDLER: handleSaveChannelName
+--------------------------------------------------
+FILE: src\components\cctv\CctvInspectModal.tsx:175
+TEXT: 
+SUBMIT: False
+HANDLER: () => {
+                        setEditedName(feed.name);
+                        setIsEditingName(false);
+                      }
+--------------------------------------------------
+FILE: src\components\cctv\CctvInspectModal.tsx:200
+TEXT: {isFullscreen ? : }
+SUBMIT: False
+HANDLER: handleToggleFullscreen
+--------------------------------------------------
+FILE: src\components\cctv\CctvInspectModal.tsx:208
+TEXT: 
+SUBMIT: False
+HANDLER: onClose
+--------------------------------------------------
+FILE: src\components\cctv\CctvInspectModal.tsx:238
+TEXT: AI HUD: {showAiOverlays ? 'ON' : 'OFF'}
+SUBMIT: False
+HANDLER: () => setShowAiOverlays((prev) => !prev)
+--------------------------------------------------
+FILE: src\components\cctv\CctvInspectModal.tsx:246
+TEXT: Refresh Buffer
+SUBMIT: False
+HANDLER: handleFlushBuffer
+--------------------------------------------------
+FILE: src\components\cctv\CctvInspectModal.tsx:254
+TEXT: Exit Full Screen (ESC)
+SUBMIT: False
+HANDLER: handleToggleFullscreen
+--------------------------------------------------
+FILE: src\components\cctv\CctvInspectModal.tsx:336
+TEXT: Full Screen Mode
+SUBMIT: False
+HANDLER: handleToggleFullscreen
+--------------------------------------------------
+FILE: src\components\cctv\CctvInspectModal.tsx:345
+TEXT: Retry WebRTC
+SUBMIT: False
+HANDLER: () => setWebRtcRetryKey((prev) => prev + 1)
+--------------------------------------------------
+FILE: src\components\cctv\CctvInspectModal.tsx:354
+TEXT: {testingConnection ? 'Testing...' : 'Verify Socket'}
+SUBMIT: False
+HANDLER: handleTestConnection
+--------------------------------------------------
+FILE: src\components\cctv\CctvInspectModal.tsx:365
+TEXT: {isFlushingBuffer ? 'Flushing Buffer...' : 'Refresh Buffer'}
+SUBMIT: False
+HANDLER: handleFlushBuffer
+--------------------------------------------------
+FILE: src\components\cctv\CctvInspectModal.tsx:377
+TEXT: Rename Channel
+SUBMIT: False
+HANDLER: () => {
+                  setEditedName(feed.name);
+                  setIsEditingName(true);
+                }
+--------------------------------------------------
+FILE: src\components\cctv\CctvInspectModal.tsx:390
+TEXT: Analyze with Nimbus AI
+SUBMIT: False
+HANDLER: () => onOpenNimbus(feed.id)
+--------------------------------------------------
+FILE: src\components\cctv\CctvSyncChannelsModal.tsx:58
+TEXT: 
+SUBMIT: False
+HANDLER: onClose
+--------------------------------------------------
+FILE: src\components\cctv\CctvSyncChannelsModal.tsx:83
+TEXT: {count} CH
+SUBMIT: False
+HANDLER: () => setSyncTotalChannels(count)
+--------------------------------------------------
+FILE: src\components\cctv\CctvSyncChannelsModal.tsx:115
+TEXT: Cancel
+SUBMIT: False
+HANDLER: onClose
+--------------------------------------------------
+FILE: src\components\cctv\CctvSyncChannelsModal.tsx:122
+TEXT: {isSyncing ? ( <> Syncing {syncTotalChannels} Channels... ) : ( <> Sync {syncTotalChannels} Channels Now )}
+SUBMIT: False
+HANDLER: handleSyncChannels
+--------------------------------------------------
+FILE: src\components\cctv\CctvTopBar.tsx:51
+TEXT: Add Camera
+SUBMIT: False
+HANDLER: onOpenAddCamera
+--------------------------------------------------
+FILE: src\components\cctv\CctvTopBar.tsx:60
+TEXT: Add NVR
+SUBMIT: False
+HANDLER: onOpenAddNvr
+--------------------------------------------------
+FILE: src\components\cctv\CctvTopBar.tsx:69
+TEXT: Sync NVR Channels
+SUBMIT: False
+HANDLER: onOpenSyncModal
+--------------------------------------------------
+FILE: src\components\cctv\CctvTopBar.tsx:83
+TEXT: 4-Split
+SUBMIT: False
+HANDLER: () => onLayoutChange('4')
+--------------------------------------------------
+FILE: src\components\cctv\CctvTopBar.tsx:94
+TEXT: 8-Split
+SUBMIT: False
+HANDLER: () => onLayoutChange('8')
+--------------------------------------------------
+FILE: src\components\cctv\CctvTopBar.tsx:105
+TEXT: 9-Split
+SUBMIT: False
+HANDLER: () => onLayoutChange('9')
+--------------------------------------------------
+FILE: src\components\cctv\CctvTopBar.tsx:116
+TEXT: 16-Split
+SUBMIT: False
+HANDLER: () => onLayoutChange('16')
+--------------------------------------------------
+FILE: src\components\cctv\CctvTopBar.tsx:127
+TEXT: All 32
+SUBMIT: False
+HANDLER: () => onLayoutChange('all')
+--------------------------------------------------
+FILE: src\components\cctv\CctvTopBar.tsx:143
+TEXT: 
+SUBMIT: False
+HANDLER: () => onPageChange(currentPage - 1)
+--------------------------------------------------
+FILE: src\components\cctv\CctvTopBar.tsx:155
+TEXT: 
+SUBMIT: False
+HANDLER: () => onPageChange(currentPage + 1)
+--------------------------------------------------
+FILE: src\components\dashboard\DockBayDetailModal.tsx:35
+TEXT: 
+SUBMIT: False
+HANDLER: onClose
+--------------------------------------------------
+FILE: src\components\dashboard\DockBayDetailModal.tsx:59
+TEXT: + Check In Inbound Truck to This Bay
+SUBMIT: False
+HANDLER: () => {
+                  onClose();
+                  onOpenCheckIn();
+                }
+--------------------------------------------------
+FILE: src\components\dashboard\DockBayDetailModal.tsx:114
+TEXT: Send WhatsApp Dispatch
+SUBMIT: False
+HANDLER: () => {
+                onSendDispatch(dock);
+                onClose();
+              }
+--------------------------------------------------
+FILE: src\components\dashboard\DockBayDetailModal.tsx:125
+TEXT: Close
+SUBMIT: False
+HANDLER: onClose
+--------------------------------------------------
+FILE: src\components\dashboard\DockBaysGrid.tsx:182
+TEXT: ⚡ WhatsApp Dispatch
+SUBMIT: False
+HANDLER: (e) => {
+                        e.stopPropagation();
+                        onSendDispatchAlert(bay);
+                      }
+--------------------------------------------------
+FILE: src\components\dashboard\FieldProblemsModal.tsx:46
+TEXT: 
+SUBMIT: False
+HANDLER: onClose
+--------------------------------------------------
+FILE: src\components\dashboard\FieldProblemsModal.tsx:80
+TEXT: Close Discovery
+SUBMIT: False
+HANDLER: onClose
+--------------------------------------------------
+FILE: src\components\dashboard\RecentActivityFeed.tsx:54
+TEXT: Full Feeds
+SUBMIT: False
+HANDLER: () => onNavigateTab('video')
+--------------------------------------------------
+FILE: src\components\dashboard\RecentActivityFeed.tsx:100
+TEXT: {f}
+SUBMIT: False
+HANDLER: () => onSetEventFilter(f)
+--------------------------------------------------
+FILE: src\components\dashboard\RecentActivityFeed.tsx:151
+TEXT: View Full Fleet Yard →
+SUBMIT: False
+HANDLER: () => onNavigateTab('track')
+--------------------------------------------------
+FILE: src\components\dashboard\TruckCheckInModal.tsx:36
+TEXT: 
+SUBMIT: False
+HANDLER: onClose
+--------------------------------------------------
+FILE: src\components\dashboard\TruckCheckInModal.tsx:118
+TEXT: Cancel
+SUBMIT: False
+HANDLER: onClose
+--------------------------------------------------
+FILE: src\components\dashboard\TruckCheckInModal.tsx:125
+TEXT: Confirm Gate Check-In
+SUBMIT: True
+HANDLER: 
+--------------------------------------------------

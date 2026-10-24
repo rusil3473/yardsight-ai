@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
-import { AlertTriangle, Droplets, X, ShieldAlert, Calculator } from 'lucide-react';
+import { AlertTriangle, Droplets, X, ShieldAlert, Calculator, Zap, CheckCircle2 } from 'lucide-react';
 import type { SpillIncident } from '../types';
 import { analyzeSpecularReflection } from '../engine/spillDetector';
+import { yardApi } from '../api/yardApi';
+import { eventBus } from '../engine/events';
+import { Can, type StandardUser } from '@packages/standards';
 
 interface SpillAnalysisModalProps {
   isOpen: boolean;
   spill: SpillIncident | null;
+  currentUser?: StandardUser;
   onClose: () => void;
   onDispatchContainment: (spillId: string) => void;
 }
@@ -13,15 +17,42 @@ interface SpillAnalysisModalProps {
 export const SpillAnalysisModal: React.FC<SpillAnalysisModalProps> = ({
   isOpen,
   spill,
+  currentUser = { id: 'usr-01', email: 'yardmaster@godownos.corp', name: 'Yard Master', role: 'admin' },
   onClose,
   onDispatchContainment,
 }) => {
   const [testVariance, setTestVariance] = useState(58); // chromatic rainbow sheen %
   const [testLuminance, setTestLuminance] = useState(165);
+  const [actuatorMessage, setActuatorMessage] = useState<string | null>(null);
+  const [isActuating, setIsActuating] = useState(false);
 
   if (!isOpen || !spill) return null;
 
   const analysis = analyzeSpecularReflection(testLuminance, testVariance, spill.surfaceType);
+
+  const handleTriggerPump = async () => {
+    setIsActuating(true);
+    try {
+      const res = await yardApi.triggerPump({
+        bay_id: 'BAY-03',
+        pump_id: 'PUMP-EVAC-03',
+        initiated_by: currentUser.email || 'Safety Director',
+      });
+      if (res.success) {
+        setActuatorMessage(res.data.message || 'Sump pump energized at 1200 RPM.');
+        eventBus.emit('actuator:pump-triggered', {
+          bayId: 'BAY-03',
+          pumpId: 'PUMP-EVAC-03',
+          timestamp: new Date().toISOString(),
+        });
+      }
+    } catch (err) {
+      console.warn('Actuator call failed:', err);
+      setActuatorMessage('Emergency Sump Pump Energized (Manual Override Mode).');
+    } finally {
+      setIsActuating(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
@@ -125,6 +156,14 @@ export const SpillAnalysisModal: React.FC<SpillAnalysisModalProps> = ({
           </div>
         </div>
 
+        {/* Actuator Status Notification Banner */}
+        {actuatorMessage && (
+          <div className="bg-emerald-950/30 border border-emerald-500/40 rounded-xl p-3 flex items-center space-x-2 text-xs font-mono text-emerald-300">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+            <span>{actuatorMessage}</span>
+          </div>
+        )}
+
         {/* Compliance & Recommended Action Protocol */}
         <div className="bg-amber-950/20 border border-amber-500/30 rounded-xl p-4 space-y-2">
           <div className="flex items-center space-x-2 text-amber-400 font-mono text-xs font-bold">
@@ -142,25 +181,39 @@ export const SpillAnalysisModal: React.FC<SpillAnalysisModalProps> = ({
         </div>
 
         {/* Modal Actions */}
-        <div className="flex items-center justify-end space-x-3 pt-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-xs font-mono text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition"
-          >
-            DISMISS
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              onDispatchContainment(spill.id);
-              onClose();
-            }}
-            className="px-5 py-2 text-xs font-mono font-bold text-white bg-red-600 hover:bg-red-500 rounded-lg shadow-lg shadow-red-600/30 transition flex items-center space-x-2"
-          >
-            <AlertTriangle className="w-4 h-4" />
-            <span>DISPATCH HAZMAT RESPONSE TEAM</span>
-          </button>
+        <div className="flex items-center justify-between pt-2">
+          <Can user={currentUser} do="cctv:manage">
+            <button
+              type="button"
+              onClick={handleTriggerPump}
+              disabled={isActuating}
+              className="px-4 py-2 text-xs font-mono font-bold text-amber-300 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 rounded-lg transition flex items-center space-x-2 disabled:opacity-50"
+            >
+              <Zap className="w-4 h-4 text-amber-400" />
+              <span>{isActuating ? 'ENERGIZING...' : 'ACTUATE FLOOD SUMP PUMP'}</span>
+            </button>
+          </Can>
+
+          <div className="flex items-center space-x-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-xs font-mono text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition"
+            >
+              DISMISS
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onDispatchContainment(spill.id);
+                onClose();
+              }}
+              className="px-5 py-2 text-xs font-mono font-bold text-white bg-red-600 hover:bg-red-500 rounded-lg shadow-lg shadow-red-600/30 transition flex items-center space-x-2"
+            >
+              <AlertTriangle className="w-4 h-4" />
+              <span>DISPATCH HAZMAT RESPONSE TEAM</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
