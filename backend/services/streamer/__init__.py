@@ -52,7 +52,7 @@ class IndustrialCameraStreamer:
 
         ch_idx = (channel - 1) % len(CHANNEL_ZONE_DEFS) if channel > 0 else 0
         zone_code, default_name, zone_pipeline = CHANNEL_ZONE_DEFS[ch_idx]
-        display_name = name if (name and "Channel " not in name) else default_name
+        display_name = name or default_name
 
         # 1. Hardware RTSP Video Capture (if URL configured)
         if stream_url and stream_url.startswith(("rtsp://", "http://", "https://")):

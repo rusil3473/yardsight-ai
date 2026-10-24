@@ -192,7 +192,7 @@ export const CctvFeedViewport: React.FC<CctvFeedViewportProps> = ({
       <div className="flex items-center justify-between px-3.5 py-2 bg-[#0c1017] border-b border-slate-800/80">
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-xs font-black tracking-wider text-slate-100 uppercase truncate font-sans">
-            {feed.name || `PERIMETER CH-${String(chNum).padStart(2, '0')}`}
+            {feed.name || `Channel ${String(chNum).padStart(2, '0')}`}
           </span>
         </div>
 

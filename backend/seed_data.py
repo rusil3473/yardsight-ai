@@ -126,26 +126,9 @@ def seed_cameras(db):
         zone = get_zone_def(ch)
         zone_code, default_name, zone_pipeline = zone.zone_code, zone.display_name, zone.ai_pipeline
 
-        if ch == 1:
-            name = "Gate 01 Inbound ANPR & Optical Inspection"
-            location = "Inbound Gate 01 - South Portal"
-            res = "2560x1440 (2.5K Quad HD)"
-        elif ch == 2:
-            name = "Loading Dock 3 (Intermodal Bay)"
-            location = "Warehouse Central High-Bay"
-            res = "1080p (1920x1080)"
-        elif ch == 3:
-            name = "Chemical & Hazardous Hazmat Staging"
-            location = "Bay 4 Concrete Apron (East)"
-            res = "1080p (1920x1080)"
-        elif ch == 4:
-            name = "Outbound Weighbridge & Scale Apron"
-            location = "West Staging Apron"
-            res = "1080p (1920x1080)"
-        else:
-            name = default_name
-            location = f"Facility Zone {zone_code}"
-            res = "1080p (1920x1080)"
+        name = f"Channel {ch:02d}"
+        location = f"Channel {ch:02d}"
+        res = "2560x1440 (2.5K Quad HD)" if ch == 1 else "1080p (1920x1080)"
 
         cameras_def.append({
             "id": cam_id,

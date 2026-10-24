@@ -96,15 +96,14 @@ class CameraService:
         cam = db.query(CCTVCamera).filter(
             (CCTVCamera.id == camera_id) | (CCTVCamera.id == camera_id.upper()) | (CCTVCamera.id == camera_id.lower())
         ).first()
-        is_cam01 = camera_id.upper() == "CAM-01"
         ch_num = int(camera_id.split("-")[-1]) if ("-" in camera_id and camera_id.split("-")[-1].isdigit()) else 1
-        default_name = get_zone_def(ch_num).display_name
+        default_name = f"Channel {ch_num:02d}"
         cam_dict = cam.to_dict() if cam else {
             "id": camera_id.upper(),
-            "name": default_name if not is_cam01 else "Gate 01 Inbound ANPR & Optical Inspection",
+            "name": default_name,
             "brand": "Dahua",
-            "stream_type": "DMSS" if is_cam01 else "RTSP",
-            "dmss_serial": "AG07AA7PCA3D3B6" if is_cam01 else "BE124E0PCA95532",
+            "stream_type": "DMSS",
+            "dmss_serial": "BE124E0PCA95532",
             "dmss_channel": ch_num
         }
         return camera_streamer.mjpeg_stream_generator(cam_dict)
@@ -116,15 +115,14 @@ class CameraService:
         cam = db.query(CCTVCamera).filter(
             (CCTVCamera.id == camera_id) | (CCTVCamera.id == camera_id.upper()) | (CCTVCamera.id == camera_id.lower())
         ).first()
-        is_cam01 = camera_id.upper() == "CAM-01"
         ch_num = int(camera_id.split("-")[-1]) if ("-" in camera_id and camera_id.split("-")[-1].isdigit()) else 1
-        default_name = get_zone_def(ch_num).display_name
+        default_name = f"Channel {ch_num:02d}"
         cam_dict = cam.to_dict() if cam else {
             "id": camera_id.upper(),
-            "name": default_name if not is_cam01 else "Gate 01 Inbound ANPR & Optical Inspection",
+            "name": default_name,
             "brand": "Dahua",
-            "stream_type": "DMSS" if is_cam01 else "RTSP",
-            "dmss_serial": "AG07AA7PCA3D3B6" if is_cam01 else "BE124E0PCA95532",
+            "stream_type": "DMSS",
+            "dmss_serial": "BE124E0PCA95532",
             "dmss_channel": ch_num
         }
         return camera_streamer.generate_live_frame(cam_dict)
