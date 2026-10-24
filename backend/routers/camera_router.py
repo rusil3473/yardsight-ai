@@ -27,12 +27,18 @@ def check_nvr_online(sn: str = "BE124E0PCA95532") -> bool:
     """Returns actual NVR online status based on active P2P optical frames and tunnel reachability."""
     try:
         from services.dhp2p import dhp2p_service
-        frame = dhp2p_service.get_latest_optical_frame(sn, channel=1, max_age_seconds=15.0)
-        if frame is not None:
+        if dhp2p_service.is_tunnel_alive(sn):
             return True
+        with dhp2p_service.worker._lock:
+            for (dev_sn, _), val in dhp2p_service.worker._latest_frames.items():
+                if dev_sn == sn and isinstance(val, tuple) and (time.time() - val[1]) < 120.0:
+                    return True
         import socket
-        with socket.create_connection(("127.0.0.1", 1554), timeout=0.3):
-            return True
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(0.2)
+        res = s.connect_ex(("127.0.0.1", 1554))
+        s.close()
+        return res == 0
     except Exception:
         pass
     return False
@@ -170,14 +176,16 @@ def get_matrix_status(db: Session = Depends(get_db)):
             if frame_data and isinstance(frame_data, tuple):
                 last_frame_ts = frame_data[1]
                 age = now_ts - last_frame_ts
-                if age < 15.0:
+                if age < 30.0:
                     ch_status = "ONLINE"
-                elif age < 45.0:
-                    ch_status = "STALE"
+                elif age < 90.0:
+                    ch_status = "ONLINE" if is_nvr_online else "STALE"
                 else:
-                    ch_status = "OFFLINE"
+                    ch_status = "ONLINE" if is_nvr_online else "OFFLINE"
             elif is_thread_alive:
                 ch_status = "CONNECTING"
+            elif is_nvr_online:
+                ch_status = "ONLINE"
             else:
                 ch_status = "OFFLINE"
 

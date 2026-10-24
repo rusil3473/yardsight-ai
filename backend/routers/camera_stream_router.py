@@ -81,13 +81,13 @@ async def negotiate_webrtc_stream(camera_id: str, request: Request, subtype: int
         db.close()
 
     if not target_stream_url or not target_stream_url.startswith(("rtsp://", "http://", "https://")):
-        target_stream_url = f"rtsp://127.0.0.1:1554/cam/realmonitor?channel={ch}&subtype={subtype}"
+        target_stream_url = f"rtsp://admin:Shri%4021*@127.0.0.1:1554/cam/realmonitor?channel={ch}&subtype={subtype}#input=rtsp/tcp"
 
     # Dynamically register camera-specific stream in go2rtc
     specific_stream_name = f"cam_{cam_id.lower()}_sub{subtype}"
     webrtc_service.register_stream(specific_stream_name, target_stream_url)
 
-    streams_to_try = [specific_stream_name, "ipc_live_main" if subtype == 0 else "ipc_live"]
+    streams_to_try = [specific_stream_name]
     try:
         from services.dolynk_service import dolynk_service
         d_url = dolynk_service.stream_mgr.get_live_rtsp_url(dolynk_service.default_device_sn, 0, stream_type=subtype)

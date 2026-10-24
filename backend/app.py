@@ -36,6 +36,7 @@ if not DISABLE_VIDEO_STREAM:
 
     from services.dhp2p import dhp2p_service
     dhp2p_service.worker.start_worker("BE124E0PCA95532", channel=1)
+    dhp2p_service.worker.start_worker("BE124E0PCA95532", channel=2)
 
     from services.webrtc_service import webrtc_service
     webrtc_service.ensure_running()

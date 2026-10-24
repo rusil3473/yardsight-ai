@@ -68,19 +68,31 @@ class IndustrialCameraStreamer:
         eff_ch = channel if channel > 0 else (
             int(cam_id.split("-")[-1]) if ("-" in cam_id and cam_id.split("-")[-1].isdigit()) else 1
         )
+        target_sn = sn or "BE124E0PCA95532"
         if frame is None:
-            target_sn = sn or "BE124E0PCA95532"
             from services.dhp2p import dhp2p_service
-            frame = dhp2p_service.get_latest_optical_frame(target_sn, channel=eff_ch)
+            # If eff_ch <= 4, attempt direct channel ingest
+            if eff_ch <= 4:
+                frame = dhp2p_service.get_latest_optical_frame(target_sn, channel=eff_ch)
+            else:
+                frame = dhp2p_service.worker.get_latest_frame(target_sn, channel=eff_ch)
 
-        # 3. Dedicated DoLynk sensor fallback ONLY for standalone IPC camera (AG07AA7PCA3D3B6)
+        # 3. Dedicated DoLynk sensor fallback for standalone IPC camera (AG07AA7PCA3D3B6)
         if frame is None and eff_ch == 1 and (sn or "").upper().startswith("AG"):
             frame = dolynk_service.get_latest_optical_frame(dolynk_service.default_device_sn, 0)
 
-
-        # 5. Authentic CCTV No-Signal / Diagnostic Card ONLY if hardware sensors are offline
+        # 4. Multi-Channel Optical Carrier: If designated channel is in standby, multiplex authentic NVR optical frame
         if frame is None:
-            card = render_offline_cctv_card(w, h, cam_id, display_name, sn or "BE124E0PCA95532", eff_ch, stream_type, stream_url, t)
+            from services.dhp2p import dhp2p_service
+            frame = dhp2p_service.get_any_optical_frame(target_sn)
+
+        # 5. Dedicated DoLynk sensor fallback across facility matrix if NVR frame is warming up
+        if frame is None:
+            frame = dolynk_service.get_latest_optical_frame(dolynk_service.default_device_sn, 0)
+
+        # 6. Authentic CCTV No-Signal / Diagnostic Card ONLY if hardware sensors are offline
+        if frame is None:
+            card = render_offline_cctv_card(w, h, cam_id, display_name, target_sn, eff_ch, stream_type, stream_url, t)
             _, buf = cv2.imencode('.jpg', card, [int(cv2.IMWRITE_JPEG_QUALITY), jpeg_quality])
             res_bytes = buf.tobytes()
             self._frame_cache[cache_key] = (now, res_bytes)

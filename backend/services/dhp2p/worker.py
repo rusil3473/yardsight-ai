@@ -75,6 +75,13 @@ class DahuaOpticalWorker:
                 return True
         return False
 
+    def is_tunnel_alive(self, serial: Optional[str] = None) -> bool:
+        """Checks if Dahua P2P relay tunnel session is currently running."""
+        sn = serial or self.default_serial
+        with self._lock:
+            tunnel = self._tunnels.get(sn)
+            return bool(tunnel and tunnel.running)
+
     def _ingest_loop(self, serial: str, channel: int):
         while self.running:
             try:
@@ -85,7 +92,7 @@ class DahuaOpticalWorker:
 
                 port = tunnel.local_port
                 rtsp_url = f"rtsp://admin:Shri%4021*@127.0.0.1:{port}/cam/realmonitor?channel={channel}&subtype=1"
-                os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp|probesize;65536|analyzeduration;500000|fflags;nobuffer|flags;low_delay|allowed_media_types;video|stimeout;4000000"
+                os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp|probesize;65536|analyzeduration;500000|fflags;nobuffer|flags;low_delay|allowed_media_types;video|stimeout;2000000"
                 cap = cv2.VideoCapture(rtsp_url, cv2.CAP_FFMPEG)
                 cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
                 if not cap.isOpened():
@@ -120,7 +127,7 @@ class DahuaOpticalWorker:
                 print(f"[DHP2P INGEST ERR CH{channel}] {e}")
             time.sleep(15.0 if channel > 1 else 3.0)
 
-    def get_latest_frame(self, serial: Optional[str] = None, channel: int = 0, max_age_seconds: float = 12.0) -> Optional[np.ndarray]:
+    def get_latest_frame(self, serial: Optional[str] = None, channel: int = 0, max_age_seconds: float = 30.0) -> Optional[np.ndarray]:
         """Returns the most recent authentic optical frame from memory if fresh (< max_age_seconds)."""
         sn = serial or self.default_serial
         with self._lock:
@@ -133,3 +140,23 @@ class DahuaOpticalWorker:
                     return None  # Stale frame: camera dropped or offline
                 return frame.copy()
             return data.copy()
+
+    def get_any_frame(self, serial: Optional[str] = None, max_age_seconds: float = 120.0) -> Optional[np.ndarray]:
+        """Returns the freshest authentic optical frame from any active channel on this device."""
+        sn = serial or self.default_serial
+        now = time.time()
+        best_frame = None
+        best_ts = 0.0
+        with self._lock:
+            for (dev_sn, _), val in self._latest_frames.items():
+                if dev_sn == sn:
+                    if isinstance(val, tuple):
+                        frame, ts = val
+                        if (now - ts) < max_age_seconds and ts > best_ts:
+                            best_frame = frame
+                            best_ts = ts
+                    elif isinstance(val, np.ndarray) and best_frame is None:
+                        best_frame = val
+            if best_frame is not None:
+                return best_frame.copy()
+        return None
