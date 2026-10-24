@@ -1,0 +1,34 @@
+api:
+  listen: "127.0.0.1:1984"
+
+webrtc:
+  listen: "127.0.0.1:8555"
+
+streams:
+  ipc_live:
+    - rtsp://admin:Shri@21*@127.0.0.1:1554/cam/realmonitor?channel=1&subtype=1#input=rtsp/tcp
+  ipc_live_main:
+    - rtsp://admin:Shri@21*@127.0.0.1:1554/cam/realmonitor?channel=1&subtype=0#input=rtsp/tcp
+  cam_02:
+    - rtsp://admin:Shri@21*@127.0.0.1:1554/cam/realmonitor?channel=2
+  cam_cam-01_sub1:
+    - rtsp://127.0.0.1:1554/cam/realmonitor?channel=1&subtype=1
+  cam_cam-02_sub1:
+    - rtsp://127.0.0.1:1554/cam/realmonitor?channel=2&subtype=1
+  cam_cam-09_sub0:
+    - rtsp://127.0.0.1:1554/cam/realmonitor?channel=9&subtype=0
+  cam_cam-05_sub0:
+    - rtsp://127.0.0.1:1554/cam/realmonitor?channel=5&subtype=0
+  cam_cam-01_sub0:
+    - rtsp://127.0.0.1:1554/cam/realmonitor?channel=1&subtype=0
+  cam_cam-02_sub0:
+    - rtsp://127.0.0.1:1554/cam/realmonitor?channel=2&subtype=0
+  cam_cam-03_sub0:
+    - rtsp://127.0.0.1:1554/cam/realmonitor?channel=3&subtype=0
+  cam_cam-32_sub0:
+    - rtsp://127.0.0.1:1554/cam/realmonitor?channel=32&subtype=0
+  cam_cam-11_sub0:
+    - rtsp://127.0.0.1:1554/cam/realmonitor?channel=11&subtype=0
+  cam_cam-08_sub0:
+    - rtsp://127.0.0.1:1554/cam/realmonitor?channel=8&subtype=0
+

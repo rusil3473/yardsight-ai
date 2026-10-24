@@ -1,5 +1,5 @@
 """
-YardSight AI - Model Context Protocol (MCP) Server for Amazon Alexa+ & AWS Bedrock
+YardSight AI - Model Context Protocol (MCP) Server for Enterprise AI Agents
 Implements the Model Context Protocol (MCP) spec to expose yard cameras,
 dock turnaround metrics, leak detection, and gate access controls to agentic reasoning models.
 """
@@ -13,7 +13,7 @@ from eway_bill_engine import eway_engine
 
 class YardSightMCPServer:
     def __init__(self):
-        self.server_name = "yardsight-alexa-mcp"
+        self.server_name = "yardsight-enterprise-mcp"
         self.version = "1.0.0"
         self.protocol_version = "2025-11-25"
 

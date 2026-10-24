@@ -5,3 +5,7 @@ __pycache__/
 .env
 *.db-shm
 *.db-wal
+*.db
+.pytest_cache/
+scratch_*.*
+backend/temp/

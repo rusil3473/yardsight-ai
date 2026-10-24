@@ -1,73 +1,69 @@
 """
 YardSight AI (GodownOS) - Enterprise FastAPI Server
 Multi-Camera Industrial Vision & Physical AI for Logistics Hubs & Rented Godowns.
-Engineered for 10,000 - 100,000 concurrent users.
-Features:
-- Stateless JWT Authentication & Role-Based Access Control (RBAC)
-- Persistent SQLite Database in WAL Mode with SQLAlchemy 2.0
-- Multi-Tenant Isolation (Amazon BLR1, Flipkart Bhiwandi, Dallas DFW)
-- Token Bucket Rate Limiting (100k capacity) & Redis-Style LRU Cache
-- Asynchronous Kafka/Celery CCTV Frame Worker Queue
-- OpenCV 5 ANPR Perspective Homography & Specular Concrete Roof Leak Detection
-- Amazon Alexa+ Model Context Protocol (MCP v2025-11-25)
+Engineered with Service-Oriented Architecture (SOA) and Pydantic v2 validation.
 """
 
-from datetime import datetime
-from fastapi import FastAPI, HTTPException, Request, Response, Header, Depends, status
+import os
+os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp|allowed_media_types;video|stimeout;4000000"
+
+import json
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import Optional, Dict, Any, List
-from sqlalchemy.orm import Session
-
-from database import engine, get_db
-from models import Tenant, User, Truck, CCTVCamera, LeakEvent, EWayBill, AuditLog
 from seed_data import init_db
+from scale_engine import rate_limiter
+from routers import api_router
 
-from anpr_homography import anpr_engine
-from leak_detector import leak_detector
-from dock_cycle_tracker import dock_tracker
-from eway_bill_engine import eway_engine
-from mcp_server import mcp_server
-
-from auth_engine import (
-    ENTERPRISE_USERS,
-    create_access_token,
-    verify_access_token,
-    get_current_user_payload,
-    require_role
-)
-from scale_engine import (
-    rate_limiter,
-    lru_cache,
-    worker_queue,
-    get_enterprise_scale_metrics
-)
-from tenant_manager import tenant_manager
-
-# Ensure SQLite database is initialized with tables and enterprise records
+# 1. Initialize Database Schema & Core Tables
 init_db()
 
+# 1.1 GPU Hardware Acceleration (NVIDIA RTX 4060 OpenCL)
+import cv2
+if cv2.ocl.haveOpenCL():
+    cv2.ocl.setUseOpenCL(True)
+    try:
+        print(f"[GPU ACCELERATION] OpenCV OpenCL enabled on GPU: {cv2.ocl.Device.getDefault().name()}")
+    except Exception:
+        pass
+
+# 1.2 Live Video Stream & WebRTC Ingestion (Active) with Heavy AI Vision Paused for Low-RAM
+DISABLE_VIDEO_STREAM = os.environ.get("DISABLE_VIDEO_STREAM", "0").lower() in ("true", "1", "yes")
+DISABLE_CV_AI = os.environ.get("DISABLE_CV_AI", "1").lower() in ("true", "1", "yes")
+
+if not DISABLE_VIDEO_STREAM:
+    from services.dolynk_service import dolynk_service
+    dolynk_service.start_background_worker()
+
+    from services.dhp2p import dhp2p_service
+    dhp2p_service.worker.start_worker("BE124E0PCA95532", channel=1)
+
+    from services.webrtc_service import webrtc_service
+    webrtc_service.ensure_running()
+
+if not DISABLE_CV_AI:
+    from services.streamer.vision_tracker import vision_tracker
+    vision_tracker.yolo.warmup()
+else:
+    print("[OPENCV AI] Heavy CV inference (MOG2/HOG/YOLO) paused to optimize RAM. Pure GPU video stream active.")
+
+# 2. Instantiate Production FastAPI Application
 app = FastAPI(
     title="YardSight AI (GodownOS) Enterprise API",
-    description="Multi-Camera Industrial Vision, Physical AI & 100k Scale Logistics Platform with SQLite WAL Persistence",
-    version="2.0.0"
+    description="Multi-Camera Industrial Vision, Physical AI & 100k Scale Logistics Platform with Service Architecture",
+    version="2.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc"
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset"]
-)
+from fastapi_standards import register_standards_exception_handlers
+register_standards_exception_handlers(app)
 
-# High-Concurrency Rate Limiting Middleware (100k Token Bucket)
+# 3. High-Concurrency Token-Bucket Rate Limiter Middleware (100k Tier)
 @app.middleware("http")
-async def rate_limit_middleware(request: Request, call_next):
+async def rate_limiting_and_scale_middleware(request: Request, call_next):
     client_ip = request.client.host if request.client else "127.0.0.1"
     is_allowed, remaining_tokens, retry_after = rate_limiter.allow_request(client_ip)
-    
+
     if not is_allowed:
         return Response(
             content='{"error": "Too Many Requests", "message": "Rate limit exceeded for 100k concurrent tier. Please throttle.", "retry_after": ' + str(retry_after) + '}',
@@ -75,911 +71,80 @@ async def rate_limit_middleware(request: Request, call_next):
             media_type="application/json",
             headers={"Retry-After": str(retry_after), "X-RateLimit-Remaining": "0"}
         )
-        
+
     response = await call_next(request)
     response.headers["X-RateLimit-Limit"] = "100000"
     response.headers["X-RateLimit-Remaining"] = str(remaining_tokens)
     return response
 
-# --- Request Models ---
-class LoginRequest(BaseModel):
-    email: str
-    password: Optional[str] = "admin123"
-    role: Optional[str] = None
+# 3.1 Enterprise Security Headers Middleware
+@app.middleware("http")
+async def security_headers_middleware(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    return response
 
-class RoleSwitchRequest(BaseModel):
-    role: str  # "corporate_admin", "yard_master", "security_guard"
+# 4. Enterprise Hardened CORS Configuration
+ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:5175",
+    "http://localhost:5176",
+    "http://localhost:5177",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174",
+    "http://127.0.0.1:5175",
+    "http://127.0.0.1:5176",
+    "http://127.0.0.1:5177",
+]
 
-class TenantSwitchRequest(BaseModel):
-    tenant_id: str
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["X-RateLimit-Limit", "X-RateLimit-Remaining"]
+)
 
-class ProfileUpdateRequest(BaseModel):
-    name: str
-    email: str
-    phone: Optional[str] = None
-    department: Optional[str] = None
+# Global Standardized Exception Handler (Eliminates raw 500 crashes)
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    import traceback
+    print(f"[YARDSIGHT UNHANDLED ERROR] {request.method} {request.url.path}: {exc}")
+    traceback.print_exc()
+    return Response(
+        content=json.dumps({
+            "error": "Internal Server Error",
+            "detail": str(exc),
+            "path": request.url.path,
+            "status_code": 500
+        }),
+        status_code=500,
+        media_type="application/json"
+    )
 
-class FacilitySettingsUpdateRequest(BaseModel):
-    active_docks: Optional[int] = None
-    sla_target_turnaround_mins: Optional[int] = None
-    free_time_hours: Optional[float] = None
-    detention_rate_per_hour: Optional[float] = None
+# 5. Mount Modular Service Routers
+app.include_router(api_router)
+app.include_router(api_router, prefix="/api")
+app.include_router(api_router, prefix="/api/v1")
 
-class TruckStatusUpdateRequest(BaseModel):
-    truck_id: str
-    status: str  # "INBOUND", "AT_DOCK", "DETENTION", "CLEARED"
-    dock_number: Optional[str] = None
-
-class TruckCreateRequest(BaseModel):
-    plate_number: str
-    carrier_name: str
-    driver_name: Optional[str] = "Driver"
-    driver_phone: Optional[str] = "+91-98765-00000"
-    dock_number: Optional[str] = "Bay 01"
-    status: Optional[str] = "INBOUND"
-    cargo_desc: Optional[str] = "Standard Pallet Freight"
-    tenant_id: Optional[str] = "TENANT-AMZN-BLR1"
-    country: Optional[str] = "IN"
-    free_time_minutes: Optional[int] = 120
-
-class TruckUpdateRequest(BaseModel):
-    plate_number: Optional[str] = None
-    carrier_name: Optional[str] = None
-    driver_name: Optional[str] = None
-    driver_phone: Optional[str] = None
-    dock_number: Optional[str] = None
-    status: Optional[str] = None
-    cargo_desc: Optional[str] = None
-    country: Optional[str] = None
-    free_time_minutes: Optional[int] = None
-
-class DocumentGenRequest(BaseModel):
-    truck_id: str
-    doc_type: str = "GST_EWAY_BILL"  # "GST_EWAY_BILL" or "US_EBOL"
-    tenant_id: Optional[str] = None
-
-class DispatchAlertRequest(BaseModel):
-    truck_id: str
-    message: str
-    channel: Optional[str] = "WhatsApp"
-
-class MCPCallRequest(BaseModel):
-    tool_name: str
-    arguments: Dict[str, Any] = {}
-
-class CameraCreateRequest(BaseModel):
-    name: str
-    tenant_id: Optional[str] = None
-    stream_type: str = "DMSS"  # DMSS, RTSP, HLS, WEBRTC, SIMULATED
-    brand: Optional[str] = "Dahua"
-    location: str = "Gate North"
-    stream_url: Optional[str] = None
-    dmss_serial: Optional[str] = None
-    dmss_channel: Optional[int] = 1
-    dmss_username: Optional[str] = "admin"
-    dmss_password: Optional[str] = None
-    ai_pipeline: Optional[str] = "ANPR_OCR"
-    resolution: Optional[str] = "1080p"
-    fps: Optional[int] = 25
-    status: Optional[str] = "ONLINE"
-
-class CameraUpdateRequest(BaseModel):
-    name: Optional[str] = None
-    stream_type: Optional[str] = None
-    brand: Optional[str] = None
-    location: Optional[str] = None
-    stream_url: Optional[str] = None
-    dmss_serial: Optional[str] = None
-    dmss_channel: Optional[int] = None
-    dmss_username: Optional[str] = None
-    dmss_password: Optional[str] = None
-    ai_pipeline: Optional[str] = None
-    resolution: Optional[str] = None
-    fps: Optional[int] = None
-    status: Optional[str] = None
-
-class CameraTestRequest(BaseModel):
-    stream_type: str
-    brand: Optional[str] = "Dahua"
-    stream_url: Optional[str] = None
-    dmss_serial: Optional[str] = None
-    dmss_channel: Optional[int] = 1
-    dmss_username: Optional[str] = "admin"
-    dmss_password: Optional[str] = None
-
-# --- Health & Telemetry Endpoints ---
-@app.get("/api/health")
-def health_check(db: Session = Depends(get_db)):
-    tenant_count = db.query(Tenant).count()
-    user_count = db.query(User).count()
-    truck_count = db.query(Truck).count()
+@app.get("/")
+def root_index():
+    """YardSight AI root health and documentation entrypoint."""
     return {
-        "status": "online",
-        "service": "YardSight AI (GodownOS) Enterprise Core",
+        "platform": "YardSight AI (GodownOS)",
         "version": "2.0.0",
-        "database": {
-            "engine": "SQLite 3 (WAL Mode)",
-            "persistence": "ACID Enabled",
-            "stats": {
-                "tenants": tenant_count,
-                "users": user_count,
-                "trucks": truck_count
-            }
-        },
-        "modules": [
-            "jwt_rbac_auth",
-            "sqlite_wal_persistence",
-            "multi_tenant_manager",
-            "token_bucket_scale_limiter",
-            "redis_lru_cache",
-            "opencv_homography_anpr",
-            "specular_leak_detector",
-            "dock_dwell_tracker",
-            "eway_bill_engine",
-            "alexa_mcp_server"
-        ],
-        "scale_capacity": "100,000 Concurrent Users",
-        "opencv_version": "5.0.0",
-        "mcp_protocol_version": "2025-11-25"
+        "architecture": "Service-Oriented Architecture (SOA) with Pydantic v2",
+        "docs": "/docs",
+        "status": "OPERATIONAL"
     }
-
-@app.get("/api/metrics/scale")
-def get_scale_metrics():
-    """Returns 10k - 100k concurrency scale telemetry."""
-    return get_enterprise_scale_metrics()
-
-@app.get("/api/queue/status")
-def get_queue_status():
-    """Returns Kafka / Celery async worker queue telemetry."""
-    return worker_queue.get_telemetry()
-
-# --- Authentication & RBAC Endpoints ---
-@app.post("/api/auth/login")
-def login(req: LoginRequest, db: Session = Depends(get_db)):
-    """Logs in with email/password or role preset; reads from SQLite and returns stateless JWT."""
-    db_user = db.query(User).filter(User.email == req.email).first()
-    if not db_user and req.role:
-        db_user = db.query(User).filter(User.role == req.role).first()
-
-    if db_user:
-        user_dict = db_user.to_dict()
-        user_dict["user_id"] = db_user.id
-        token = create_access_token(user_dict)
-        tenant = db.query(Tenant).filter(Tenant.id == db_user.tenant_id).first()
-        return {
-            "status": "authenticated",
-            "access_token": token,
-            "token_type": "Bearer",
-            "user": user_dict,
-            "active_tenant": tenant.to_dict() if tenant else tenant_manager.get_active_tenant()
-        }
-
-    # Fallback to in-memory config if db user not found
-    user = ENTERPRISE_USERS.get(req.email)
-    if not user and req.role:
-        user = next((u for u in ENTERPRISE_USERS.values() if u["role"] == req.role), None)
-    if not user:
-        user = ENTERPRISE_USERS["admin@yardsight.corp"]
-
-    token = create_access_token(user)
-    return {
-        "status": "authenticated",
-        "access_token": token,
-        "token_type": "Bearer",
-        "user": user,
-        "active_tenant": tenant_manager.get_active_tenant()
-    }
-
-@app.post("/api/auth/switch-role")
-def switch_role(req: RoleSwitchRequest, db: Session = Depends(get_db)):
-    """1-Click Role Switcher reading from SQLite database."""
-    db_user = db.query(User).filter(User.role == req.role).first()
-    if db_user:
-        user_dict = db_user.to_dict()
-        user_dict["user_id"] = db_user.id
-        token = create_access_token(user_dict)
-        return {
-            "status": "switched",
-            "access_token": token,
-            "user": user_dict,
-            "message": f"Active role switched to '{user_dict['role_label']}' (SQLite persisted)"
-        }
-
-    matched_user = next((u for u in ENTERPRISE_USERS.values() if u["role"] == req.role), None)
-    if not matched_user:
-        raise HTTPException(status_code=400, detail=f"Invalid role: {req.role}")
-        
-    token = create_access_token(matched_user)
-    return {
-        "status": "switched",
-        "access_token": token,
-        "user": matched_user,
-        "message": f"Active role switched to '{matched_user['role_label']}'"
-    }
-
-@app.get("/api/auth/me")
-def get_me(current_user: Dict[str, Any] = Depends(get_current_user_payload)):
-    """Validates active Bearer JWT token."""
-    return {
-        "authenticated": current_user.get("sub") != "usr_anonymous",
-        "user": current_user
-    }
-
-# --- Multi-Tenant & Settings Endpoints (SQLite Persisted) ---
-@app.get("/api/tenants")
-def list_tenants(db: Session = Depends(get_db)):
-    db_tenants = db.query(Tenant).all()
-    tenants_list = [t.to_dict() for t in db_tenants] if db_tenants else tenant_manager.get_all_tenants()
-    return {
-        "tenants": tenants_list,
-        "active_tenant_id": tenant_manager.active_tenant_id
-    }
-
-@app.post("/api/tenants/switch")
-def switch_tenant(req: TenantSwitchRequest, db: Session = Depends(get_db)):
-    t = db.query(Tenant).filter(Tenant.id == req.tenant_id).first()
-    if t:
-        tenant_manager.active_tenant_id = req.tenant_id
-        return {
-            "status": "success",
-            "active_tenant_id": req.tenant_id,
-            "tenant": t.to_dict(),
-            "active_tenant": t.to_dict(),
-            "message": f"Tenant context switched to '{t.name}'"
-        }
-    res = tenant_manager.switch_active_tenant(req.tenant_id)
-    if "active_tenant" in res and "tenant" not in res:
-        res["tenant"] = res["active_tenant"]
-    return res
-
-@app.put("/api/user/profile")
-def update_user_profile(
-    req: ProfileUpdateRequest,
-    db: Session = Depends(get_db),
-    user_payload: Dict[str, Any] = Depends(get_current_user_payload)
-):
-    """Updates user profile directly in SQLite database."""
-    user_id = user_payload.get("sub")
-    db_user = None
-    if user_id and user_id != "usr_anonymous":
-        db_user = db.query(User).filter(User.id == user_id).first()
-    if not db_user:
-        # Fallback to email search
-        db_user = db.query(User).filter(User.email == req.email).first()
-    if not db_user:
-        # Fallback to first admin user
-        db_user = db.query(User).first()
-
-    if db_user:
-        db_user.full_name = req.name
-        db_user.email = req.email
-        if req.phone:
-            db_user.phone = req.phone
-        if req.department:
-            db_user.department = req.department
-        db.commit()
-        db.refresh(db_user)
-
-        # Record audit log
-        audit = AuditLog(
-            id=f"AUD-{int(datetime.utcnow().timestamp())}",
-            tenant_id=db_user.tenant_id,
-            user_id=db_user.id,
-            action="UPDATE_PROFILE",
-            details=f"Updated profile: Name={req.name}, Phone={req.phone}",
-            timestamp=datetime.utcnow()
-        )
-        db.add(audit)
-        db.commit()
-
-        user_dict = db_user.to_dict()
-        user_dict["user_id"] = db_user.id
-        new_token = create_access_token(user_dict)
-        return {
-            "status": "success",
-            "message": "User profile successfully saved to SQLite database.",
-            "user": user_dict,
-            "access_token": new_token
-        }
-
-    raise HTTPException(status_code=404, detail="User record not found")
-
-@app.put("/api/tenant/settings")
-def update_tenant_settings(
-    req: FacilitySettingsUpdateRequest,
-    db: Session = Depends(get_db),
-    user: Dict[str, Any] = Depends(require_role(["corporate_admin"]))
-):
-    """Updates facility SLA and configuration in SQLite database."""
-    tenant_id = user.get("tenant_id", "TENANT-AMZN-BLR1")
-    t = db.query(Tenant).filter(Tenant.id == tenant_id).first()
-    if not t:
-        t = db.query(Tenant).first()
-
-    if t:
-        if req.active_docks is not None:
-            t.active_docks = req.active_docks
-        if req.sla_target_turnaround_mins is not None:
-            t.sla_target_turnaround_mins = req.sla_target_turnaround_mins
-        if req.free_time_hours is not None:
-            t.free_time_hours = req.free_time_hours
-        if req.detention_rate_per_hour is not None:
-            t.detention_rate_per_hour = req.detention_rate_per_hour
-        db.commit()
-        db.refresh(t)
-
-        # Audit log
-        audit = AuditLog(
-            id=f"AUD-{int(datetime.utcnow().timestamp())}",
-            tenant_id=t.id,
-            user_id=user.get("sub", "usr_admin"),
-            action="UPDATE_FACILITY_SETTINGS",
-            details=f"Updated Docks={t.active_docks}, SLA={t.sla_target_turnaround_mins}m, Rate={t.currency_symbol}{t.detention_rate_per_hour}/hr",
-            timestamp=datetime.utcnow()
-        )
-        db.add(audit)
-        db.commit()
-
-        return {
-            "status": "success",
-            "message": "Facility settings updated in SQLite database.",
-            "tenant": t.to_dict()
-        }
-    raise HTTPException(status_code=404, detail="Tenant record not found")
-
-# --- Fleet & Dwell Operations (SQLite Persisted) ---
-@app.get("/api/dwell/trucks")
-def get_dwell_trucks(tenant_id: Optional[str] = None, db: Session = Depends(get_db)):
-    """Fetches real-time dwell metrics from SQLite database with calculated detention fees."""
-    query = db.query(Truck)
-    if tenant_id:
-        query = query.filter(Truck.tenant_id == tenant_id)
-    trucks = query.all()
-    if not trucks:
-        return dock_tracker.get_yard_dwell_metrics()
-
-    now = datetime.utcnow()
-    results = []
-    for trk in trucks:
-        if trk.arrival_time and trk.status != "CLEARED":
-            elapsed_mins = int((now - trk.arrival_time).total_seconds() / 60)
-            trk.dwell_minutes = elapsed_mins
-            if elapsed_mins > trk.free_time_minutes:
-                overtime_hours = (elapsed_mins - trk.free_time_minutes) / 60.0
-                rate = 2400.0 if trk.country == "IN" else 75.0
-                trk.detention_charge = round(overtime_hours * rate, 2)
-                trk.status = "DETENTION"
-            else:
-                if trk.status == "DETENTION":
-                    trk.status = "AT_DOCK"
-        results.append(trk.to_dict())
-
-    db.commit()
-    return results
-
-@app.post("/api/trucks")
-def create_truck(
-    req: TruckCreateRequest,
-    db: Session = Depends(get_db),
-    user: Dict[str, Any] = Depends(require_role(["corporate_admin", "yard_master", "security_guard"]))
-):
-    """Creates a new truck / gate check-in entry in SQLite with audit trail."""
-    import uuid
-    tenant_id = req.tenant_id or user.get("tenant_id", "TENANT-AMZN-BLR1")
-    truck_id = f"TRK-{uuid.uuid4().hex[:6].upper()}"
-    now = datetime.utcnow()
-    
-    new_truck = Truck(
-        id=truck_id,
-        tenant_id=tenant_id,
-        plate_number=req.plate_number.strip().upper(),
-        country=req.country or ("IN" if "BLR" in tenant_id or "BHW" in tenant_id else "US"),
-        carrier_name=req.carrier_name.strip(),
-        driver_name=req.driver_name.strip() if req.driver_name else "Driver",
-        driver_phone=req.driver_phone.strip() if req.driver_phone else "+91-98765-00000",
-        dock_number=req.dock_number or "Bay 01",
-        status=req.status or "INBOUND",
-        arrival_time=now,
-        dwell_minutes=0,
-        free_time_minutes=req.free_time_minutes or 120,
-        detention_charge=0.0,
-        cargo_desc=req.cargo_desc or "Standard Pallet Freight",
-        eway_bill_id=f"EWB-{int(now.timestamp())}"
-    )
-    db.add(new_truck)
-    
-    audit = AuditLog(
-        id=f"AUD-{uuid.uuid4().hex[:8]}",
-        tenant_id=tenant_id,
-        user_id=user.get("sub", "usr_admin"),
-        action="TRUCK_CHECKIN",
-        details=f"Truck {new_truck.plate_number} ({new_truck.carrier_name}) checked into {new_truck.dock_number}",
-        timestamp=now
-    )
-    db.add(audit)
-    db.commit()
-    db.refresh(new_truck)
-    return {
-        "status": "success",
-        "truck": new_truck.to_dict(),
-        "message": f"Truck {new_truck.plate_number} checked into {new_truck.dock_number} successfully"
-    }
-
-@app.put("/api/trucks/{truck_id}")
-def update_truck(
-    truck_id: str,
-    req: TruckUpdateRequest,
-    db: Session = Depends(get_db),
-    user: Dict[str, Any] = Depends(require_role(["corporate_admin", "yard_master", "security_guard"]))
-):
-    """Updates truck details and status in SQLite with audit trail."""
-    import uuid
-    trk = db.query(Truck).filter(Truck.id == truck_id).first()
-    if not trk:
-        raise HTTPException(status_code=404, detail=f"Truck '{truck_id}' not found")
-        
-    if req.plate_number:
-        trk.plate_number = req.plate_number.strip().upper()
-    if req.carrier_name:
-        trk.carrier_name = req.carrier_name.strip()
-    if req.driver_name:
-        trk.driver_name = req.driver_name.strip()
-    if req.driver_phone:
-        trk.driver_phone = req.driver_phone.strip()
-    if req.dock_number:
-        trk.dock_number = req.dock_number
-    if req.cargo_desc:
-        trk.cargo_desc = req.cargo_desc
-    if req.country:
-        trk.country = req.country
-    if req.free_time_minutes is not None:
-        trk.free_time_minutes = req.free_time_minutes
-    if req.status:
-        trk.status = req.status
-        if req.status == "CLEARED":
-            trk.departure_time = datetime.utcnow()
-            
-    audit = AuditLog(
-        id=f"AUD-{uuid.uuid4().hex[:8]}",
-        tenant_id=trk.tenant_id,
-        user_id=user.get("sub", "usr_admin"),
-        action="TRUCK_UPDATE",
-        details=f"Truck {trk.plate_number} updated: status={trk.status}, dock={trk.dock_number}",
-        timestamp=datetime.utcnow()
-    )
-    db.add(audit)
-    db.commit()
-    db.refresh(trk)
-    return {
-        "status": "success",
-        "truck": trk.to_dict(),
-        "message": f"Truck {trk.plate_number} updated successfully"
-    }
-
-@app.delete("/api/trucks/{truck_id}")
-def delete_truck(
-    truck_id: str,
-    db: Session = Depends(get_db),
-    user: Dict[str, Any] = Depends(require_role(["corporate_admin", "yard_master"]))
-):
-    """Deletes / clears a truck from the yard in SQLite with audit trail."""
-    import uuid
-    trk = db.query(Truck).filter(Truck.id == truck_id).first()
-    if not trk:
-        raise HTTPException(status_code=404, detail=f"Truck '{truck_id}' not found")
-        
-    tenant_id = trk.tenant_id
-    plate = trk.plate_number
-    db.delete(trk)
-    
-    audit = AuditLog(
-        id=f"AUD-{uuid.uuid4().hex[:8]}",
-        tenant_id=tenant_id,
-        user_id=user.get("sub", "usr_admin"),
-        action="TRUCK_RELEASE",
-        details=f"Truck {plate} ({truck_id}) checked out / removed from yard registry",
-        timestamp=datetime.utcnow()
-    )
-    db.add(audit)
-    db.commit()
-    return {
-        "status": "success",
-        "message": f"Truck {plate} deleted and dock bay released"
-    }
-
-@app.post("/api/trucks/status")
-def update_truck_status(
-    req: TruckStatusUpdateRequest,
-    db: Session = Depends(get_db),
-    user: Dict[str, Any] = Depends(require_role(["corporate_admin", "yard_master", "security_guard"]))
-):
-    """Updates truck status (e.g. Cleared, Dock Assigned) in SQLite."""
-    trk = db.query(Truck).filter(Truck.id == req.truck_id).first()
-    if not trk:
-        raise HTTPException(status_code=404, detail=f"Truck '{req.truck_id}' not found")
-
-    trk.status = req.status
-    if req.dock_number:
-        trk.dock_number = req.dock_number
-    if req.status == "CLEARED":
-        trk.departure_time = datetime.utcnow()
-
-    db.commit()
-    db.refresh(trk)
-    return {
-        "status": "success",
-        "truck": trk.to_dict(),
-        "message": f"Truck {trk.plate_number} status updated to {trk.status}"
-    }
-
-# --- Core Industrial Vision & ANPR (with LRU Caching) ---
-@app.get("/api/anpr/unwarp")
-def get_anpr_unwarp(plate: str = "MH-12-RN-4819", country: str = "IN"):
-    # Check Redis-style LRU cache
-    cache_key = f"anpr:{country}:{plate}"
-    cached = lru_cache.get(cache_key)
-    if cached:
-        cached["cache_hit"] = True
-        return cached
-
-    result = anpr_engine.simulate_cctv_frame(plate, country)
-    result["cache_hit"] = False
-    
-    # Enqueue async frame task in Kafka/Celery worker simulator
-    task_info = worker_queue.enqueue_frame_task("cam-01-gate-inbound", plate)
-    result["async_worker_task"] = task_info
-    
-    lru_cache.set(cache_key, result, ttl_seconds=300)
-    return result
-
-@app.get("/api/leak/status")
-def get_leak_status(intensity: float = 0.65, db: Session = Depends(get_db)):
-    """Returns specular leak detection and syncs with SQLite database."""
-    leak_data = leak_detector.simulate_leak_cctv(intensity)
-    # Sync with active leak event in DB
-    ev = db.query(LeakEvent).first()
-    if ev and ev.status == "ACTIVE":
-        ev.area_sqm = leak_data["metrics"]["estimated_surface_area_sqm"]
-        ev.rate_lph = leak_data["leak_rate_liters_per_hour"]
-        ev.severity = "CRITICAL" if ev.area_sqm > 10 else "WARNING"
-        db.commit()
-    return leak_data
-
-@app.post("/api/leak/resolve")
-def resolve_leak_status(db: Session = Depends(get_db), user: Dict[str, Any] = Depends(require_role(["corporate_admin", "yard_master"]))):
-    """Resolves concrete leak event in SQLite."""
-    ev = db.query(LeakEvent).first()
-    if ev:
-        ev.status = "RESOLVED"
-        db.commit()
-        return {"status": "success", "message": "Leak anomaly resolved and recorded in SQLite."}
-    return {"status": "success", "message": "No active leak anomaly."}
-
-# --- E-Way Bills & eBOL Persistence ---
-@app.get("/api/documents/list")
-def list_documents(tenant_id: Optional[str] = None, db: Session = Depends(get_db)):
-    """Lists all generated transport documents from SQLite database, optionally filtered by tenant."""
-    query = db.query(EWayBill)
-    if tenant_id:
-        query = query.filter(EWayBill.tenant_id == tenant_id)
-    docs = query.order_by(EWayBill.generated_at.desc()).all()
-    return {"documents": [d.to_dict() for d in docs]}
-
-@app.post("/api/documents/generate")
-def generate_documents(
-    req: DocumentGenRequest,
-    db: Session = Depends(get_db),
-    user: Dict[str, Any] = Depends(require_role(["corporate_admin", "yard_master"]))
-):
-    trk = db.query(Truck).filter(Truck.id == req.truck_id).first()
-    plate = trk.plate_number if trk else "MH-12-RN-4819"
-    carrier = trk.carrier_name if trk else "Tata Logistics Express"
-    cargo = trk.cargo_desc if trk and trk.cargo_desc else ("24 Pallets (Commercial FMCG / Electronics)" if req.doc_type == "GST_EWAY_BILL" else "24 Pallets (General Freight)")
-    target_tenant = req.tenant_id or (trk.tenant_id if trk else user.get("tenant_id", "TENANT-AMZN-BLR1"))
-
-    if req.doc_type == "GST_EWAY_BILL":
-        doc = eway_engine.generate_gst_eway_bill(
-            vehicle_number=plate,
-            transporter_name=carrier,
-            cargo_description=cargo
-        )
-    else:
-        doc = eway_engine.generate_us_ebol(
-            truck_plate=plate,
-            carrier_name=carrier,
-            cargo_description=cargo
-        )
-    
-    doc["generated_by"] = user.get("name", "Corporate Operator")
-    doc["authorized_role"] = user.get("role")
-
-    # Persist document to SQLite
-    try:
-        import uuid
-        doc_num = doc.get("eway_bill_number", doc.get("bol_number", f"DOC-{int(datetime.utcnow().timestamp())}"))
-        ewb_record = EWayBill(
-            id=f"EWB-{int(datetime.utcnow().timestamp())}-{uuid.uuid4().hex[:6]}",
-            tenant_id=target_tenant,
-            ewb_number=doc_num,
-            truck_plate=plate,
-            transporter=carrier,
-            doc_type=req.doc_type,
-            cargo_description=doc.get("cargo_description", cargo),
-            status="ACTIVE",
-            qr_code_data=doc.get("qr_code_url", ""),
-            generated_by_user_id=user.get("sub", "usr_admin"),
-            generated_at=datetime.utcnow()
-        )
-        db.add(ewb_record)
-        db.commit()
-    except Exception as e:
-        db.rollback()
-        # Non-fatal if already logged or conflict
-        print(f"[WARN] EWayBill persistence note: {e}")
-
-    return doc
-
-@app.delete("/api/documents/{doc_id}")
-def delete_document(
-    doc_id: str,
-    db: Session = Depends(get_db),
-    user: Dict[str, Any] = Depends(require_role(["corporate_admin", "yard_master"]))
-):
-    """Deletes an E-Way Bill / eBOL from SQLite."""
-    doc = db.query(EWayBill).filter((EWayBill.id == doc_id) | (EWayBill.ewb_number == doc_id)).first()
-    if not doc:
-        raise HTTPException(status_code=404, detail=f"Document '{doc_id}' not found")
-    
-    tenant_id = doc.tenant_id
-    ewb_num = doc.ewb_number
-    db.delete(doc)
-    db.commit()
-    return {
-        "status": "success",
-        "message": f"Document {ewb_num} deleted from compliance register."
-    }
-
-@app.post("/api/dispatch/alert")
-def send_dispatch_alert(
-    req: DispatchAlertRequest,
-    user: Dict[str, Any] = Depends(require_role(["corporate_admin", "yard_master"]))
-):
-    return {
-        "status": "DELIVERED",
-        "truck_id": req.truck_id,
-        "channel": req.channel,
-        "payload": req.message,
-        "dispatched_by": user.get("name", "Yard Dispatcher"),
-        "timestamp": datetime.utcnow().isoformat()
-    }
-
-# --- Audit Logs Endpoint ---
-@app.get("/api/audit/logs")
-def get_audit_logs(db: Session = Depends(get_db)):
-    logs = db.query(AuditLog).order_by(AuditLog.timestamp.desc()).limit(20).all()
-    return {"audit_logs": [log.to_dict() for log in logs]}
-
-# --- Amazon Alexa+ MCP Endpoints ---
-@app.get("/api/mcp/tools")
-def get_mcp_tools():
-    return mcp_server.list_tools()
-
-# --- CCTV Cameras Dynamic CRUD & DMSS Integration ---
-@app.get("/api/cameras")
-def get_cameras(
-    tenant_id: Optional[str] = None,
-    db: Session = Depends(get_db)
-):
-    """
-    Returns list of CCTV cameras for the specified facility/tenant.
-    If tenant_id is omitted, defaults to active tenant.
-    """
-    active_tenant_id = tenant_id or tenant_manager.active_tenant_id
-    cameras = db.query(CCTVCamera).filter(CCTVCamera.tenant_id == active_tenant_id).all()
-    
-    # If no cameras found for this tenant, re-seed if standard tenant
-    if not cameras and active_tenant_id in ["TENANT-AMZN-BLR1", "TENANT-FK-BHW1", "TENANT-US-DFW"]:
-        from seed_data import seed_enterprise_data
-        seed_enterprise_data(db)
-        cameras = db.query(CCTVCamera).filter(CCTVCamera.tenant_id == active_tenant_id).all()
-
-    return {
-        "tenant_id": active_tenant_id,
-        "count": len(cameras),
-        "cameras": [c.to_dict() for c in cameras]
-    }
-
-@app.post("/api/cameras")
-def create_camera(
-    req: CameraCreateRequest,
-    db: Session = Depends(get_db),
-    user: Dict[str, Any] = Depends(require_role(["corporate_admin", "yard_master", "security_officer"]))
-):
-    """Adds a new CCTV camera with support for Dahua DMSS, RTSP, HLS, or simulated feed."""
-    import uuid
-    target_tenant_id = req.tenant_id or user.get("tenant_id") or tenant_manager.active_tenant_id
-    
-    stream_url = req.stream_url
-    if req.stream_type == "DMSS" and req.dmss_serial:
-        stream_url = stream_url or f"rtsp://{req.dmss_username or 'admin'}:{req.dmss_password or '******'}@p2p.dmss.dahuasecurity.com:554/cam/realmonitor?channel={req.dmss_channel or 1}&subtype=0"
-    elif not stream_url:
-        existing_count = db.query(CCTVCamera).count()
-        stream_url = f"rtsp://10.0.4.{existing_count + 10}:554/live/ch0"
-
-    cam_id = f"CAM-{uuid.uuid4().hex[:6].upper()}"
-    new_cam = CCTVCamera(
-        id=cam_id,
-        tenant_id=target_tenant_id,
-        name=req.name,
-        stream_type=req.stream_type,
-        brand=req.brand or "Dahua",
-        location=req.location,
-        stream_url=stream_url,
-        dmss_serial=req.dmss_serial,
-        dmss_channel=req.dmss_channel or 1,
-        dmss_username=req.dmss_username or "admin",
-        dmss_password=req.dmss_password,
-        ai_pipeline=req.ai_pipeline or "ANPR_OCR",
-        status=req.status or "ONLINE",
-        fps=req.fps or 25,
-        resolution=req.resolution or "1080p"
-    )
-    db.add(new_cam)
-    
-    # Update tenant cameras count
-    tenant = db.query(Tenant).filter(Tenant.id == target_tenant_id).first()
-    if tenant:
-        tenant.cameras_online = db.query(CCTVCamera).filter(CCTVCamera.tenant_id == target_tenant_id, CCTVCamera.status == "ONLINE").count() + 1
-        
-    # Create Audit Log
-    log = AuditLog(
-        id=f"AUD-{uuid.uuid4().hex[:8]}",
-        tenant_id=target_tenant_id,
-        user_id=user.get("sub", "usr_admin"),
-        action="ADD_CCTV_CAMERA",
-        details=f"Added camera {req.name} ({req.stream_type}) to {target_tenant_id}",
-        timestamp=datetime.utcnow()
-    )
-    db.add(log)
-    db.commit()
-    db.refresh(new_cam)
-    return {"status": "success", "camera": new_cam.to_dict()}
-
-@app.put("/api/cameras/{camera_id}")
-def update_camera(
-    camera_id: str,
-    req: CameraUpdateRequest,
-    db: Session = Depends(get_db),
-    user: Dict[str, Any] = Depends(require_role(["corporate_admin", "yard_master", "security_officer"]))
-):
-    """Updates an existing camera configuration."""
-    cam = db.query(CCTVCamera).filter(CCTVCamera.id == camera_id).first()
-    if not cam:
-        raise HTTPException(status_code=404, detail="Camera not found")
-        
-    if req.name is not None:
-        cam.name = req.name
-    if req.stream_type is not None:
-        cam.stream_type = req.stream_type
-    if req.brand is not None:
-        cam.brand = req.brand
-    if req.location is not None:
-        cam.location = req.location
-    if req.stream_url is not None:
-        cam.stream_url = req.stream_url
-    if req.dmss_serial is not None:
-        cam.dmss_serial = req.dmss_serial
-    if req.dmss_channel is not None:
-        cam.dmss_channel = req.dmss_channel
-    if req.dmss_username is not None:
-        cam.dmss_username = req.dmss_username
-    if req.dmss_password is not None:
-        cam.dmss_password = req.dmss_password
-    if req.ai_pipeline is not None:
-        cam.ai_pipeline = req.ai_pipeline
-    if req.resolution is not None:
-        cam.resolution = req.resolution
-    if req.fps is not None:
-        cam.fps = req.fps
-    if req.status is not None:
-        cam.status = req.status
-
-    import uuid
-    log = AuditLog(
-        id=f"AUD-{uuid.uuid4().hex[:8]}",
-        tenant_id=cam.tenant_id,
-        user_id=user.get("sub", "usr_admin"),
-        action="UPDATE_CCTV_CAMERA",
-        details=f"Updated camera {cam.id} ({cam.name})",
-        timestamp=datetime.utcnow()
-    )
-    db.add(log)
-    db.commit()
-    db.refresh(cam)
-    return {"status": "success", "camera": cam.to_dict()}
-
-@app.delete("/api/cameras/{camera_id}")
-def delete_camera(
-    camera_id: str,
-    db: Session = Depends(get_db),
-    user: Dict[str, Any] = Depends(require_role(["corporate_admin", "yard_master"]))
-):
-    """Deletes a CCTV camera and updates tenant counts."""
-    cam = db.query(CCTVCamera).filter(CCTVCamera.id == camera_id).first()
-    if not cam:
-        raise HTTPException(status_code=404, detail="Camera not found")
-        
-    tenant_id = cam.tenant_id
-    cam_name = cam.name
-    db.delete(cam)
-    
-    tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
-    if tenant and tenant.cameras_online > 0:
-        tenant.cameras_online -= 1
-        
-    import uuid
-    log = AuditLog(
-        id=f"AUD-{uuid.uuid4().hex[:8]}",
-        tenant_id=tenant_id,
-        user_id=user.get("sub", "usr_admin"),
-        action="DELETE_CCTV_CAMERA",
-        details=f"Deleted camera {camera_id} ({cam_name}) from {tenant_id}",
-        timestamp=datetime.utcnow()
-    )
-    db.add(log)
-    db.commit()
-    return {"status": "success", "deleted_camera_id": camera_id}
-
-@app.post("/api/cameras/test-stream")
-def test_camera_stream(req: CameraTestRequest):
-    """
-    Validates connection parameters for Dahua DMSS, RTSP, HLS, or simulated stream.
-    Returns latency, handshake status, and resolution test.
-    """
-    import random
-    if req.stream_type == "DMSS":
-        if not req.dmss_serial:
-            return {"connected": False, "error": "DMSS Device Serial Number is required."}
-        return {
-            "connected": True,
-            "brand": req.brand or "Dahua",
-            "p2p_status": "ONLINE",
-            "device_serial": req.dmss_serial,
-            "channel": req.dmss_channel or 1,
-            "latency_ms": random.randint(35, 68),
-            "codec": "H.265 / HEVC",
-            "bitrate": "4096 kbps",
-            "message": f"Successfully verified Dahua DMSS Cloud P2P connection to SN: {req.dmss_serial} (Channel {req.dmss_channel or 1})."
-        }
-    elif req.stream_type == "RTSP":
-        if not req.stream_url or not req.stream_url.startswith("rtsp://"):
-            return {"connected": False, "error": "A valid RTSP URL (rtsp://...) is required."}
-        return {
-            "connected": True,
-            "brand": req.brand or "Industrial RTSP",
-            "stream_url": req.stream_url,
-            "latency_ms": random.randint(22, 54),
-            "codec": "H.264 / AVC",
-            "bitrate": "3072 kbps",
-            "message": f"RTSP Handshake OK: Stream active at {req.stream_url}."
-        }
-    elif req.stream_type in ["HLS", "WEBRTC"]:
-        if not req.stream_url:
-            return {"connected": False, "error": "Stream URL is required."}
-        return {
-            "connected": True,
-            "stream_url": req.stream_url,
-            "latency_ms": random.randint(18, 42),
-            "message": f"{req.stream_type} endpoint verified."
-        }
-    else:
-        return {
-            "connected": True,
-            "latency_ms": 12,
-            "message": "Simulated hardware vision sensor stream active."
-        }
 
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=8001)
-
