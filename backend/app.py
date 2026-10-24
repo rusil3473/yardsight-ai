@@ -36,7 +36,7 @@ if not DISABLE_VIDEO_STREAM:
 
     from services.dhp2p import dhp2p_service
     import time
-    for ch in [1, 2, 3, 4]:
+    for ch in [1, 2, 3, 4, 5, 6, 7, 9, 12, 13]:
         dhp2p_service.worker.start_worker("BE124E0PCA95532", channel=ch)
         time.sleep(0.2)
 

@@ -53,7 +53,7 @@ export const CctvFeedViewport: React.FC<CctvFeedViewportProps> = ({
   };
 
   const liveStreamUrl = `http://127.0.0.1:8001/api/cameras/${feed.id.toUpperCase()}/stream`;
-  const [useLiveStream, setUseLiveStream] = useState<boolean>(true);
+  const useLiveStream = isStreaming;
   const [snapshotSrc, setSnapshotSrc] = useState<string>(() => buildSnapshotUrl(feed.id));
   const [wsFrameSrc, setWsFrameSrc] = useState<string | null>(null);
   const timerRef = useRef<any>(null);
@@ -250,13 +250,7 @@ export const CctvFeedViewport: React.FC<CctvFeedViewportProps> = ({
             src={wsFrameSrc || (useLiveStream ? liveStreamUrl : snapshotSrc)}
             alt={feed.name}
             onLoad={handleLoad}
-            onError={() => {
-              setUseLiveStream(false);
-              handleError();
-              setTimeout(() => {
-                if (isMountedRef.current) setUseLiveStream(true);
-              }, 4000);
-            }}
+            onError={handleError}
             className="w-full h-full object-cover transition duration-300"
           />
         )}
