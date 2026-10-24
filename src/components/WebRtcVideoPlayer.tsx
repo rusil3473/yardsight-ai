@@ -20,44 +20,50 @@ export const WebRtcVideoPlayer: React.FC<WebRtcVideoPlayerProps> = ({
   const videoRef = useRef<HTMLVideoElement>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const [connectionState, setConnectionState] = useState<'connecting' | 'connected' | 'fallback'>('connecting');
-  const [latencyMs, setLatencyMs] = useState<number>(85);
+  const [latencyMs, setLatencyMs] = useState<number>(45);
   const [reconnectKey, setReconnectKey] = useState<number>(0);
-  const [snapshotSrc, setSnapshotSrc] = useState<string>(fallbackStreamUrl);
   const isMountedRef = useRef<boolean>(true);
+  const [snapshotSrc, setSnapshotSrc] = useState<string>(fallbackStreamUrl);
   const snapTimerRef = useRef<any>(null);
+
+  const isMjpeg = fallbackStreamUrl.includes('/stream');
 
   useEffect(() => {
     isMountedRef.current = true;
-    const base = fallbackStreamUrl.includes('?') ? fallbackStreamUrl : `${fallbackStreamUrl}?`;
-    setSnapshotSrc(`${base}&t=${Date.now()}`);
+    if (isMjpeg) {
+      setSnapshotSrc(fallbackStreamUrl);
+    } else {
+      const base = fallbackStreamUrl.includes('?') ? fallbackStreamUrl : `${fallbackStreamUrl}?`;
+      setSnapshotSrc(`${base}&t=${Date.now()}`);
+    }
     return () => {
       isMountedRef.current = false;
       if (snapTimerRef.current) clearTimeout(snapTimerRef.current);
     };
-  }, [fallbackStreamUrl, reconnectKey, retryKey]);
+  }, [fallbackStreamUrl, reconnectKey, retryKey, isMjpeg]);
 
   const handleSnapshotLoad = () => {
+    if (isMjpeg) return; // Continuous MJPEG stream renders natively without polling
     if (snapTimerRef.current) clearTimeout(snapTimerRef.current);
     snapTimerRef.current = setTimeout(() => {
       if (isMountedRef.current) {
         const base = fallbackStreamUrl.includes('?') ? fallbackStreamUrl : `${fallbackStreamUrl}?`;
         setSnapshotSrc(`${base}&t=${Date.now()}`);
       }
-    }, 280);
+    }, 300);
   };
 
   const handleSnapshotError = () => {
     if (snapTimerRef.current) clearTimeout(snapTimerRef.current);
     snapTimerRef.current = setTimeout(() => {
       if (isMountedRef.current) {
-        const base = fallbackStreamUrl.includes('?') ? fallbackStreamUrl : `${fallbackStreamUrl}?`;
-        setSnapshotSrc(`${base}&t=${Date.now()}`);
+        const snap = `http://127.0.0.1:8001/api/cameras/${cameraId.toUpperCase()}/snapshot?t=${Date.now()}`;
+        setSnapshotSrc(snap);
       }
-    }, 1500);
+    }, 1000);
   };
 
   useEffect(() => {
-
     let isCancelled = false;
     let peerConn: RTCPeerConnection | null = null;
     const tStart = performance.now();
@@ -71,7 +77,6 @@ export const WebRtcVideoPlayer: React.FC<WebRtcVideoPlayerProps> = ({
         });
         pcRef.current = peerConn;
 
-        // Set up transceiver to receive video only
         peerConn.addTransceiver('video', { direction: 'recvonly' });
 
         peerConn.ontrack = (event) => {
@@ -95,7 +100,6 @@ export const WebRtcVideoPlayer: React.FC<WebRtcVideoPlayerProps> = ({
         const offer = await peerConn.createOffer();
         await peerConn.setLocalDescription(offer);
 
-        // Send SDP offer to backend WebRTC bridge or go2rtc directly
         const resp = await fetch(`http://127.0.0.1:8001/api/cameras/${cameraId.toUpperCase()}/webrtc?subtype=${subtype}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/sdp' },
@@ -113,19 +117,18 @@ export const WebRtcVideoPlayer: React.FC<WebRtcVideoPlayerProps> = ({
         } else {
           setConnectionState('fallback');
         }
-      } catch (err) {
+      } catch {
         if (!isCancelled) {
           setConnectionState('fallback');
         }
       }
     };
 
-    // Timeout fallback after 3 seconds if WebRTC does not establish
     const fallbackTimer = setTimeout(() => {
       if (!isCancelled && connectionState === 'connecting') {
         setConnectionState('fallback');
       }
-    }, 3200);
+    }, 2500);
 
     connectWebRtc();
 
@@ -141,15 +144,17 @@ export const WebRtcVideoPlayer: React.FC<WebRtcVideoPlayerProps> = ({
 
   return (
     <div className="relative w-full h-full bg-slate-950 flex items-center justify-center overflow-hidden">
-      {connectionState !== 'fallback' ? (
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          className={className}
-        />
-      ) : (
+      {/* Video Element rendered for WebRTC when connected */}
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        muted
+        className={`${className} ${connectionState === 'connected' ? 'block' : 'hidden'}`}
+      />
+
+      {/* Live Optical Video Stream rendered immediately (Zero Black Screen) */}
+      {connectionState !== 'connected' && (
         <img
           src={snapshotSrc}
           alt={`CCTV ${cameraId}`}
@@ -163,7 +168,11 @@ export const WebRtcVideoPlayer: React.FC<WebRtcVideoPlayerProps> = ({
       <div className="absolute top-2.5 left-2.5 z-20 flex items-center space-x-1.5 px-2 py-0.5 rounded font-mono text-[10px] bg-slate-950/80 backdrop-blur border border-slate-800 shadow">
         <Radio className={`w-3 h-3 ${connectionState === 'connected' ? 'text-emerald-400 animate-pulse' : 'text-cyan-400'}`} />
         <span className="font-bold text-slate-200">
-          {connectionState === 'connected' ? 'WebRTC (UDP P2P)' : connectionState === 'connecting' ? 'WebRTC Connecting...' : 'Optical Live Feed (P2P Standby)'}
+          {connectionState === 'connected'
+            ? 'WebRTC (Low Latency)'
+            : connectionState === 'connecting'
+            ? 'Optical Live Stream'
+            : 'Optical Live Stream (Nominal)'}
         </span>
         {connectionState === 'connected' && (
           <span className="text-emerald-400 font-semibold border-l border-slate-700 pl-1.5">

@@ -49,37 +49,43 @@ def dh_read(sock: socket.socket) -> dict:
     body = parts[1] if len(parts) > 1 else ""
     return {"code": code, "data": xmltodict.parse(body) if body.strip() else {}}
 
+def dh_exchange(sock: socket.socket, host: str, port: int, path: str, body: str = "", max_retries: int = 3) -> dict:
+    """Sends Dahua request and receives parsed response with automatic UDP retry."""
+    last_err = None
+    for attempt in range(max_retries):
+        try:
+            dh_req(sock, host, port, path, body)
+            return dh_read(sock)
+        except (socket.timeout, TimeoutError) as e:
+            last_err = e
+            continue
+    raise last_err or TimeoutError(f"Dahua signaling timed out for {path} after {max_retries} attempts")
+
 def perform_p2p_handshake(serial: str, user: str, pwd: str) -> tuple:
     """Performs full Easy4IP relay handshake and returns (relay_sock, agent_host, agent_port)."""
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.settimeout(6.0)
+    s.settimeout(3.5)
     s.bind(("0.0.0.0", 0))
 
-    dh_req(s, MAIN_SERVER, MAIN_PORT, "/probe/p2psrv")
-    dh_read(s)
-    dh_req(s, MAIN_SERVER, MAIN_PORT, f"/online/p2psrv/{serial}")
-    res = dh_read(s)
+    dh_exchange(s, MAIN_SERVER, MAIN_PORT, "/probe/p2psrv")
+    res = dh_exchange(s, MAIN_SERVER, MAIN_PORT, f"/online/p2psrv/{serial}")
     p2psrv_host, p2psrv_port = res["data"]["body"]["US"].split(":")
 
     s2 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s2.settimeout(6.0)
+    s2.settimeout(3.5)
     s2.bind(("0.0.0.0", 0))
-    dh_req(s2, p2psrv_host, int(p2psrv_port), f"/probe/device/{serial}")
-    dh_read(s2)
-    dh_req(s2, p2psrv_host, int(p2psrv_port), f"/info/device/{serial}")
-    info_res = dh_read(s2)
+    dh_exchange(s2, p2psrv_host, int(p2psrv_port), f"/probe/device/{serial}")
+    info_res = dh_exchange(s2, p2psrv_host, int(p2psrv_port), f"/info/device/{serial}")
     randsalt = decrypt_device_info(info_res["data"]["body"].get("Info")).get("randsalt", "")
     s2.close()
 
-    dh_req(s, MAIN_SERVER, MAIN_PORT, "/online/relay")
-    relay_host, relay_port = dh_read(s)["data"]["body"]["Address"].split(":")
+    relay_host, relay_port = dh_exchange(s, MAIN_SERVER, MAIN_PORT, "/online/relay")["data"]["body"]["Address"].split(":")
 
     relay_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    relay_sock.settimeout(6.0)
+    relay_sock.settimeout(3.5)
     relay_sock.bind(("0.0.0.0", 0))
 
-    dh_req(relay_sock, relay_host, int(relay_port), "/relay/agent")
-    agent_res = dh_read(relay_sock)
+    agent_res = dh_exchange(relay_sock, relay_host, int(relay_port), "/relay/agent")
     token = agent_res["data"]["body"]["Token"]
     agent_host, agent_port_str = agent_res["data"]["body"]["Agent"].split(":")
     agent_port = int(agent_port_str)
@@ -92,8 +98,7 @@ def perform_p2p_handshake(serial: str, user: str, pwd: str) -> tuple:
     body = f"<body>{auth_str}<Identify>{' '.join(f'{b:x}' for b in aid)}</Identify><IpEncrptV2>true</IpEncrptV2><LocalAddr>{laddr_enc}</LocalAddr><version>5.0.0</version></body>"
     dh_req(s, MAIN_SERVER, MAIN_PORT, f"/device/{serial}/p2p-channel", body)
 
-    dh_req(relay_sock, agent_host, agent_port, f"/relay/start/{token}", "<body><Client>:0</Client></body>")
-    dh_read(relay_sock)
+    dh_exchange(relay_sock, agent_host, agent_port, f"/relay/start/{token}", "<body><Client>:0</Client></body>")
 
     chan_res = dh_read(s)
     if chan_res["code"] == 100:
@@ -101,7 +106,6 @@ def perform_p2p_handshake(serial: str, user: str, pwd: str) -> tuple:
     s.close()
 
     auth_relay = get_auth(user, key, get_nonce(), randsalt)
-    dh_req(relay_sock, MAIN_SERVER, MAIN_PORT, f"/device/{serial}/relay-channel", f"<body>{auth_relay}<agentAddr>{agent_host}:{agent_port}</agentAddr></body>")
-    dh_read(relay_sock)
+    dh_exchange(relay_sock, MAIN_SERVER, MAIN_PORT, f"/device/{serial}/relay-channel", f"<body>{auth_relay}<agentAddr>{agent_host}:{agent_port}</agentAddr></body>")
 
     return relay_sock, agent_host, agent_port

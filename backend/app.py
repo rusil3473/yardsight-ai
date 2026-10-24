@@ -35,8 +35,10 @@ if not DISABLE_VIDEO_STREAM:
     dolynk_service.start_background_worker()
 
     from services.dhp2p import dhp2p_service
-    dhp2p_service.worker.start_worker("BE124E0PCA95532", channel=1)
-    dhp2p_service.worker.start_worker("BE124E0PCA95532", channel=2)
+    import time
+    for ch in [1, 2, 3, 4]:
+        dhp2p_service.worker.start_worker("BE124E0PCA95532", channel=ch)
+        time.sleep(0.2)
 
     from services.webrtc_service import webrtc_service
     webrtc_service.ensure_running()

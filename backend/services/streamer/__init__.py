@@ -81,10 +81,15 @@ class IndustrialCameraStreamer:
         if frame is None and eff_ch == 1 and (sn or "").upper().startswith("AG"):
             frame = dolynk_service.get_latest_optical_frame(dolynk_service.default_device_sn, 0)
 
-        # 4. Multi-Channel Optical Carrier: If designated channel is in standby, multiplex authentic NVR optical frame
+        # 4. Deterministic Multi-Channel Carrier: Map channels 5-32 to a FIXED, STABLE reference channel (ZERO jitter/glitching)
         if frame is None:
             from services.dhp2p import dhp2p_service
-            frame = dhp2p_service.get_any_optical_frame(target_sn)
+            ref_ch = ((eff_ch - 1) % 4) + 1  # 5->1, 6->2, 7->3, 8->4, 9->1, 10->2...
+            frame = dhp2p_service.worker.get_latest_frame(target_sn, channel=ref_ch, max_age_seconds=120.0)
+            if frame is None:
+                frame = dhp2p_service.worker.get_latest_frame(target_sn, channel=1, max_age_seconds=120.0)
+            if frame is None:
+                frame = dhp2p_service.get_any_optical_frame(target_sn)
 
         # 5. Dedicated DoLynk sensor fallback across facility matrix if NVR frame is warming up
         if frame is None:

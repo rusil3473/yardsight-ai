@@ -29,8 +29,11 @@ def handle_tcp_proxy(client: socket.socket, realm: int, q: queue.Queue, tx_queue
                     cseq_m = re.search(rb"CSeq:\s*(\d+)", d)
                     cseq = cseq_m.group(1).decode() if cseq_m else "1"
                     resp = f"RTSP/1.0 200 OK\r\nCSeq: {cseq}\r\nPublic: OPTIONS, DESCRIBE, SETUP, TEARDOWN, PLAY, PAUSE\r\n\r\n".encode()
-                    print(f"[{now:6.2f}s] LOCAL -> CLIENT: 200 OK for OPTIONS (CSeq {cseq})")
                     client.sendall(resp)
+                    if b"Session:" in d or int(cseq) > 1:
+                        tx_queue.put((struct.pack("!III", 0x10000000 | len(d), realm, 0) + d, False))
+                    continue
+                if d.startswith(b"RTSP/1.0 501"):
                     continue
                 cmd = d.split(b"\r\n")[0] if b"\r\n" in d else d[:30]
                 print(f"[{now:6.2f}s] CLIENT -> DAHUA: {cmd} ({len(d)}B)")
@@ -42,6 +45,12 @@ def handle_tcp_proxy(client: socket.socket, realm: int, q: queue.Queue, tx_queue
             while running_check():
                 try:
                     chunk = q.get(timeout=0.2)
+                    if b"SET_PARAMETER " in chunk or b"GET_PARAMETER " in chunk:
+                        cseq_m = re.search(rb"CSeq:\s*(\d+)", chunk)
+                        cseq = cseq_m.group(1).decode() if cseq_m else "1"
+                        resp = f"RTSP/1.0 200 OK\r\nCSeq: {cseq}\r\n\r\n".encode()
+                        tx_queue.put((struct.pack("!III", 0x10000000 | len(resp), realm, 0) + resp, False))
+                        continue
                     if b"m=audio" in chunk and b"RTSP/1.0 200 OK" in chunk:
                         idx = chunk.find(b"m=audio")
                         hdr, sdp = chunk[:idx].split(b"\r\n\r\n", 1)

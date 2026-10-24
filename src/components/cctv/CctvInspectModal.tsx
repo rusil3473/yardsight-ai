@@ -241,7 +241,7 @@ export const CctvInspectModal: React.FC<CctvInspectModalProps> = ({
               cameraId={feed.id}
               fallbackStreamUrl={`http://127.0.0.1:8001/api/cameras/${feed.id.toUpperCase()}/stream`}
               retryKey={webRtcRetryKey}
-              subtype={0}
+              subtype={1}
               className="w-full h-full object-cover"
             />
 
