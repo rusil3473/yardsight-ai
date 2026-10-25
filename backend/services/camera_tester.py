@@ -26,12 +26,26 @@ def test_camera_connectivity(req: CameraTestRequest) -> CameraTestResponse:
         return CameraTestResponse(status="OFFLINE", reachable=False, latency_ms=round((time.time() - t0) * 1000, 2), message="Device busy or not found.")
 
     if st in ["DMSS", "DOLYNK", "NVR_BATCH"]:
-        from dahua_p2p_bridge import DahuaP2PBridge
-        sn = req.dmss_serial or "AG07AA7PCA3D3B6"
+        sn = req.dmss_serial or "BE124E0PCA95532"
+        ch = req.dmss_channel or 1
+        from services.dhp2p import dhp2p_service
+        if sn == "BE124E0PCA95532":
+            is_active_ch = ch in dhp2p_service.worker.active_channels
+            tunnel_alive = dhp2p_service.is_tunnel_alive(sn)
+            status = "ONLINE" if (is_active_ch and tunnel_alive) else "OFFLINE"
+            msg = f"Dahua NVR Channel {ch:02d} {'active optical feed' if is_active_ch else 'unpopulated (no physical signal)'}."
+            return CameraTestResponse(
+                status=status,
+                reachable=is_active_ch and tunnel_alive,
+                latency_ms=round((time.time() - t0) * 1000, 2),
+                message=msg,
+                technical_details={"channel": ch, "tunnel_alive": tunnel_alive, "active_channels": list(dhp2p_service.worker.active_channels)}
+            )
         dolynk_res = dolynk_service.test_connection(device_sn=sn)
         if dolynk_res.get("success") and dolynk_res.get("optical_frame_buffered"):
             return CameraTestResponse(status="ONLINE", reachable=True, latency_ms=dolynk_res.get("diagnostic_latency_ms", 45.0),
                 message=f"Dahua DoLynk Cloud stream active for {sn}.", technical_details=dolynk_res)
+        from dahua_p2p_bridge import DahuaP2PBridge
         p2p_res = DahuaP2PBridge(serial_number=sn).connect()
         is_success = bool(p2p_res.get("success"))
         return CameraTestResponse(status="ONLINE" if is_success else "OFFLINE", reachable=is_success,

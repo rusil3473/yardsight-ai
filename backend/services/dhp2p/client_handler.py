@@ -12,8 +12,13 @@ import re
 def handle_tcp_proxy(client: socket.socket, realm: int, q: queue.Queue, tx_queue: queue.Queue, conn_evt: threading.Event, running_check) -> None:
     """Manages full-duplex TCP <-> PTCP stream forwarding for an RTSP client with active keepalive."""
     bind_pkt = b"\x11\x00\x00\x00" + struct.pack("!I", realm) + b"\x00\x00\x00\x00" + struct.pack("!I", 554) + b"\x7f\x00\x00\x01"
-    tx_queue.put((bind_pkt, False))
-    if not conn_evt.wait(timeout=6.0):
+    connected = False
+    for attempt in range(3):
+        tx_queue.put((bind_pkt, False))
+        if conn_evt.wait(timeout=1.5):
+            connected = True
+            break
+    if not connected:
         try: client.close()
         except Exception: pass
         return
@@ -40,8 +45,12 @@ def handle_tcp_proxy(client: socket.socket, realm: int, q: queue.Queue, tx_queue
 
     def reader():
         try:
+            client.settimeout(1.0)
             while running_check() and client_alive[0]:
-                d = client.recv(4096)
+                try:
+                    d = client.recv(4096)
+                except socket.timeout:
+                    continue
                 if not d: break
                 now = time.time() - t0
                 url_m = re.search(rb"[A-Z]+\s+(rtsp://[^\s]+)", d)

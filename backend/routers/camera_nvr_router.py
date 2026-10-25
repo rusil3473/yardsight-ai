@@ -108,7 +108,7 @@ def sync_nvr_channels(
                     stream_type=stream_type,
                     stream_url=stream_url,
                     ai_pipeline=zone_pipeline,
-                    status="ONLINE",
+                    status="ONLINE" if ch in {1, 2, 3, 4, 5, 6, 7, 8, 9, 23, 24, 25} else "OFFLINE",
                     dmss_serial=sn_clean,
                     dmss_channel=ch,
                     dmss_username=username or "admin",
@@ -125,7 +125,7 @@ def sync_nvr_channels(
                     existing.dmss_username = username
                 if password:
                     existing.dmss_password = password
-                existing.status = "ONLINE"
+                existing.status = "ONLINE" if ch in {1, 2, 3, 4, 5, 6, 7, 8, 9, 23, 24, 25} else "OFFLINE"
                 synced.append(existing)
 
         db.commit()

@@ -116,8 +116,8 @@ class DahuaP2PTunnel:
         while self.running:
             try: data, _ = self.relay_sock.recvfrom(65535)
             except socket.timeout:
-                if len(self.realms) > 0 and (time.time() - self.last_recv_time > 15.0):
-                    print(f"[TUNNEL SILENCE] No packets from Dahua relay for >15s with active clients. Triggering reconnection.")
+                if len(self.realms) > 0 and (time.time() - self.last_recv_time > 60.0):
+                    print(f"[TUNNEL SILENCE] No packets from Dahua relay for >60s with active clients. Triggering reconnection.")
                     self.stop()
                     break
                 continue

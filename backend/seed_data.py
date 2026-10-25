@@ -140,7 +140,7 @@ def seed_cameras(db):
             "stream_type": "DMSS",
             "stream_url": f"DMSS://{nvr_sn}?channel={ch}",
             "ai_pipeline": zone_pipeline,
-            "status": "ONLINE",
+            "status": "ONLINE" if ch in {1, 2, 3, 4, 5, 6, 7, 8, 9, 23, 24, 25} else "OFFLINE",
             "dmss_serial": nvr_sn,
             "dmss_channel": ch,
             "dmss_username": "admin",

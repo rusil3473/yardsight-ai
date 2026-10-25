@@ -36,9 +36,9 @@ if not DISABLE_VIDEO_STREAM:
 
     from services.dhp2p import dhp2p_service
     import time
-    for ch in [1, 2, 3, 4, 6]:
+    for ch in [1, 2, 3, 4]:
         dhp2p_service.worker.start_worker("BE124E0PCA95532", channel=ch)
-        time.sleep(0.3)
+        time.sleep(0.5)
 
     from services.webrtc_service import webrtc_service
     webrtc_service.ensure_running()

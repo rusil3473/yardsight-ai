@@ -10,11 +10,18 @@ import numpy as np
 from typing import Dict, Optional, Tuple
 from .tunnel import DahuaP2PTunnel
 
+DEFAULT_ACTIVE_CHANNELS = {1, 2, 3, 4, 5, 6, 7, 8, 9, 23, 24, 25}
+
 class DahuaOpticalWorker:
     """Daemon worker maintaining authentic live optical frames from Dahua P2P relay."""
 
     def __init__(self, default_serial: str = "BE124E0PCA95532"):
         self.default_serial = default_serial
+        self.active_channels = set(DEFAULT_ACTIVE_CHANNELS)
+        self.max_concurrent_streams = 4
+        self._active_streams: Dict[int, bool] = {}
+        self._last_requested: Dict[int, float] = {}
+        self._channel_cooldowns: Dict[int, float] = {}
         self._latest_frames: Dict[Tuple[str, int], np.ndarray] = {}
         self._tunnels: Dict[str, DahuaP2PTunnel] = {}
         self._threads: Dict[str, threading.Thread] = {}
@@ -44,6 +51,13 @@ class DahuaOpticalWorker:
         if os.environ.get("DISABLE_VIDEO_STREAM", "0").lower() in ("true", "1", "yes"):
             return
         sn = serial or self.default_serial
+        if channel not in self.active_channels:
+            return  # Channel has no physical camera connected; prevent tunnel congestion
+
+        now = time.time()
+        if now < self._channel_cooldowns.get(channel, 0.0):
+            return  # In cooldown after repeated failures
+
         thread_key = f"{sn}_{channel}"
         with self._lock:
             existing_thread = self._threads.get(thread_key)
@@ -85,7 +99,30 @@ class DahuaOpticalWorker:
             return bool(tunnel and tunnel.running)
 
     def _ingest_loop(self, serial: str, channel: int):
+        consecutive_connect_fails = 0
+        # Stagger startup to avoid all channels hitting RTSP bind simultaneously
+        time.sleep(0.1 + (channel % 8) * 0.3)
         while self.running:
+            # 1. If not requested recently (> 25s), sleep to release RTSP session
+            idle_for = time.time() - self._last_requested.get(channel, time.time())
+            if idle_for > 25.0:
+                time.sleep(1.0)
+                continue
+
+            # 2. Concurrency limit: check how many streams are currently active
+            with self._lock:
+                current_active = sum(1 for ch, act in self._active_streams.items() if act and ch != channel)
+                if current_active >= self.max_concurrent_streams:
+                    can_connect = False
+                else:
+                    can_connect = True
+                    self._active_streams[channel] = True
+
+            if not can_connect:
+                time.sleep(0.5)
+                continue
+
+            cap = None
             try:
                 tunnel = self._get_or_start_tunnel(serial)
                 if not tunnel:
@@ -94,16 +131,37 @@ class DahuaOpticalWorker:
 
                 port = tunnel.local_port
                 rtsp_url = f"rtsp://admin:Shri%4021*@127.0.0.1:{port}/cam/realmonitor?channel={channel}&subtype=1"
-                os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp|probesize;65536|analyzeduration;500000|fflags;nobuffer|flags;low_delay|allowed_media_types;video|stimeout;2000000"
+                os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = (
+                    "rtsp_transport;tcp|"
+                    "probesize;65536|"
+                    "analyzeduration;500000|"
+                    "fflags;nobuffer|"
+                    "flags;low_delay|"
+                    "allowed_media_types;video|"
+                    "stimeout;3000000"
+                )
                 cap = cv2.VideoCapture(rtsp_url, cv2.CAP_FFMPEG)
                 cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
                 if not cap.isOpened():
-                    time.sleep(5.0 if channel > 2 else 2.0)
+                    consecutive_connect_fails += 1
+                    if consecutive_connect_fails >= 3:
+                        print(f"[DHP2P WORKER] Channel {channel} failed to connect 3 times. Cooling down for 60s.")
+                        self._channel_cooldowns[channel] = time.time() + 60.0
+                        consecutive_connect_fails = 0
+                        time.sleep(60.0)
+                    else:
+                        time.sleep(3.0)
                     continue
 
                 print(f"[DHP2P WORKER] Live RTSP stream connected for {serial} CH{channel}!")
+                consecutive_connect_fails = 0
                 consecutive_fails = 0
                 while self.running and consecutive_fails < 200:
+                    # Release if channel is idle for > 20s
+                    if time.time() - self._last_requested.get(channel, time.time()) > 20.0:
+                        print(f"[DHP2P WORKER] Channel {channel} idle for >20s. Releasing RTSP session.")
+                        break
+
                     ret, frame = cap.read()
                     if not ret or frame is None:
                         consecutive_fails += 1
@@ -124,14 +182,22 @@ class DahuaOpticalWorker:
                         consecutive_fails += 1
                     time.sleep(0.03)
 
-                cap.release()
             except Exception as e:
                 print(f"[DHP2P INGEST ERR CH{channel}] {e}")
-            time.sleep(3.0 if channel > 2 else 1.5)
+            finally:
+                with self._lock:
+                    self._active_streams[channel] = False
+                if cap is not None:
+                    try: cap.release()
+                    except Exception: pass
+            time.sleep(2.0)
 
     def get_latest_frame(self, serial: Optional[str] = None, channel: int = 0, max_age_seconds: float = 60.0) -> Optional[np.ndarray]:
         """Returns the most recent authentic optical frame from memory if fresh (< max_age_seconds)."""
         sn = serial or self.default_serial
+        self._last_requested[channel] = time.time()
+        if channel not in self.active_channels:
+            return None  # Unassigned NVR channel: fast return None so streamer renders offline card immediately
         with self._lock:
             data = self._latest_frames.get((sn, channel))
             if data is None:

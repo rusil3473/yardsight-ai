@@ -27,7 +27,8 @@ class DahuaP2PService:
         max_age_seconds: float = 30.0
     ) -> Optional[np.ndarray]:
         sn = serial or self.default_serial
-        self.worker.start_worker(sn, channel=channel)
+        if channel in self.worker.active_channels:
+            self.worker.start_worker(sn, channel=channel)
         return self.worker.get_latest_frame(sn, channel=channel, max_age_seconds=max_age_seconds)
 
     def get_any_optical_frame(
