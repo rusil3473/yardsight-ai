@@ -25,6 +25,7 @@ import { INITIAL_CAMERAS, INITIAL_VLM_MESSAGES } from './components/layout/AppIn
 import { AppHeader } from './components/layout/AppHeader';
 import { API_BASE_URL } from './config/env';
 import { LeakWorkbenchTab } from './components/layout/LeakWorkbenchTab';
+import { ThemeProvider } from './context/ThemeContext';
 
 const MainAppContent: React.FC = () => {
   const { user, tenant } = useAuth();
@@ -69,7 +70,7 @@ const MainAppContent: React.FC = () => {
         const data = await res.json();
         if (data.cameras && Array.isArray(data.cameras) && data.cameras.length > 0) {
           setCameras(
-            data.cameras.map((c: any) => ({
+            data.cameras.slice(0, 8).map((c: any) => ({
               id: c.id,
               name: c.name,
               location: c.location,
@@ -144,7 +145,7 @@ const MainAppContent: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-row font-sans selection:bg-cyan-500 selection:text-black">
+    <div className="min-h-screen bg-slate-100 dark:bg-[#080c14] text-slate-900 dark:text-slate-100 flex flex-row font-sans selection:bg-cyan-500 selection:text-black transition-colors duration-200">
       {/* Unified Collapsible Left Sidebar */}
       <Sidebar
         activeTab={activeTab}
@@ -194,19 +195,19 @@ const MainAppContent: React.FC = () => {
           {/* TAB 2: LIVE CCTV MATRIX */}
           {activeTab === 'video' && (
             <div className="space-y-6">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
                 <div>
-                  <h2 className="text-xl font-bold font-mono text-white flex items-center space-x-2">
-                    <Camera className="w-5 h-5 text-cyan-400" />
-                    <span>SURVEILLANCE MATRIX: DAHUA NVR MULTI-CHANNEL ({cameras.length} CHANNELS)</span>
+                  <h2 className="text-xl font-bold font-mono text-slate-900 dark:text-white flex items-center space-x-2">
+                    <Camera className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+                    <span>SURVEILLANCE MATRIX: DAHUA NVR MULTI-CHANNEL (8 CHANNELS)</span>
                   </h2>
-                  <p className="text-xs text-slate-400 font-mono">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">
                     Enterprise NVR multi-channel ingestion with zero mock frames & live optical hardware capture
                   </p>
                 </div>
-                <span className="px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                  <span>DAHUA NVR (BE124E0PCA95532): {cameras.length} CH ONLINE</span>
+                <span className="px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                  <span>DAHUA NVR (BE124E0PCA95532): 8 CH ONLINE</span>
                 </span>
               </div>
               <CctvMatrix
@@ -314,9 +315,11 @@ const MainAppContent: React.FC = () => {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AuthGate />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <AuthGate />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

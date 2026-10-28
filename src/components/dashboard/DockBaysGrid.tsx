@@ -83,14 +83,14 @@ export const DockBaysGrid: React.FC<DockBaysGridProps> = ({
               onClick={() => onSelectDock(bay)}
               className={`group relative rounded-xl border p-4 transition-all duration-200 cursor-pointer overflow-hidden flex flex-col justify-between min-h-[160px] ${
                 isDetention
-                  ? 'bg-red-950/20 border-red-500/50 hover:border-red-400 hover:bg-red-950/30'
+                  ? 'bg-red-50 dark:bg-red-950/20 border-red-300 dark:border-red-500/50 hover:border-red-400 hover:bg-red-100/50 dark:hover:bg-red-950/30'
                   : isHazard
-                  ? 'bg-amber-950/20 border-amber-500/50 hover:border-amber-400 hover:bg-amber-950/30'
+                  ? 'bg-amber-50 dark:bg-amber-950/20 border-amber-300 dark:border-amber-500/50 hover:border-amber-400 hover:bg-amber-100/50 dark:hover:bg-amber-950/30'
                   : isAvailable
-                  ? 'bg-slate-950/40 border-slate-700/60 border-dashed hover:border-cyan-500/50 hover:bg-slate-900/40'
+                  ? 'bg-slate-50 dark:bg-slate-950/40 border-slate-300 dark:border-slate-700/60 border-dashed hover:border-cyan-500/50 hover:bg-slate-100 dark:hover:bg-slate-900/40'
                   : isReserved
-                  ? 'bg-slate-950/30 border-slate-800 hover:border-slate-700'
-                  : 'bg-slate-950/60 border-slate-800 hover:border-cyan-500/40 hover:bg-slate-900/60'
+                  ? 'bg-purple-50/50 dark:bg-slate-950/30 border-purple-200 dark:border-slate-800 hover:border-purple-300 dark:hover:border-slate-700'
+                  : 'bg-white dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 hover:border-cyan-500/40 hover:bg-slate-50 dark:hover:bg-slate-900/60 shadow-sm'
               }`}
               style={{
                 boxShadow: isDetention ? '0 0 20px -5px rgba(239,68,68,0.25)' : undefined
@@ -99,22 +99,22 @@ export const DockBaysGrid: React.FC<DockBaysGridProps> = ({
               {/* Bay Header */}
               <div className="flex items-start justify-between">
                 <div>
-                  <span className="text-[11px] font-mono font-bold text-slate-400">{bay.dock_id}</span>
-                  <h3 className="text-xs font-bold text-white mt-0.5">{bay.name}</h3>
+                  <span className="text-[11px] font-mono font-bold text-slate-500 dark:text-slate-400">{bay.dock_id}</span>
+                  <h3 className="text-xs font-bold text-slate-900 dark:text-white mt-0.5">{bay.name}</h3>
                 </div>
 
                 {/* Status Badge */}
                 <span
                   className={`rounded-md px-2 py-0.5 text-[9px] font-bold border ${
                     isDetention
-                      ? 'bg-red-500/20 text-red-300 border-red-500/40 animate-pulse'
+                      ? 'bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-300 border-red-200 dark:border-red-500/40 animate-pulse'
                       : isHazard
-                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                      ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-500/40'
                       : isAvailable
-                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                      ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30'
                       : isReserved
-                      ? 'bg-purple-500/10 text-purple-400 border-purple-500/30'
-                      : 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30'
+                      ? 'bg-purple-100 dark:bg-purple-500/10 text-purple-800 dark:text-purple-400 border-purple-200 dark:border-purple-500/30'
+                      : 'bg-cyan-100 dark:bg-cyan-500/10 text-cyan-800 dark:text-cyan-400 border-cyan-200 dark:border-cyan-500/30'
                   }`}
                 >
                   {bay.status}
@@ -125,31 +125,31 @@ export const DockBaysGrid: React.FC<DockBaysGridProps> = ({
               <div className="my-2.5">
                 {isHazard ? (
                   <div className="space-y-1">
-                    <div className="flex items-center gap-1.5 text-amber-400 text-xs font-bold">
+                    <div className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400 text-xs font-bold">
                       <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
                       <span>Roof Specular Leak</span>
                     </div>
-                    <p className="text-[11px] text-amber-200/90 leading-snug">
+                    <p className="text-[11px] text-amber-800 dark:text-amber-200/90 leading-snug">
                       {bay.hazard_detail || 'Moisture detected. Bay locked for inspection.'}
                     </p>
                   </div>
                 ) : isAvailable ? (
-                  <div className="py-2 text-center text-slate-400 text-xs">
-                    <div className="font-semibold text-emerald-400">+ Ready for Docking</div>
-                    <div className="text-[10px] text-slate-500 mt-0.5">Click to Assign Truck</div>
+                  <div className="py-2 text-center text-slate-500 dark:text-slate-400 text-xs">
+                    <div className="font-semibold text-emerald-600 dark:text-emerald-400">+ Ready for Docking</div>
+                    <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Click to Assign Truck</div>
                   </div>
                 ) : isReserved ? (
-                  <div className="text-xs text-slate-400">
-                    <div className="font-semibold text-purple-300">Reserved for Container</div>
-                    <div className="text-[10px] text-slate-500 mt-1">{bay.eta}</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                    <div className="font-semibold text-purple-700 dark:text-purple-300">Reserved for Container</div>
+                    <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">{bay.eta}</div>
                   </div>
                 ) : (
                   <div>
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-mono font-bold text-white">{bay.plate_number}</span>
-                      <span className="text-[10px] text-slate-400">{bay.truck_id}</span>
+                      <span className="font-mono font-bold text-slate-900 dark:text-white">{bay.plate_number}</span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400">{bay.truck_id}</span>
                     </div>
-                    <div className="text-[11px] text-slate-400 truncate mt-0.5 font-medium">{bay.carrier}</div>
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5 font-medium">{bay.carrier}</div>
 
                     {/* Dwell Progress Bar */}
                     <div className="mt-2">

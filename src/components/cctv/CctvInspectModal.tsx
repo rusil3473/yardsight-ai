@@ -222,6 +222,8 @@ export const CctvInspectModal: React.FC<CctvInspectModalProps> = ({
             <button
               type="button"
               onClick={onClose}
+              id="close-inspect-modal"
+              aria-label="Close"
               className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
             >
               <X className="w-5 h-5" />

@@ -90,7 +90,7 @@ export const YardKpisGrid: React.FC<YardKpisGridProps> = ({
 
             <div className="relative z-10">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{kpi.title}</span>
+                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{kpi.title}</span>
                 <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${c.bg} border ${c.border} ${c.text} group-hover:scale-110 transition-transform duration-300 shadow-sm`}>
                   <Icon className="h-4 w-4" />
                 </div>
@@ -101,7 +101,7 @@ export const YardKpisGrid: React.FC<YardKpisGridProps> = ({
                   <span className={`text-2xl sm:text-3xl font-extrabold ${c.text}`} style={{ fontFamily: 'var(--font-heading)' }}>
                     {kpi.value}
                   </span>
-                  <span className="text-xs font-semibold text-slate-400">{kpi.unit}</span>
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{kpi.unit}</span>
                 </div>
 
                 <div className="w-16 h-7">
@@ -118,7 +118,7 @@ export const YardKpisGrid: React.FC<YardKpisGridProps> = ({
                 </div>
               </div>
 
-              <div className="text-[11px] text-slate-400 mt-1 font-medium">{kpi.subtitle}</div>
+              <div className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 font-medium">{kpi.subtitle}</div>
 
               <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[10px]">
                 <span className="flex items-center gap-1">

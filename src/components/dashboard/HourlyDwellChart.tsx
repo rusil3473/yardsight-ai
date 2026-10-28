@@ -29,15 +29,15 @@ export const HourlyDwellChart: React.FC<HourlyDwellChartProps> = ({
             </h3>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Truck arrivals vs Average Dwell Minutes with 60-min SLA threshold</p>
           </div>
-          <span className="rounded-lg bg-emerald-500/10 px-2.5 py-1 text-[10px] font-bold text-emerald-400 border border-emerald-500/25 flex items-center gap-1.5 shrink-0 self-start sm:self-auto">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="rounded-lg bg-emerald-50 dark:bg-emerald-500/10 px-2.5 py-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/25 flex items-center gap-1.5 shrink-0 self-start sm:self-auto">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
             SLA Compliance: 89.4%
           </span>
         </div>
 
         {/* SVG Chart Container */}
         <div className="mt-6 relative h-56 w-full">
-          <div className="absolute right-2 top-[32%] z-10 rounded bg-red-500/20 border border-red-500/30 px-2 py-0.5 text-[9px] font-mono font-bold text-red-300">
+          <div className="absolute right-2 top-[32%] z-10 rounded bg-red-100 dark:bg-red-500/20 border border-red-200 dark:border-red-500/30 px-2 py-0.5 text-[9px] font-mono font-bold text-red-700 dark:text-red-300">
             SLA Threshold: 60m Free Limit
           </div>
 

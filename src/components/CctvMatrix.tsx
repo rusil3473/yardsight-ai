@@ -22,8 +22,8 @@ export const CctvMatrix: React.FC<CctvMatrixProps> = ({
   onRefreshCameras,
   onOpenNimbus,
 }) => {
-  // Navigation & Layout (Default to 'all' so all 32 channels are displayed simultaneously)
-  const [layoutMode, setLayoutMode] = useState<CctvLayoutMode>('all');
+  // Navigation & Layout (Default to 8-channel multi grid)
+  const [layoutMode, setLayoutMode] = useState<CctvLayoutMode>('8');
   const [currentPage, setCurrentPage] = useState<number>(1);
 
   // Modals
@@ -51,7 +51,7 @@ export const CctvMatrix: React.FC<CctvMatrixProps> = ({
   const [matrixStatus, setMatrixStatus] = useState<MatrixStatus>({
     nvr_online: true,
     nvr_serial: 'BE124E0PCA95532',
-    total_channels: 32,
+    total_channels: 8,
     cameras: {},
   });
 
@@ -166,7 +166,7 @@ export const CctvMatrix: React.FC<CctvMatrixProps> = ({
       : layoutMode === '4'
       ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'
       : layoutMode === '8'
-      ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4'
+      ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4'
       : layoutMode === '9'
       ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
       : layoutMode === '16'

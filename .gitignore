@@ -12,3 +12,5 @@ backend/temp/
 *.jpg
 *.png
 !brag-output/*.jpg
+brag-output/walkthrough_work/
+brag-output/*.mp4
