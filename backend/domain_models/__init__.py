@@ -19,6 +19,11 @@ from domain_models.memory import (
     SupportTicket,
 )
 
+from domain_models.cloud_provider import (
+    CloudProviderGrant,
+    CloudProviderAuditLog,
+)
+
 __all__ = [
     "Tenant",
     "User",
@@ -37,4 +42,6 @@ __all__ = [
     "ContextMemorySummary",
     "AuditLog",
     "SupportTicket",
+    "CloudProviderGrant",
+    "CloudProviderAuditLog",
 ]

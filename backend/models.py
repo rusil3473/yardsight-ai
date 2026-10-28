@@ -22,6 +22,8 @@ from domain_models import (
     ContextMemorySummary,
     AuditLog,
     SupportTicket,
+    CloudProviderGrant,
+    CloudProviderAuditLog,
 )
 
 __all__ = [
@@ -42,4 +44,6 @@ __all__ = [
     "ContextMemorySummary",
     "AuditLog",
     "SupportTicket",
+    "CloudProviderGrant",
+    "CloudProviderAuditLog",
 ]

@@ -170,6 +170,48 @@ export const WebRtcVideoPlayer: React.FC<WebRtcVideoPlayerProps> = ({
     };
   }, [cameraId, reconnectKey, retryKey, subtype]);
 
+  // WebRTC Inbound getStats() decoded frames watchdog (auto-recovery on >3s freeze)
+  useEffect(() => {
+    if (connectionState !== 'connected') return;
+
+    let lastFrames = 0;
+    let stallSeconds = 0;
+
+    const statsInterval = setInterval(async () => {
+      if (!pcRef.current || pcRef.current.connectionState !== 'connected') return;
+
+      try {
+        const stats = await pcRef.current.getStats();
+        let currentFrames = 0;
+        stats.forEach((report) => {
+          if (report.type === 'inbound-rtp' && report.kind === 'video') {
+            currentFrames = report.framesDecoded || 0;
+          }
+        });
+
+        if (currentFrames > 0 && currentFrames === lastFrames) {
+          stallSeconds += 1;
+          if (stallSeconds >= 3) {
+            setConnectionState('fallback');
+            if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+            reconnectTimerRef.current = setTimeout(() => {
+              if (isMountedRef.current) {
+                setReconnectKey((prev) => prev + 1);
+              }
+            }, 3000);
+          }
+        } else {
+          lastFrames = currentFrames;
+          stallSeconds = 0;
+        }
+      } catch {
+        // Ignore stats probe errors
+      }
+    }, 1000);
+
+    return () => clearInterval(statsInterval);
+  }, [connectionState, cameraId]);
+
   return (
     <div className="relative w-full h-full bg-slate-950 flex items-center justify-center overflow-hidden">
       {/* Video Element rendered for WebRTC when connected */}

@@ -14,9 +14,9 @@ class DoLynkCloudService:
     """Decoupled facade preserving 100% backward compatibility with clean sub-services."""
 
     def __init__(self):
-        self.app_key = os.getenv("DOLYNK_APP_KEY", "2103726776689319936")
-        self.app_secret = os.getenv("DOLYNK_APP_SECRET", "lzxRH4Bprn8svqaeSWJTrfk1LmyZRSSL")
-        self.product_id = os.getenv("DOLYNK_PRODUCT_ID", "1053644517")
+        self.app_key = os.getenv("DOLYNK_APP_KEY", "")
+        self.app_secret = os.getenv("DOLYNK_APP_SECRET", "")
+        self.product_id = os.getenv("DOLYNK_PRODUCT_ID", "")
         self.api_host = os.getenv("DOLYNK_HOST", "https://open-api-sg.dolynkcloud.com")
         self.default_device_sn = os.getenv("DAHUA_DEVICE_SN", "AG07AA7PCA3D3B6")
 

@@ -12,6 +12,7 @@ import { CctvInspectModal } from './cctv/CctvInspectModal';
 import { CctvAddCameraModal } from './cctv/CctvAddCameraModal';
 import { CctvAddNvrModal } from './cctv/CctvAddNvrModal';
 import { CctvSyncChannelsModal } from './cctv/CctvSyncChannelsModal';
+import { DahuaCloudConnectModal } from './cctv/DahuaCloudConnectModal';
 import { API_BASE_URL } from '../config/env';
 
 export const CctvMatrix: React.FC<CctvMatrixProps> = ({
@@ -31,6 +32,7 @@ export const CctvMatrix: React.FC<CctvMatrixProps> = ({
   const [isAddCameraModalOpen, setIsAddCameraModalOpen] = useState<boolean>(false);
   const [isAddNvrModalOpen, setIsAddNvrModalOpen] = useState<boolean>(false);
   const [isSyncModalOpen, setIsSyncModalOpen] = useState<boolean>(false);
+  const [isCloudShareModalOpen, setIsCloudShareModalOpen] = useState<boolean>(false);
 
   // Streaming & Health State (Live streaming enabled by default for all visible channels)
   const [pausedFeedIds, setPausedFeedIds] = useState<Set<string>>(new Set());
@@ -190,6 +192,7 @@ export const CctvMatrix: React.FC<CctvMatrixProps> = ({
         onOpenAddCamera={() => setIsAddCameraModalOpen(true)}
         onOpenAddNvr={() => setIsAddNvrModalOpen(true)}
         onOpenSyncModal={() => setIsSyncModalOpen(true)}
+        onOpenCloudShare={() => setIsCloudShareModalOpen(true)}
       />
 
       {/* Dynamic Multi-Channel Camera Grid */}
@@ -251,6 +254,13 @@ export const CctvMatrix: React.FC<CctvMatrixProps> = ({
         isOpen={isSyncModalOpen}
         onClose={() => setIsSyncModalOpen(false)}
         onSuccess={onRefreshCameras}
+      />
+
+      {/* Dahua DMSS Cloud Share & Delegation Modal */}
+      <DahuaCloudConnectModal
+        isOpen={isCloudShareModalOpen}
+        onClose={() => setIsCloudShareModalOpen(false)}
+        nvrSerial={matrixStatus.nvr_serial}
       />
     </div>
   );

@@ -20,6 +20,7 @@ from routers.alert_router import router as alert_router
 from routers.support_router import router as support_router
 from routers.vlm_router import router as vlm_router
 from routers.nimbus_router import router as nimbus_router
+from routers.dahua_cloud_router import router as dahua_cloud_router
 
 api_router = APIRouter()
 
@@ -41,6 +42,7 @@ api_router.include_router(b2b_router)
 api_router.include_router(subscription_router)
 api_router.include_router(alert_router)
 api_router.include_router(support_router)
+api_router.include_router(dahua_cloud_router)
 
 __all__ = ["api_router"]
 
