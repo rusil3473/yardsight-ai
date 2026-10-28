@@ -15,7 +15,7 @@ interface WebRtcVideoPlayerProps {
 export const WebRtcVideoPlayer: React.FC<WebRtcVideoPlayerProps> = ({
   cameraId,
   fallbackStreamUrl,
-  className = "w-full h-full object-cover",
+  className = "w-full h-full object-contain bg-black",
   retryKey = 0,
   subtype = 1,
   hideBadge = false,
@@ -214,30 +214,30 @@ export const WebRtcVideoPlayer: React.FC<WebRtcVideoPlayerProps> = ({
   }, [connectionState, cameraId]);
 
   return (
-    <div className="relative w-full h-full bg-slate-950 flex items-center justify-center overflow-hidden">
-      {/* Video Element rendered for WebRTC when connected */}
+    <div className="relative w-full h-full bg-black flex items-center justify-center overflow-hidden">
+      {/* Video Element rendered for WebRTC when connected (Zero Cropping) */}
       <video
         ref={videoRef}
         autoPlay
         playsInline
         muted
-        className={`${className} ${connectionState === 'connected' ? 'block' : 'hidden'}`}
+        className={`${className} ${connectionState === 'connected' ? 'block' : 'hidden'} object-contain`}
       />
 
-      {/* Live Optical Video Stream rendered immediately (Zero Black Screen) */}
+      {/* Live Optical Video Stream rendered immediately (Zero Black Screen, Zero Cropping) */}
       {connectionState !== 'connected' && (
         <img
           src={snapshotSrc}
           alt={`CCTV ${cameraId}`}
-          className={className}
+          className={`${className} object-contain`}
           onLoad={handleSnapshotLoad}
           onError={handleSnapshotError}
         />
       )}
 
-      {/* Protocol Diagnostic Badge */}
+      {/* Protocol Diagnostic Badge placed in Top-Center to NEVER cover Top-Right Date or Bottom-Left Name */}
       {!hideBadge && (
-        <div className="absolute top-2.5 left-2.5 z-20 flex items-center space-x-1.5 px-2 py-0.5 rounded font-mono text-[10px] bg-slate-950/80 backdrop-blur border border-slate-800 shadow">
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20 flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full font-mono text-[9px] sm:text-[10px] bg-slate-950/80 backdrop-blur border border-slate-800 shadow pointer-events-none">
           <Radio className={`w-3 h-3 ${connectionState === 'connected' ? 'text-emerald-400 animate-pulse' : 'text-cyan-400'}`} />
           <span className="font-bold text-slate-200">
             {connectionState === 'connected'
@@ -266,7 +266,7 @@ export const WebRtcVideoPlayer: React.FC<WebRtcVideoPlayerProps> = ({
             if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
             setReconnectKey(prev => prev + 1);
           }}
-          className="absolute top-2.5 right-2.5 z-20 flex items-center space-x-1.5 px-2.5 py-1 rounded-md font-mono text-[10px] bg-slate-900/90 hover:bg-slate-800 text-cyan-300 border border-cyan-800/60 cursor-pointer shadow-md transition"
+          className="absolute bottom-2.5 right-12 z-20 flex items-center space-x-1.5 px-2.5 py-1 rounded-md font-mono text-[10px] bg-slate-900/90 hover:bg-slate-800 text-cyan-300 border border-cyan-800/60 cursor-pointer shadow-md transition"
           title="Attempt hardware WebRTC P2P tunnel"
         >
           <RefreshCw className="w-3 h-3 text-cyan-400" />

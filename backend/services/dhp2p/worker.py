@@ -168,7 +168,7 @@ class DahuaOpticalWorker:
                 print(f"[DHP2P WORKER] Live RTSP stream connected for {serial} CH{channel}!")
                 consecutive_connect_fails = 0
                 consecutive_fails = 0
-                while self.running and consecutive_fails < 15:
+                while self.running and consecutive_fails < 80:
                     # Release if channel is idle for > 60s
                     if time.time() - self._last_requested.get(channel, time.time()) > 60.0:
                         print(f"[DHP2P WORKER] Channel {channel} idle for >60s. Releasing RTSP session.")
@@ -200,9 +200,9 @@ class DahuaOpticalWorker:
                             pass
                     else:
                         consecutive_fails += 1
-                    time.sleep(0.005)
+                    time.sleep(0.025)
 
-                if consecutive_fails >= 25:
+                if consecutive_fails >= 80:
                     print(f"[DHP2P WORKER] Channel {channel} frame stall detected. Re-initiating RTSP channel capture...")
 
             except Exception as e:

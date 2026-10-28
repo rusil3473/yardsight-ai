@@ -72,6 +72,7 @@ class IndustrialCameraStreamer:
             int(cam_id.split("-")[-1]) if ("-" in cam_id and cam_id.split("-")[-1].isdigit()) else 1
         )
         target_sn = sn or os.environ.get("DAHUA_NVR_SERIAL", "BE124E0PCA95532")
+        has_native_osd = False
         is_stale = False
         if frame is None:
             from services.dhp2p import dhp2p_service
@@ -79,6 +80,7 @@ class IndustrialCameraStreamer:
             if direct_frame is not None:
                 self._channel_fixed_frames[eff_ch] = (direct_frame.copy(), now)
                 frame = direct_frame
+                has_native_osd = True
 
         # 3. Dedicated DoLynk sensor fallback for standalone IPC camera (AG07AA7PCA3D3B6)
         if frame is None and eff_ch == 1 and (sn or "").upper().startswith("AG"):
@@ -86,6 +88,7 @@ class IndustrialCameraStreamer:
             if ipc_frame is not None:
                 self._channel_fixed_frames[eff_ch] = (ipc_frame.copy(), now)
                 frame = ipc_frame
+                has_native_osd = True
 
         # 4. Fixed Channel Persistence: Strictly lock to channel's own optical frame
         # NEVER cross-pollinate or switch to another channel's scene dynamically
@@ -97,6 +100,7 @@ class IndustrialCameraStreamer:
                 if age < 10.0:
                     frame = saved_frame.copy()
                     is_stale = (age > 4.0)
+                    has_native_osd = True
                 else:
                     # Frame is older than 10s: trigger background reconnect and do not disguise as live
                     from services.dhp2p import dhp2p_service
@@ -104,6 +108,7 @@ class IndustrialCameraStreamer:
                     frame = None
             else:
                 frame = cached_item.copy()
+                has_native_osd = True
 
         # 5. Authentic CCTV Diagnostic Card if this channel has no physical camera attached or is reconnecting
         if frame is None:
@@ -113,10 +118,11 @@ class IndustrialCameraStreamer:
             self._frame_cache[cache_key] = (now, res_bytes)
             return res_bytes
 
-        # 6. Fast Resize & Authentic Dahua HUD telemetry (zero fake flips / zero fake zooms)
+        # 6. Fast Resize & Preserve 100% Native Dahua OSD (zero crop / zero fake overlaps)
         frame = cv2.resize(frame, (w, h))
         frame = apply_channel_perspective_and_grading(frame, ch_idx, w, h)
-        apply_dahua_hud_telemetry(frame, ch_idx, display_name, res_label, sn, w, h, t)
+        if not has_native_osd:
+            apply_dahua_hud_telemetry(frame, ch_idx, display_name, res_label, sn, w, h, t)
         if is_stale:
             cv2.putText(frame, "RECONNECTING P2P RELAY...", (15, h - 25), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 165, 255), 2)
         apply_ai_pipeline_overlays(frame, ch_idx, zone_pipeline, w, h, cam_id=cam_id)

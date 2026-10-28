@@ -243,7 +243,7 @@ export const CctvFeedViewport: React.FC<CctvFeedViewportProps> = ({
       </div>
 
       {/* 2. Video Viewport Aspect Ratio */}
-      <div className="relative aspect-video w-full bg-slate-950 overflow-hidden flex items-center justify-center">
+      <div className="relative aspect-video w-full bg-black overflow-hidden flex items-center justify-center">
         {streamError ? (
           <div className="flex flex-col items-center justify-center space-y-2 p-4 text-center">
             <Radio className="w-8 h-8 text-amber-500/60 animate-pulse" />
@@ -266,7 +266,7 @@ export const CctvFeedViewport: React.FC<CctvFeedViewportProps> = ({
             alt={feed.name}
             onLoad={!wsFrameSrc ? handleLoad : undefined}
             onError={!wsFrameSrc ? handleError : undefined}
-            className="w-full h-full object-cover transition duration-150"
+            className="w-full h-full object-contain bg-black transition duration-150"
           />
         )}
 
@@ -317,29 +317,12 @@ export const CctvFeedViewport: React.FC<CctvFeedViewportProps> = ({
           );
         })}
 
-        {/* 5. Top-Left HUD Pill: Optical Recording Status & FPS */}
-        <div className="absolute top-2 left-2 z-20 flex items-center gap-1.5 bg-black/75 backdrop-blur-md px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md border border-white/10 text-[9px] sm:text-[11px] font-mono text-slate-100 shadow-md pointer-events-none">
-          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-          <span className="font-bold text-rose-300">REC</span>
-          <span className="text-slate-400">|</span>
-          <span className="font-semibold text-slate-200">{feed.fps || 30} FPS</span>
-        </div>
-
-        {/* 6. Top-Right HUD Pill: Date and Time (CCTV Standard) */}
-        <div className="absolute top-2 right-2 z-20 flex items-center gap-1.5 bg-black/75 backdrop-blur-md px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md border border-white/10 text-[9px] sm:text-[11px] font-mono text-slate-100 shadow-md pointer-events-none">
-          <span className="font-semibold tracking-wider text-slate-100">{currentTime || '2026-10-28 17:15:00'}</span>
-        </div>
-
-        {/* 7. Bottom-Left Camera Name Pill (CCTV Standard) */}
-        <div className="absolute bottom-2 left-2 z-20 flex items-center gap-1.5 sm:gap-2 bg-black/80 backdrop-blur-md px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md border border-white/10 shadow-lg pointer-events-none max-w-[90%] truncate">
-          <span className={`w-1 h-3 sm:h-3.5 rounded-sm shrink-0 ${barColor}`} />
-          <span className="text-[10px] sm:text-[11px] font-mono font-black tracking-wider text-cyan-300 uppercase truncate">
-            {feed.name || `Channel ${String(chNum).padStart(2, '0')}`}
-          </span>
-          <span className="text-slate-500 hidden sm:inline">•</span>
-          <span className={`text-[9px] sm:text-[10px] font-mono tracking-wider uppercase truncate hidden sm:inline ${statusColor}`}>
-            {statusText}
-          </span>
+        {/* 5. Sleek Top-Left Status Indicator (Does not obstruct Top-Right Date or Bottom-Left Name) */}
+        <div className="absolute top-2 left-2 z-20 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm px-2 py-0.5 rounded text-[9px] font-mono text-slate-200 pointer-events-none border border-white/10">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          <span>{feed.fps || 30} FPS</span>
+          <span className="text-slate-500">•</span>
+          <span className="text-slate-300 uppercase">{statusText}</span>
         </div>
 
         {/* 8. Hover Controls Overlay */}

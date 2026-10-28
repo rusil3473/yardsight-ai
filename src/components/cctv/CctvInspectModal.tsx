@@ -233,11 +233,11 @@ export const CctvInspectModal: React.FC<CctvInspectModalProps> = ({
 
         {/* Modal Body */}
         <div className="p-6 space-y-4 overflow-y-auto">
-          {/* Fullscreen Video Viewport */}
+          {/* Fullscreen Video Viewport (Zero Cropping, Authentic Aspect Ratio) */}
           <div
             ref={fullscreenContainerRef}
-            className={`relative aspect-video w-full rounded-xl overflow-hidden bg-slate-950 border border-slate-800 shadow-inner flex items-center justify-center ${
-              isFullscreen ? 'fixed inset-0 z-[100] w-screen h-screen rounded-none border-0 aspect-auto' : ''
+            className={`relative aspect-video w-full rounded-xl overflow-hidden bg-black border border-slate-800 shadow-inner flex items-center justify-center ${
+              isFullscreen ? 'fixed inset-0 z-[100] w-screen h-screen rounded-none border-0 aspect-auto bg-black' : ''
             }`}
           >
             <WebRtcVideoPlayer
@@ -245,7 +245,7 @@ export const CctvInspectModal: React.FC<CctvInspectModalProps> = ({
               fallbackStreamUrl={`${API_BASE_URL}/api/cameras/${feed.id.toUpperCase()}/stream`}
               retryKey={webRtcRetryKey}
               subtype={1}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain bg-black"
             />
 
             {/* Floating Fullscreen Controls */}
