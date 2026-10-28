@@ -168,7 +168,7 @@ class DahuaOpticalWorker:
                 print(f"[DHP2P WORKER] Live RTSP stream connected for {serial} CH{channel}!")
                 consecutive_connect_fails = 0
                 consecutive_fails = 0
-                while self.running and consecutive_fails < 200:
+                while self.running and consecutive_fails < 15:
                     # Release if channel is idle for > 60s
                     if time.time() - self._last_requested.get(channel, time.time()) > 60.0:
                         print(f"[DHP2P WORKER] Channel {channel} idle for >60s. Releasing RTSP session.")
@@ -202,6 +202,13 @@ class DahuaOpticalWorker:
                         consecutive_fails += 1
                     time.sleep(0.005)
 
+                if consecutive_fails >= 15:
+                    print(f"[DHP2P WORKER] Channel {channel} frame stall detected. Force-restarting Dahua tunnel...")
+                    with self._lock:
+                        tunnel = self._tunnels.get(serial)
+                        if tunnel:
+                            tunnel.stop()
+
             except Exception as e:
                 print(f"[DHP2P INGEST ERR CH{channel}] {e}")
             finally:
@@ -210,7 +217,7 @@ class DahuaOpticalWorker:
                 if cap is not None:
                     try: cap.release()
                     except Exception: pass
-            time.sleep(1.0)
+            time.sleep(0.5)
 
     def get_latest_frame(self, serial: Optional[str] = None, channel: int = 0, max_age_seconds: float = 3.5) -> Optional[np.ndarray]:
         """Returns the most recent authentic optical frame from memory for this designated channel."""

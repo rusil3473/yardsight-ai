@@ -72,26 +72,40 @@ class IndustrialCameraStreamer:
             int(cam_id.split("-")[-1]) if ("-" in cam_id and cam_id.split("-")[-1].isdigit()) else 1
         )
         target_sn = sn or os.environ.get("DAHUA_NVR_SERIAL", "BE124E0PCA95532")
+        is_stale = False
         if frame is None:
             from services.dhp2p import dhp2p_service
             direct_frame = dhp2p_service.get_latest_optical_frame(target_sn, channel=eff_ch)
             if direct_frame is not None:
-                self._channel_fixed_frames[eff_ch] = direct_frame.copy()
+                self._channel_fixed_frames[eff_ch] = (direct_frame.copy(), now)
                 frame = direct_frame
 
         # 3. Dedicated DoLynk sensor fallback for standalone IPC camera (AG07AA7PCA3D3B6)
         if frame is None and eff_ch == 1 and (sn or "").upper().startswith("AG"):
             ipc_frame = dolynk_service.get_latest_optical_frame(dolynk_service.default_device_sn, 0)
             if ipc_frame is not None:
-                self._channel_fixed_frames[eff_ch] = ipc_frame.copy()
+                self._channel_fixed_frames[eff_ch] = (ipc_frame.copy(), now)
                 frame = ipc_frame
 
         # 4. Fixed Channel Persistence: Strictly lock to channel's own optical frame
         # NEVER cross-pollinate or switch to another channel's scene dynamically
         if frame is None and eff_ch in self._channel_fixed_frames:
-            frame = self._channel_fixed_frames[eff_ch].copy()
+            cached_item = self._channel_fixed_frames[eff_ch]
+            if isinstance(cached_item, tuple):
+                saved_frame, saved_ts = cached_item
+                age = now - saved_ts
+                if age < 10.0:
+                    frame = saved_frame.copy()
+                    is_stale = (age > 4.0)
+                else:
+                    # Frame is older than 10s: trigger background reconnect and do not disguise as live
+                    from services.dhp2p import dhp2p_service
+                    dhp2p_service.worker.start_worker(target_sn, channel=eff_ch)
+                    frame = None
+            else:
+                frame = cached_item.copy()
 
-        # 5. Authentic CCTV Diagnostic Card if this channel has no physical camera attached
+        # 5. Authentic CCTV Diagnostic Card if this channel has no physical camera attached or is reconnecting
         if frame is None:
             card = render_offline_cctv_card(w, h, cam_id, display_name, target_sn, eff_ch, stream_type, stream_url, t)
             _, buf = cv2.imencode('.jpg', card, [int(cv2.IMWRITE_JPEG_QUALITY), jpeg_quality])
@@ -103,6 +117,8 @@ class IndustrialCameraStreamer:
         frame = cv2.resize(frame, (w, h))
         frame = apply_channel_perspective_and_grading(frame, ch_idx, w, h)
         apply_dahua_hud_telemetry(frame, ch_idx, display_name, res_label, sn, w, h, t)
+        if is_stale:
+            cv2.putText(frame, "RECONNECTING P2P RELAY...", (15, h - 25), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 165, 255), 2)
         apply_ai_pipeline_overlays(frame, ch_idx, zone_pipeline, w, h, cam_id=cam_id)
 
         _, buf = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), jpeg_quality])
