@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  yardsight-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: yardsight-backend
+    restart: always
+    environment:
+      - BACKEND_HOST=0.0.0.0
+      - BACKEND_PORT=8001
+      - DATABASE_URL=postgresql://yardsight_admin:${DB_PASSWORD:-SecretPass2026}@postgres:5432/yardsight
+      - GO2RTC_API_URL=http://yardsight-go2rtc:1984
+      - GO2RTC_WEBRTC_PORT=8555
+      - DAHUA_NVR_SERIAL=${DAHUA_NVR_SERIAL:-BE124E0PCA95532}
+      - DHP2P_MAX_CONCURRENT_STREAMS=32
+      # Official DoLynk Developer PaaS credentials (injected via AWS Secrets Manager)
+      - DOLYNK_APP_KEY=${DOLYNK_APP_KEY:-}
+      - DOLYNK_APP_SECRET=${DOLYNK_APP_SECRET:-}
+      - CORS_ORIGINS=*
+    ports:
+      - "8001:8001"
+    depends_on:
+      - postgres
+      - yardsight-go2rtc
+    networks:
+      - yardsight-net
+
+  yardsight-go2rtc:
+    image: alexxit/go2rtc:latest
+    container_name: yardsight-go2rtc
+    restart: always
+    ports:
+      - "1984:1984" # Web API & Admin
+      - "8555:8555/tcp" # WebRTC TCP
+      - "8555:8555/udp" # WebRTC UDP
+      - "8554:8554" # RTSP
+    networks:
+      - yardsight-net
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: yardsight-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: yardsight_admin
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-SecretPass2026}
+      POSTGRES_DB: yardsight
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - yardsight-net
+
+  yardsight-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: yardsight-frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - yardsight-backend
+    networks:
+      - yardsight-net
+
+volumes:
+  pgdata:
+
+networks:
+  yardsight-net:
+    driver: bridge
