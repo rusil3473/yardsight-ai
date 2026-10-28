@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { RefreshCw, Radio } from 'lucide-react';
+import { RefreshCw, Radio, Volume2, VolumeX } from 'lucide-react';
 import { API_BASE_URL } from '../config/env';
 
 interface WebRtcVideoPlayerProps {
@@ -25,6 +25,7 @@ export const WebRtcVideoPlayer: React.FC<WebRtcVideoPlayerProps> = ({
   const [connectionState, setConnectionState] = useState<'connecting' | 'connected' | 'fallback'>('connecting');
   const [latencyMs, setLatencyMs] = useState<number>(45);
   const [reconnectKey, setReconnectKey] = useState<number>(0);
+  const [isMuted, setIsMuted] = useState<boolean>(true);
   const isMountedRef = useRef<boolean>(true);
   const [snapshotSrc, setSnapshotSrc] = useState<string>(fallbackStreamUrl);
   const snapTimerRef = useRef<any>(null);
@@ -270,6 +271,23 @@ export const WebRtcVideoPlayer: React.FC<WebRtcVideoPlayerProps> = ({
         >
           <RefreshCw className="w-3 h-3 text-cyan-400" />
           <span>Switch WebRTC</span>
+        </button>
+      )}
+
+      {/* Live Audio Control (when WebRTC audio track is active) */}
+      {connectionState === 'connected' && (
+        <button
+          type="button"
+          onClick={() => {
+            if (videoRef.current) {
+              videoRef.current.muted = !isMuted;
+              setIsMuted(!isMuted);
+            }
+          }}
+          className="absolute bottom-2.5 right-2.5 z-20 p-1.5 rounded-md bg-black/75 hover:bg-black/90 text-slate-200 hover:text-white border border-white/10 shadow transition cursor-pointer"
+          title={isMuted ? "Unmute Camera Audio" : "Mute Camera Audio"}
+        >
+          {isMuted ? <VolumeX className="w-3.5 h-3.5 text-slate-400" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />}
         </button>
       )}
     </div>

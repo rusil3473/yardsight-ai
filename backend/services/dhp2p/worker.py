@@ -10,7 +10,7 @@ import numpy as np
 from typing import Dict, Optional, Tuple
 from .tunnel import DahuaP2PTunnel
 
-PHYSICAL_CHANNELS = [1, 2, 3, 4, 5, 7, 8]
+PHYSICAL_CHANNELS = list(range(1, 33))
 DEFAULT_ACTIVE_CHANNELS = set(PHYSICAL_CHANNELS)
 
 class DahuaOpticalWorker:
@@ -202,12 +202,8 @@ class DahuaOpticalWorker:
                         consecutive_fails += 1
                     time.sleep(0.005)
 
-                if consecutive_fails >= 15:
-                    print(f"[DHP2P WORKER] Channel {channel} frame stall detected. Force-restarting Dahua tunnel...")
-                    with self._lock:
-                        tunnel = self._tunnels.get(serial)
-                        if tunnel:
-                            tunnel.stop()
+                if consecutive_fails >= 25:
+                    print(f"[DHP2P WORKER] Channel {channel} frame stall detected. Re-initiating RTSP channel capture...")
 
             except Exception as e:
                 print(f"[DHP2P INGEST ERR CH{channel}] {e}")
