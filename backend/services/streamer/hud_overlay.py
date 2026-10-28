@@ -3,6 +3,7 @@ Industrial HUD & AI Computer Vision Overlay Engine.
 Connects genuine OpenCV motion tracking, HOG pedestrian localization, and ANPR zone diagnostics.
 Strictly zero fake static bounding boxes.
 """
+import os
 import cv2
 import numpy as np
 from datetime import datetime, timezone, timedelta
@@ -63,7 +64,8 @@ def apply_dahua_hud_telemetry(frame: np.ndarray, ch_idx: int, display_name: str,
 
     ch_num = ch_idx + 1
     ch_label = f"NVR CH-{ch_num:02d} | {display_name[:34]}"
-    nvr_tag = f"DAHUA [{sn or 'BE124E0PCA95532'}]"
+    fallback_sn = os.environ.get("DAHUA_NVR_SERIAL", "BE124E0PCA95532")
+    nvr_tag = f"DAHUA [{sn or fallback_sn}]"
     
     dt_str = datetime.fromtimestamp(t, tz=IST).strftime("%Y-%m-%d %H:%M:%S")
     time_label = f"{dt_str} IST"

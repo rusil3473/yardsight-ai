@@ -5,6 +5,7 @@ YardSight AI - WebRTC Gateway, WebSocket Streaming & ONVIF Router
 import time
 import json
 import urllib.request
+import urllib.parse
 import asyncio
 from fastapi import APIRouter, Request, Response, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
@@ -13,6 +14,7 @@ from services.camera_service import camera_service
 from services.webrtc_service import webrtc_service
 from services.onvif_discovery import onvif_discovery
 from services.camera_watchdog import camera_watchdog
+from config import DEFAULT_NVR_USERNAME, DEFAULT_NVR_PASSWORD, RTSP_TUNNEL_PORT, GO2RTC_API_URL
 
 router = APIRouter(tags=["Camera Streaming & WebRTC"])
 
@@ -81,7 +83,8 @@ async def negotiate_webrtc_stream(camera_id: str, request: Request, subtype: int
         db.close()
 
     if not target_stream_url or not target_stream_url.startswith(("rtsp://", "http://", "https://")):
-        target_stream_url = f"rtsp://admin:Shri%4021*@127.0.0.1:1554/cam/realmonitor?channel={ch}&subtype={subtype}#input=rtsp/tcp"
+        safe_pass = urllib.parse.quote(DEFAULT_NVR_PASSWORD)
+        target_stream_url = f"rtsp://{DEFAULT_NVR_USERNAME}:{safe_pass}@127.0.0.1:{RTSP_TUNNEL_PORT}/cam/realmonitor?channel={ch}&subtype={subtype}#input=rtsp/tcp"
 
     # Dynamically register camera-specific stream in go2rtc
     specific_stream_name = f"cam_{cam_id.lower()}_sub{subtype}"
@@ -99,7 +102,7 @@ async def negotiate_webrtc_stream(camera_id: str, request: Request, subtype: int
         pass
 
     for stream_name in streams_to_try:
-        url = f"http://127.0.0.1:1984/api/webrtc?src={stream_name}"
+        url = f"{GO2RTC_API_URL}/api/webrtc?src={stream_name}"
         try:
             req = urllib.request.Request(
                 url,

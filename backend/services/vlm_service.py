@@ -16,7 +16,8 @@ from leak_detector import leak_detector
 from dock_cycle_tracker import dock_tracker
 
 NEBIUS_API_URL = "https://api.studio.nebius.ai/v1/chat/completions"
-DEFAULT_NEBIUS_MODEL = "meta-llama/Llama-3.2-11B-Vision-Instruct"
+DEFAULT_NEBIUS_MODEL = os.getenv("NEBIUS_MODEL", "nvidia/Llama-3.1-Nemotron-70B-Instruct-HF")
+
 
 class VlmService:
     """Service encapsulating multimodal spatial-temporal reasoning over CCTV frames."""

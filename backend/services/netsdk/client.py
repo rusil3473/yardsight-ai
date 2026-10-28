@@ -53,8 +53,10 @@ class DahuaNetSDKManager:
         except Exception as e:
             self.last_error = f"Error loading NetSDK: {e}"
 
-    def login_p2p(self, serial_number: str, username: str = "admin", password: str = "Shri@21*") -> Dict[str, Any]:
+    def login_p2p(self, serial_number: str, username: Optional[str] = None, password: Optional[str] = None) -> Dict[str, Any]:
         """Executes programmatic P2P login via Dahua NetSDK."""
+        user = username or os.environ.get("DAHUA_NVR_USERNAME", "admin")
+        pwd = password or os.environ.get("DAHUA_NVR_PASSWORD", "Shri@21*")
         if not self.is_loaded or not self.dll:
             return {
                 "success": False, "sdk_loaded": False, "login_id": 0, "serial_number": serial_number,
@@ -65,8 +67,8 @@ class DahuaNetSDKManager:
         st_in.dwSize = sizeof(NET_IN_LOGIN_WITH_HIGHLEVEL_SECURITY)
         st_in.szIP = serial_number.encode("utf-8")
         st_in.nPort = 0
-        st_in.szUserName = username.encode("utf-8")
-        st_in.szPassword = password.encode("utf-8")
+        st_in.szUserName = user.encode("utf-8")
+        st_in.szPassword = pwd.encode("utf-8")
         st_in.emSpecCap = EM_LOGIN_SPEC_CAP_P2P
         st_out = NET_OUT_LOGIN_WITH_HIGHLEVEL_SECURITY()
         st_out.dwSize = sizeof(NET_OUT_LOGIN_WITH_HIGHLEVEL_SECURITY)

@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Camera, AlertTriangle, Maximize2, Radio, RefreshCw } from 'lucide-react';
 import type { CameraFeed } from '../../types';
 import type { LiveDetectionEntity, CctvLayoutMode } from './types';
+import { API_BASE_URL, WS_BASE_URL } from '../../config/env';
+import { WebRtcVideoPlayer } from '../WebRtcVideoPlayer';
 
 interface CctvFeedViewportProps {
   feed: CameraFeed;
@@ -52,7 +54,7 @@ export const CctvFeedViewport: React.FC<CctvFeedViewportProps> = ({
     return `${raw}${sep}t=${Date.now()}`;
   };
 
-  const liveStreamUrl = `http://127.0.0.1:8001/api/cameras/${feed.id.toUpperCase()}/stream`;
+  const liveStreamUrl = `${API_BASE_URL}/api/cameras/${feed.id.toUpperCase()}/stream`;
   const useLiveStream = isStreaming;
   const [snapshotSrc, setSnapshotSrc] = useState<string>(() => buildSnapshotUrl(feed.id));
   const [wsFrameSrc, setWsFrameSrc] = useState<string | null>(null);
@@ -74,7 +76,7 @@ export const CctvFeedViewport: React.FC<CctvFeedViewportProps> = ({
     let cancelled = false;
 
     try {
-      ws = new WebSocket(`ws://127.0.0.1:8001/api/cameras/${feed.id.toUpperCase()}/ws`);
+      ws = new WebSocket(`${WS_BASE_URL}/api/cameras/${feed.id.toUpperCase()}/ws`);
       ws.binaryType = 'blob';
 
       ws.onmessage = (event) => {
@@ -247,13 +249,14 @@ export const CctvFeedViewport: React.FC<CctvFeedViewportProps> = ({
           </div>
         ) : (
           <img
-            src={wsFrameSrc || (useLiveStream ? liveStreamUrl : snapshotSrc)}
+            src={wsFrameSrc || snapshotSrc}
             alt={feed.name}
-            onLoad={handleLoad}
-            onError={handleError}
-            className="w-full h-full object-cover transition duration-300"
+            onLoad={!wsFrameSrc ? handleLoad : undefined}
+            onError={!wsFrameSrc ? handleError : undefined}
+            className="w-full h-full object-cover transition duration-150"
           />
         )}
+
 
         {/* 3. Calibrated Red Perimeter Security Boundary Fence Line */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" preserveAspectRatio="none" viewBox="0 0 100 100">

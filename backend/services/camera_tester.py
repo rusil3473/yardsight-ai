@@ -2,6 +2,7 @@
 import time, socket, cv2, sys
 from schemas.camera import CameraTestRequest, CameraTestResponse
 from services.dolynk_service import dolynk_service
+from config import DEFAULT_NVR_SERIAL
 
 def test_camera_connectivity(req: CameraTestRequest) -> CameraTestResponse:
     t0 = time.time()
@@ -26,10 +27,10 @@ def test_camera_connectivity(req: CameraTestRequest) -> CameraTestResponse:
         return CameraTestResponse(status="OFFLINE", reachable=False, latency_ms=round((time.time() - t0) * 1000, 2), message="Device busy or not found.")
 
     if st in ["DMSS", "DOLYNK", "NVR_BATCH"]:
-        sn = req.dmss_serial or "BE124E0PCA95532"
+        sn = (req.dmss_serial or DEFAULT_NVR_SERIAL).strip().upper()
         ch = req.dmss_channel or 1
         from services.dhp2p import dhp2p_service
-        if sn == "BE124E0PCA95532":
+        if sn == DEFAULT_NVR_SERIAL.strip().upper():
             is_active_ch = ch in dhp2p_service.worker.active_channels
             tunnel_alive = dhp2p_service.is_tunnel_alive(sn)
             status = "ONLINE" if (is_active_ch and tunnel_alive) else "OFFLINE"

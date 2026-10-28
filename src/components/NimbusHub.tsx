@@ -8,6 +8,7 @@ import {
 } from './nimbus/NimbusTypes';
 import { NimbusMetricsBar } from './nimbus/NimbusMetricsBar';
 import { NimbusManifestColumn } from './nimbus/NimbusManifestColumn';
+import { API_BASE_URL } from '../config/env';
 import { NimbusChatStream } from './nimbus/NimbusChatStream';
 
 export const NimbusHub: React.FC = () => {
@@ -20,7 +21,7 @@ export const NimbusHub: React.FC = () => {
   const fetchContext = async () => {
     setIsSyncing(true);
     try {
-      const resp = await fetch('http://127.0.0.1:8001/api/nimbus/context');
+      const resp = await fetch(`${API_BASE_URL}/api/nimbus/context`);
       if (resp.ok) {
         const data = await resp.json();
         setVehicles(data.vehicles || []);
@@ -54,7 +55,7 @@ export const NimbusHub: React.FC = () => {
     setIsSending(true);
 
     try {
-      const resp = await fetch('http://127.0.0.1:8001/api/nimbus/chat', {
+      const resp = await fetch(`${API_BASE_URL}/api/nimbus/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

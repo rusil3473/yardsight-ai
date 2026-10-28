@@ -205,21 +205,19 @@ _request_lock = threading.Lock()
 
 def record_api_request():
     now = time.time()
-    with self_request_lock:
+    with _request_lock:
         _request_timestamps.append(now)
         # Keep last 10 seconds of timestamps
         cutoff = now - 10.0
         while _request_timestamps and _request_timestamps[0] < cutoff:
             _request_timestamps.pop(0)
 
-_self_request_lock = threading.Lock()
-
 def get_enterprise_scale_metrics() -> Dict[str, Any]:
     """Compiles authentic, real-time scale telemetry without fake random numbers."""
     cache_stats = lru_cache.get_stats()
     queue_stats = worker_queue.get_telemetry()
     now = time.time()
-    with _self_request_lock:
+    with _request_lock:
         cutoff = now - 5.0
         recent = [t for t in _request_timestamps if t >= cutoff]
         rps = round(len(recent) / 5.0, 1)

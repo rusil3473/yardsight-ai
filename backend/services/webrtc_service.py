@@ -16,7 +16,7 @@ from typing import Dict, Any, Optional
 GO2RTC_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "bin", "go2rtc"))
 GO2RTC_EXE = os.path.join(GO2RTC_DIR, "go2rtc.exe")
 GO2RTC_CONFIG = os.path.join(GO2RTC_DIR, "go2rtc.yaml")
-GO2RTC_API_URL = "http://127.0.0.1:1984"
+GO2RTC_API_URL = os.environ.get("GO2RTC_API_URL", "http://127.0.0.1:1984")
 
 class WebRtcService:
     def __init__(self):

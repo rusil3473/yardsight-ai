@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { API_BASE_URL } from '../config/env';
 
 export type UserRole = 'corporate_admin' | 'yard_master' | 'security_guard' | 'guest';
 
@@ -107,7 +108,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, role?: UserRole) => {
     try {
-      const res = await fetch('http://127.0.0.1:8001/api/auth/login', {
+      const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, role: role || 'corporate_admin' })
@@ -145,7 +146,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     try {
-      fetch('http://127.0.0.1:8001/api/auth/logout', { method: 'POST' }).catch(() => {});
+      fetch(`${API_BASE_URL}/api/auth/logout`, { method: 'POST' }).catch(() => {});
     } catch {}
     localStorage.removeItem('yardsight_token');
     localStorage.removeItem('yardsight_user');
@@ -186,7 +187,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const purgeAllData = async () => {
     try {
-      await fetch('http://127.0.0.1:8001/api/admin/purge-data', { method: 'POST' });
+      await fetch(`${API_BASE_URL}/api/admin/purge-data`, { method: 'POST' });
     } catch (e) {
       console.warn('Purge failed on backend', e);
     }
@@ -238,12 +239,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshData = async () => {
     try {
-      const tenantsRes = await fetch('http://127.0.0.1:8001/api/tenants');
+      const tenantsRes = await fetch(`${API_BASE_URL}/api/tenants`);
       if (tenantsRes.ok) {
         const tData = await tenantsRes.json();
-        if (Array.isArray(tData) && tData.length > 0) {
-          setAvailableTenants(tData);
-          const current = tData.find((t: any) => t.tenant_id === user.tenant_id) || tData[0];
+        const tenantList = Array.isArray(tData)
+          ? tData
+          : (tData?.tenants && Array.isArray(tData.tenants) ? tData.tenants : []);
+        if (tenantList.length > 0) {
+          setAvailableTenants(tenantList);
+          const current = tenantList.find((t: any) => (t.tenant_id || t.id) === user.tenant_id) || tenantList[0];
           setTenant(current);
         }
       }

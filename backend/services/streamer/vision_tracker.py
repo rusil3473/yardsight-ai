@@ -10,10 +10,11 @@ class YoloV8Detector:
     def __init__(self):
         backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         model_path = os.path.join(backend_dir, "assets", "yolov8n.onnx")
-        if os.environ.get("DISABLE_OPENCV", "1").lower() in ("true", "1", "yes"):
+        if os.environ.get("DISABLE_OPENCV", "0").lower() in ("true", "1", "yes"):
             self.available = False
             self.net = None
             return
+
         self.available = os.path.exists(model_path)
         self.net = None
         if self.available:

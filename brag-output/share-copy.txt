@@ -1,0 +1,3 @@
+We built YardSight AI — an autonomous industrial vision & logistics operating system that transforms 32 legacy Dahua CCTV cameras into a sub-100ms logistics command center with OpenCV 4.10 homography ANPR and thin-film hydrocarbon leak detection.
+
+Watch the launch video and check out our open-source codebase on Devpost and GitHub: https://github.com/rusil3473/yardsight-ai

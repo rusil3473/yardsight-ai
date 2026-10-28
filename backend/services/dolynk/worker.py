@@ -41,7 +41,13 @@ class DoLynkOpticalWorker:
     def _worker_loop(self, device_sn: str, channel_id: int, stop_evt: threading.Event):
         """Dedicated connection loop with auto-reconnect."""
         while not stop_evt.is_set():
-            rtsp_url = self.stream_mgr.get_live_rtsp_url(device_sn, channel_id)
+            try:
+                rtsp_url = self.stream_mgr.get_live_rtsp_url(device_sn, channel_id)
+            except Exception as e:
+                print(f"[DOLYNK WORKER AUTH NOTICE] Cloud auth skipped/unavailable: {e}. Backing off 30s.")
+                time.sleep(30.0)
+                continue
+
             if not rtsp_url:
                 with self._lock:
                     self._latest_frames.pop(device_sn, None)

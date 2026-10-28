@@ -23,6 +23,7 @@ import { yardApi } from './api/yardApi';
 import { StandardErrorAlert, type ProblemDetails, type StandardUser } from '@packages/standards';
 import { INITIAL_CAMERAS, INITIAL_VLM_MESSAGES } from './components/layout/AppInitialState';
 import { AppHeader } from './components/layout/AppHeader';
+import { API_BASE_URL } from './config/env';
 import { LeakWorkbenchTab } from './components/layout/LeakWorkbenchTab';
 
 const MainAppContent: React.FC = () => {
@@ -63,7 +64,7 @@ const MainAppContent: React.FC = () => {
   const fetchCameras = async () => {
     try {
       const tenantParam = tenant?.tenant_id ? `?tenant_id=${encodeURIComponent(tenant.tenant_id)}` : '';
-      const res = await fetch(`http://127.0.0.1:8001/api/cameras${tenantParam}`);
+      const res = await fetch(`${API_BASE_URL}/api/cameras${tenantParam}`);
       if (res.ok) {
         const data = await res.json();
         if (data.cameras && Array.isArray(data.cameras) && data.cameras.length > 0) {
@@ -89,7 +90,7 @@ const MainAppContent: React.FC = () => {
 
   const fetchTrucks = async () => {
     try {
-      const res = await fetch(`http://127.0.0.1:8001/api/trucks?tenant_id=${tenant.tenant_id}`);
+      const res = await fetch(`${API_BASE_URL}/api/trucks?tenant_id=${tenant.tenant_id}`);
       if (res.ok) {
         const data = await res.json();
         if (data.status === 'SUCCESS' && Array.isArray(data.trucks)) {

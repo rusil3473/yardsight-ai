@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { RefreshCw, Radio } from 'lucide-react';
+import { API_BASE_URL } from '../config/env';
 
 interface WebRtcVideoPlayerProps {
   cameraId: string;
@@ -8,6 +9,7 @@ interface WebRtcVideoPlayerProps {
   className?: string;
   retryKey?: number;
   subtype?: number;
+  hideBadge?: boolean;
 }
 
 export const WebRtcVideoPlayer: React.FC<WebRtcVideoPlayerProps> = ({
@@ -16,6 +18,7 @@ export const WebRtcVideoPlayer: React.FC<WebRtcVideoPlayerProps> = ({
   className = "w-full h-full object-cover",
   retryKey = 0,
   subtype = 1,
+  hideBadge = false,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
@@ -25,6 +28,8 @@ export const WebRtcVideoPlayer: React.FC<WebRtcVideoPlayerProps> = ({
   const isMountedRef = useRef<boolean>(true);
   const [snapshotSrc, setSnapshotSrc] = useState<string>(fallbackStreamUrl);
   const snapTimerRef = useRef<any>(null);
+  const retryCountRef = useRef<number>(0);
+  const reconnectTimerRef = useRef<any>(null);
 
   const isMjpeg = fallbackStreamUrl.includes('/stream');
 
@@ -57,7 +62,7 @@ export const WebRtcVideoPlayer: React.FC<WebRtcVideoPlayerProps> = ({
     if (snapTimerRef.current) clearTimeout(snapTimerRef.current);
     snapTimerRef.current = setTimeout(() => {
       if (isMountedRef.current) {
-        const snap = `http://127.0.0.1:8001/api/cameras/${cameraId.toUpperCase()}/snapshot?t=${Date.now()}`;
+        const snap = `${API_BASE_URL}/api/cameras/${cameraId.toUpperCase()}/snapshot?t=${Date.now()}`;
         setSnapshotSrc(snap);
       }
     }, 1000);
@@ -66,7 +71,21 @@ export const WebRtcVideoPlayer: React.FC<WebRtcVideoPlayerProps> = ({
   useEffect(() => {
     let isCancelled = false;
     let peerConn: RTCPeerConnection | null = null;
+    let fallbackTimer: any = null;
     const tStart = performance.now();
+
+    const scheduleReconnect = () => {
+      if (isCancelled || !isMountedRef.current) return;
+      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+      // Exponential backoff: 1s, 1.5s, 2.25s, 3.37s... capped at 10s
+      const delay = Math.min(1000 * Math.pow(1.5, retryCountRef.current), 10000);
+      retryCountRef.current += 1;
+      reconnectTimerRef.current = setTimeout(() => {
+        if (isMountedRef.current && !isCancelled) {
+          setReconnectKey((prev) => prev + 1);
+        }
+      }, delay);
+    };
 
     const connectWebRtc = async () => {
       setConnectionState('connecting');
@@ -84,15 +103,33 @@ export const WebRtcVideoPlayer: React.FC<WebRtcVideoPlayerProps> = ({
             videoRef.current.srcObject = event.streams[0];
             setConnectionState('connected');
             setLatencyMs(Math.round(performance.now() - tStart));
+            retryCountRef.current = 0; // Reset backoff on successful video playback
+            if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
           }
         };
 
         peerConn.onconnectionstatechange = () => {
           if (!isCancelled && peerConn) {
-            if (peerConn.connectionState === 'connected') {
+            const state = peerConn.connectionState;
+            if (state === 'connected') {
               setConnectionState('connected');
-            } else if (['failed', 'disconnected', 'closed'].includes(peerConn.connectionState)) {
+              retryCountRef.current = 0;
+            } else if (['failed', 'disconnected', 'closed'].includes(state)) {
               setConnectionState('fallback');
+              scheduleReconnect();
+            }
+          }
+        };
+
+        peerConn.oniceconnectionstatechange = () => {
+          if (!isCancelled && peerConn) {
+            const iceState = peerConn.iceConnectionState;
+            if (iceState === 'connected' || iceState === 'completed') {
+              setConnectionState('connected');
+              retryCountRef.current = 0;
+            } else if (['failed', 'disconnected'].includes(iceState)) {
+              setConnectionState('fallback');
+              scheduleReconnect();
             }
           }
         };
@@ -100,7 +137,7 @@ export const WebRtcVideoPlayer: React.FC<WebRtcVideoPlayerProps> = ({
         const offer = await peerConn.createOffer();
         await peerConn.setLocalDescription(offer);
 
-        const resp = await fetch(`http://127.0.0.1:8001/api/cameras/${cameraId.toUpperCase()}/webrtc?subtype=${subtype}`, {
+        const resp = await fetch(`${API_BASE_URL}/api/cameras/${cameraId.toUpperCase()}/webrtc?subtype=${subtype}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/sdp' },
           body: offer.sdp
@@ -108,6 +145,7 @@ export const WebRtcVideoPlayer: React.FC<WebRtcVideoPlayerProps> = ({
 
         if (!resp.ok) {
           setConnectionState('fallback');
+          scheduleReconnect();
           return;
         }
 
@@ -116,15 +154,17 @@ export const WebRtcVideoPlayer: React.FC<WebRtcVideoPlayerProps> = ({
           await peerConn.setRemoteDescription({ type: 'answer', sdp: answerSdp });
         } else {
           setConnectionState('fallback');
+          scheduleReconnect();
         }
       } catch {
         if (!isCancelled) {
           setConnectionState('fallback');
+          scheduleReconnect();
         }
       }
     };
 
-    const fallbackTimer = setTimeout(() => {
+    fallbackTimer = setTimeout(() => {
       if (!isCancelled && connectionState === 'connecting') {
         setConnectionState('fallback');
       }
@@ -134,7 +174,8 @@ export const WebRtcVideoPlayer: React.FC<WebRtcVideoPlayerProps> = ({
 
     return () => {
       isCancelled = true;
-      clearTimeout(fallbackTimer);
+      if (fallbackTimer) clearTimeout(fallbackTimer);
+      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
       if (pcRef.current) {
         pcRef.current.close();
         pcRef.current = null;
@@ -165,26 +206,32 @@ export const WebRtcVideoPlayer: React.FC<WebRtcVideoPlayerProps> = ({
       )}
 
       {/* Protocol Diagnostic Badge */}
-      <div className="absolute top-2.5 left-2.5 z-20 flex items-center space-x-1.5 px-2 py-0.5 rounded font-mono text-[10px] bg-slate-950/80 backdrop-blur border border-slate-800 shadow">
-        <Radio className={`w-3 h-3 ${connectionState === 'connected' ? 'text-emerald-400 animate-pulse' : 'text-cyan-400'}`} />
-        <span className="font-bold text-slate-200">
-          {connectionState === 'connected'
-            ? 'WebRTC (Low Latency)'
-            : connectionState === 'connecting'
-            ? 'Optical Live Stream'
-            : 'Optical Live Stream (Nominal)'}
-        </span>
-        {connectionState === 'connected' && (
-          <span className="text-emerald-400 font-semibold border-l border-slate-700 pl-1.5">
-            {latencyMs}ms
+      {!hideBadge && (
+        <div className="absolute top-2.5 left-2.5 z-20 flex items-center space-x-1.5 px-2 py-0.5 rounded font-mono text-[10px] bg-slate-950/80 backdrop-blur border border-slate-800 shadow">
+          <Radio className={`w-3 h-3 ${connectionState === 'connected' ? 'text-emerald-400 animate-pulse' : 'text-cyan-400'}`} />
+          <span className="font-bold text-slate-200">
+            {connectionState === 'connected'
+              ? 'WebRTC (Low Latency)'
+              : connectionState === 'connecting'
+              ? 'Optical Live Stream'
+              : 'Optical Live Stream (Nominal)'}
           </span>
-        )}
-      </div>
+          {connectionState === 'connected' && (
+            <span className="text-emerald-400 font-semibold border-l border-slate-700 pl-1.5">
+              {latencyMs}ms
+            </span>
+          )}
+        </div>
+      )}
 
-      {connectionState === 'fallback' && (
+      {!hideBadge && connectionState === 'fallback' && (
         <button
           type="button"
-          onClick={() => setReconnectKey(prev => prev + 1)}
+          onClick={() => {
+            retryCountRef.current = 0;
+            if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+            setReconnectKey(prev => prev + 1);
+          }}
           className="absolute top-2.5 right-2.5 z-20 flex items-center space-x-1 px-2 py-0.5 rounded font-mono text-[10px] bg-cyan-600/80 hover:bg-cyan-500 text-white cursor-pointer shadow transition"
           title="Attempt WebRTC reconnection"
         >

@@ -5,6 +5,7 @@ import {
   WebrtcProtocolForm,
   RtspProtocolForm
 } from './CctvProtocolForms';
+import { API_BASE_URL, GO2RTC_URL, RTSP_TUNNEL_PORT } from '../../config/env';
 
 
 interface CctvAddCameraModalProps {
@@ -32,7 +33,7 @@ export const CctvAddCameraModal: React.FC<CctvAddCameraModalProps> = ({
 
   // WebRTC specific inputs
   const [webrtcStream, setWebrtcStream] = useState<string>('ipc_live');
-  const [webrtcSignaling, setWebrtcSignaling] = useState<string>('http://127.0.0.1:1984');
+  const [webrtcSignaling, setWebrtcSignaling] = useState<string>(GO2RTC_URL);
   const [webrtcSubtype, setWebrtcSubtype] = useState<number>(1);
 
   // RTSP specific inputs
@@ -65,12 +66,12 @@ export const CctvAddCameraModal: React.FC<CctvAddCameraModalProps> = ({
         dmss_username: dmssUsername.trim() || 'admin',
         dmss_password: dmssPassword.trim() || 'Shri@21*',
         brand: `Dahua P2P (${snClean})`,
-        stream_url: `rtsp://127.0.0.1:1554/cam/realmonitor?channel=${dmssChannel}&subtype=1`,
+        stream_url: `rtsp://127.0.0.1:${RTSP_TUNNEL_PORT}/cam/realmonitor?channel=${dmssChannel}&subtype=1`,
       };
     } else if (streamType === 'WEBRTC') {
       bodyPayload = {
         ...bodyPayload,
-        stream_url: `${webrtcSignaling.trim() || 'http://127.0.0.1:1984'}/api/webrtc?src=${webrtcStream.trim() || 'ipc_live'}`,
+        stream_url: `${webrtcSignaling.trim() || GO2RTC_URL}/api/webrtc?src=${webrtcStream.trim() || 'ipc_live'}`,
         brand: 'WebRTC go2rtc Gateway',
       };
     } else {
@@ -82,7 +83,7 @@ export const CctvAddCameraModal: React.FC<CctvAddCameraModalProps> = ({
     }
 
     try {
-      const resp = await fetch('http://127.0.0.1:8001/api/cameras', {
+      const resp = await fetch(`${API_BASE_URL}/api/cameras`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(bodyPayload),

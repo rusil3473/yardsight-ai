@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Server, RefreshCw, X } from 'lucide-react';
+import { API_BASE_URL } from '../../config/env';
 
 interface CctvAddNvrModalProps {
   isOpen: boolean;
@@ -37,7 +38,7 @@ export const CctvAddNvrModal: React.FC<CctvAddNvrModalProps> = ({
         transport: host.trim() ? 'LAN_RTSP' : 'P2P',
       });
       const resp = await fetch(
-        `http://127.0.0.1:8001/api/cameras/nvr/sync-channels?${queryParams.toString()}`,
+        `${API_BASE_URL}/api/cameras/nvr/sync-channels?${queryParams.toString()}`,
         { method: 'POST' }
       );
       if (resp.ok) {

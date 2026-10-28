@@ -2,16 +2,26 @@
 Dahua P2P Relay Tunnel Service (<85 lines).
 Bridges Dahua P2P PTCP protocol into a local standard RTSP TCP loopback socket.
 """
+import os
 import queue, random, socket, struct, threading, time
-from typing import Dict
+from typing import Dict, Optional
 from .signaling import perform_p2p_handshake
 from .client_handler import handle_tcp_proxy
 
 class DahuaP2PTunnel:
     """Manages full-duplex PTCP relay session with a Dahua camera or NVR."""
 
-    def __init__(self, serial: str = "AG07AA7PCA3D3B6", user: str = "admin", pwd: str = "Shri@21*", local_port: int = 1554):
-        self.serial, self.user, self.pwd, self.local_port = serial, user, pwd, local_port
+    def __init__(
+        self,
+        serial: Optional[str] = None,
+        user: Optional[str] = None,
+        pwd: Optional[str] = None,
+        local_port: Optional[int] = None
+    ):
+        self.serial = serial or os.environ.get("DAHUA_NVR_SERIAL", "BE124E0PCA95532")
+        self.user = user or os.environ.get("DAHUA_NVR_USERNAME", "admin")
+        self.pwd = pwd or os.environ.get("DAHUA_NVR_PASSWORD", "Shri@21*")
+        self.local_port = local_port or int(os.environ.get("RTSP_TUNNEL_PORT", "1554"))
         self.running, self.relay_sock, self.agent_host, self.agent_port = False, None, None, None
         self.srv = None
         self.last_recv_time = time.time()

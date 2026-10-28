@@ -15,9 +15,10 @@ class TruckService:
 
     @staticmethod
     def list_trucks(tenant_id: str, db: Session) -> List[Dict[str, Any]]:
-        trucks = db.query(Truck).filter(Truck.tenant_id == tenant_id).all()
-        if not trucks and tenant_id != "TENANT-MY-HUB":
-            trucks = db.query(Truck).filter(Truck.tenant_id == "TENANT-MY-HUB").all()
+        query = db.query(Truck)
+        if tenant_id and tenant_id.upper() not in ("ALL", "*"):
+            query = query.filter(Truck.tenant_id == tenant_id)
+        trucks = query.all()
         results = []
         for t in trucks:
             t_dict = t.to_dict()

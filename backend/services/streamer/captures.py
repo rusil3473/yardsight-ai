@@ -73,6 +73,11 @@ class HardwareCapturePool:
                 self.captures[cam_id] = new_cap
                 self.failed_cooldowns.pop(cam_id, None)
                 return new_cap
+            if new_cap:
+                try:
+                    new_cap.release()
+                except Exception:
+                    pass
             self.failed_cooldowns[cam_id] = time.time()
         return None
 

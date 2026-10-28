@@ -16,6 +16,7 @@ from services.camera_service import camera_service
 from services.dahua_netsdk_service import dahua_netsdk_service
 from routers.camera_nvr_router import router as camera_nvr_router
 from routers.camera_stream_router import router as camera_stream_router
+from config import DEFAULT_NVR_SERIAL
 
 router = APIRouter(prefix="", tags=["CCTV Cameras & Vision"])
 
@@ -23,15 +24,16 @@ router = APIRouter(prefix="", tags=["CCTV Cameras & Vision"])
 router.include_router(camera_nvr_router)
 router.include_router(camera_stream_router)
 
-def check_nvr_online(sn: str = "BE124E0PCA95532") -> bool:
+def check_nvr_online(sn: Optional[str] = None) -> bool:
     """Returns actual NVR online status based on active P2P optical frames and tunnel reachability."""
+    target_sn = (sn or DEFAULT_NVR_SERIAL).strip().upper()
     try:
         from services.dhp2p import dhp2p_service
-        if dhp2p_service.is_tunnel_alive(sn):
+        if dhp2p_service.is_tunnel_alive(target_sn):
             return True
         with dhp2p_service.worker._lock:
             for (dev_sn, _), val in dhp2p_service.worker._latest_frames.items():
-                if dev_sn == sn and isinstance(val, tuple) and (time.time() - val[1]) < 120.0:
+                if dev_sn == target_sn and isinstance(val, tuple) and (time.time() - val[1]) < 120.0:
                     return True
         import socket
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -45,14 +47,22 @@ def check_nvr_online(sn: str = "BE124E0PCA95532") -> bool:
 
 @router.get("/cameras/diagnostic/frames-info")
 def get_diagnostic_frames_info():
-    """Returns actual frames in worker memory per channel."""
+    """Returns actual frames in worker memory per channel and worker thread states."""
     from services.dhp2p import dhp2p_service
     res = {}
     with dhp2p_service.worker._lock:
         for k, v in dhp2p_service.worker._latest_frames.items():
             if isinstance(v, tuple):
-                res[str(k)] = {"shape": list(v[0].shape), "captured_at": v[1], "mean": float(v[0].mean())}
-    return res
+                res[str(k)] = {"shape": list(v[0].shape), "captured_at": v[1], "mean": float(v[0].mean()), "age": round(time.time() - v[1], 2)}
+    threads = {k: t.is_alive() for k, t in dhp2p_service.worker._threads.items()}
+    return {
+        "frames": res,
+        "threads": threads,
+        "active_streams": dhp2p_service.worker._active_streams,
+        "last_requested": dhp2p_service.worker._last_requested,
+        "cooldowns": dhp2p_service.worker._channel_cooldowns
+    }
+
 
 @router.get("/cameras/dahua-sdk/status")
 def get_dahua_sdk_status():
@@ -155,7 +165,7 @@ def get_camera_snapshot(camera_id: str, db: Session = Depends(get_db)):
 def get_matrix_status(db: Session = Depends(get_db)):
     """Returns live hardware status for all facility matrix cameras with true per-channel health."""
     cams_res = camera_service.list_cameras(tenant_id="TENANT-MY-HUB", db=db)
-    nvr_sn = "BE124E0PCA95532"
+    nvr_sn = DEFAULT_NVR_SERIAL
     is_nvr_online = check_nvr_online(nvr_sn)
 
     from services.dhp2p import dhp2p_service
@@ -173,19 +183,12 @@ def get_matrix_status(db: Session = Depends(get_db)):
                 and dhp2p_service.worker._threads[thread_key].is_alive()
             )
 
-            if frame_data and isinstance(frame_data, tuple):
-                last_frame_ts = frame_data[1]
-                age = now_ts - last_frame_ts
-                if age < 30.0:
-                    ch_status = "ONLINE"
-                elif age < 90.0:
-                    ch_status = "ONLINE" if is_nvr_online else "STALE"
-                else:
-                    ch_status = "ONLINE" if is_nvr_online else "OFFLINE"
+            from services.streamer import camera_streamer
+            has_fixed_frame = ch in camera_streamer._channel_fixed_frames
+            if (frame_data and isinstance(frame_data, tuple) and (now_ts - frame_data[1]) < 90.0) or has_fixed_frame:
+                ch_status = "ONLINE"
             elif is_thread_alive:
                 ch_status = "CONNECTING"
-            elif is_nvr_online:
-                ch_status = "ONLINE"
             else:
                 ch_status = "OFFLINE"
 
@@ -211,7 +214,7 @@ def get_camera_status_check(camera_id: str, db: Session = Depends(get_db)):
     """Returns live hardware connectivity status for any Dahua NVR channel or IP camera."""
     cam_id = camera_id.upper()
     cam = camera_service.get_camera(cam_id, db)
-    nvr_sn = (cam.dmss_serial if cam and cam.dmss_serial else "BE124E0PCA95532").strip()
+    nvr_sn = (cam.dmss_serial if cam and cam.dmss_serial else DEFAULT_NVR_SERIAL).strip()
     
     try:
         ch_num = cam.dmss_channel if (cam and cam.dmss_channel is not None) else (

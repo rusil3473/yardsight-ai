@@ -10,15 +10,24 @@ from pydantic import BaseModel, Field
 from database import get_db
 from models import CCTVCamera
 from services.dolynk_service import dolynk_service
+from config import (
+    DEFAULT_NVR_SERIAL,
+    DEFAULT_NVR_CHANNELS,
+    DEFAULT_NVR_USERNAME,
+    DEFAULT_NVR_PASSWORD,
+    DEFAULT_NVR_HOST,
+    DEFAULT_NVR_PORT,
+    DEFAULT_RTSP_TUNNEL_PORT
+)
 
 router = APIRouter(tags=["Dahua NVR Management"])
 
 class NVROnboardRequest(BaseModel):
     nvr_name: str = Field("Godown Main NVR", description="Human-friendly name for NVR")
-    serial_number: str = Field("BE124E0PCA95532", description="Dahua NVR Hardware Serial Number")
-    device_username: str = Field("admin", description="NVR device admin username")
-    device_password: str = Field("admin123", description="NVR device safety password")
-    total_channels: int = Field(32, description="Total channels to import (e.g. 4, 8, 16, 32)")
+    serial_number: str = Field(DEFAULT_NVR_SERIAL, description="Dahua NVR Hardware Serial Number")
+    device_username: str = Field(DEFAULT_NVR_USERNAME, description="NVR device admin username")
+    device_password: str = Field(DEFAULT_NVR_PASSWORD, description="NVR device safety password")
+    total_channels: int = Field(DEFAULT_NVR_CHANNELS, description="Total channels to import (e.g. 4, 8, 16, 32)")
     channels: Optional[List[int]] = Field(None, description="Specific channels to import, e.g. [1, 2, 3... 14]")
     tenant_id: str = Field("TENANT-MY-HUB", description="Tenant isolation identifier")
 
@@ -60,20 +69,29 @@ def onboard_nvr(payload: NVROnboardRequest, db: Session = Depends(get_db)):
 
 @router.post("/cameras/nvr/sync-channels")
 def sync_nvr_channels(
-    serial_number: str = Query("BE124E0PCA95532", description="NVR Hardware Serial Number"),
-    total_channels: int = Query(32, description="Total NVR channel count (e.g. 16, 32, 48)"),
+    serial_number: str = Query(DEFAULT_NVR_SERIAL, description="NVR Hardware Serial Number"),
+    total_channels: int = Query(DEFAULT_NVR_CHANNELS, description="Total NVR channel count (e.g. 16, 32, 48)"),
     nvr_name: str = Query("Dahua Godown Main NVR", description="Human-friendly NVR name"),
-    host: Optional[str] = Query(None, description="LAN IP / Hostname of NVR for direct RTSP"),
-    port: Optional[int] = Query(554, description="RTSP port (default 554)"),
-    username: Optional[str] = Query("admin", description="NVR username"),
-    password: Optional[str] = Query("Shri@21*", description="NVR password"),
+    host: Optional[str] = Query(DEFAULT_NVR_HOST or None, description="LAN IP / Hostname of NVR for direct RTSP"),
+    port: Optional[int] = Query(DEFAULT_NVR_PORT, description="RTSP port (default 554)"),
+    username: Optional[str] = Query(DEFAULT_NVR_USERNAME, description="NVR username"),
+    password: Optional[str] = Query(DEFAULT_NVR_PASSWORD, description="NVR password"),
     transport: Optional[str] = Query("P2P", description="Preferred transport: LAN_RTSP or P2P"),
     db: Session = Depends(get_db)
 ):
     """Dynamically provisions or auto-discovers all channels for an NVR without ID collisions."""
     try:
         from services.streamer.zones import get_zone_def
-        sn_clean = serial_number.strip().upper()
+        # Safely extract default values if called directly in Python rather than through FastAPI DI
+        sn_val = serial_number.default if hasattr(serial_number, "default") else serial_number
+        ch_count = total_channels.default if hasattr(total_channels, "default") else total_channels
+        h_val = host.default if hasattr(host, "default") else host
+        p_val = port.default if hasattr(port, "default") else port
+        u_val = username.default if hasattr(username, "default") else username
+        pass_val = password.default if hasattr(password, "default") else password
+
+        sn_clean = str(sn_val or "BE124E0PCA95532").strip().upper()
+        total_channels = int(ch_count or 32)
         is_primary_nvr = (sn_clean == "BE124E0PCA95532")
         sn_suffix = sn_clean[-5:] if len(sn_clean) >= 5 else sn_clean
 
@@ -84,11 +102,11 @@ def sync_nvr_channels(
             zone_code, default_name, zone_pipeline = zone.zone_code, zone.display_name, zone.ai_pipeline
 
             # Direct RTSP URL if host provided, else DMSS/P2P URL
-            if host and host.strip():
-                h_clean = host.strip()
-                p_clean = port or 554
-                u_clean = username or "admin"
-                pass_part = f":{password}@" if password else "@"
+            if isinstance(h_val, str) and h_val.strip():
+                h_clean = h_val.strip()
+                p_clean = int(p_val or 554)
+                u_clean = str(u_val or "admin")
+                pass_part = f":{pass_val}@" if pass_val else "@"
                 stream_url = f"rtsp://{u_clean}{pass_part}{h_clean}:{p_clean}/cam/realmonitor?channel={ch}&subtype=1"
                 stream_type = "RTSP"
             else:
@@ -111,8 +129,8 @@ def sync_nvr_channels(
                     status="ONLINE" if ch in {1, 2, 3, 4, 5, 6, 7, 8, 9, 23, 24, 25} else "OFFLINE",
                     dmss_serial=sn_clean,
                     dmss_channel=ch,
-                    dmss_username=username or "admin",
-                    dmss_password=password
+                    dmss_username=str(u_val or "admin"),
+                    dmss_password=str(pass_val) if pass_val else None
                 )
                 db.add(cam)
                 synced.append(cam)
@@ -121,14 +139,25 @@ def sync_nvr_channels(
                 existing.dmss_channel = ch
                 existing.stream_type = stream_type
                 existing.stream_url = stream_url
-                if username:
-                    existing.dmss_username = username
-                if password:
-                    existing.dmss_password = password
+                if u_val:
+                    existing.dmss_username = str(u_val)
+                if pass_val:
+                    existing.dmss_password = str(pass_val)
                 existing.status = "ONLINE" if ch in {1, 2, 3, 4, 5, 6, 7, 8, 9, 23, 24, 25} else "OFFLINE"
                 synced.append(existing)
 
         db.commit()
+
+        # Clear any cached channel frames and trigger active background refetch across all channels
+        try:
+            from services.streamer import camera_streamer
+            camera_streamer._channel_fixed_frames.clear()
+            camera_streamer._frame_cache.clear()
+            from services.dhp2p import dhp2p_service
+            dhp2p_service.worker.refetch_all_channels(sn_clean)
+        except Exception:
+            pass
+
         return {
             "status": "SUCCESS",
             "nvr_serial": sn_clean,
@@ -201,21 +230,13 @@ def test_all_nvr_channels(
     """
     import socket, time
     from services.streamer.zones import get_zone_def
+    from services.camera_watchdog import camera_watchdog
     
     sn_clean = serial_number.strip().upper()
     t_start = time.time()
     
-    # 1. Verify P2P Tunnel Socket Availability
-    tunnel_online = False
-    tunnel_latency = 0.0
-    try:
-        t0 = time.time()
-        with socket.create_connection(("127.0.0.1", 1554), timeout=0.8):
-            tunnel_online = True
-            tunnel_latency = round((time.time() - t0) * 1000, 2)
-    except Exception:
-        tunnel_online = False
-        tunnel_latency = round((time.time() - t0) * 1000, 2)
+    # 1. Verify P2P Tunnel Socket Availability with real network RTT check
+    tunnel_online, tunnel_latency = camera_watchdog.measure_endpoint_rtt("127.0.0.1", DEFAULT_RTSP_TUNNEL_PORT, timeout=0.8)
 
     # 2. Query configured cameras from database
     cams = db.query(CCTVCamera).filter(
@@ -232,18 +253,32 @@ def test_all_nvr_channels(
         cam_id = cam.id if cam else f"CAM-{ch:02d}"
         display_name = cam.name if cam else f"{zone.display_name} (CH{ch:02d})"
         location = cam.location if cam else f"Facility Zone {zone.zone_code}"
-        rtsp_stream_url = f"rtsp://127.0.0.1:1554/cam/realmonitor?channel={ch}&subtype=1"
+        rtsp_stream_url = f"rtsp://127.0.0.1:{DEFAULT_RTSP_TUNNEL_PORT}/cam/realmonitor?channel={ch}&subtype=1"
 
-        # Channel health: Tunnel active means NVR P2P session is alive
-        if tunnel_online:
+        # Telemetry: derive from real watchdog telemetry heartbeat or live socket handshake
+        watchdog_entry = camera_watchdog.health_cache.get(cam_id)
+        if watchdog_entry and watchdog_entry.get("latency_ms", 0) > 0:
+            real_latency = watchdog_entry["latency_ms"]
+            ch_status = watchdog_entry.get("status", "ONLINE")
+        elif tunnel_online:
+            real_latency = tunnel_latency
             ch_status = "ONLINE"
-            online_count += 1
-            signal_quality = "EXCELLENT" if ch <= 8 else "GOOD"
-            latency_ms = round(tunnel_latency + (ch * 0.4), 2)
         else:
+            real_latency = 0.0
             ch_status = "STANDBY"
+
+        if ch_status == "ONLINE":
+            online_count += 1
+            if real_latency < 50:
+                signal_quality = "EXCELLENT"
+            elif real_latency < 120:
+                signal_quality = "GOOD"
+            elif real_latency < 250:
+                signal_quality = "FAIR"
+            else:
+                signal_quality = "POOR"
+        else:
             signal_quality = "OFFLINE_CARD_READY"
-            latency_ms = 0.0
 
         channel_reports.append({
             "channel": ch,
@@ -256,7 +291,7 @@ def test_all_nvr_channels(
             "signal_quality": signal_quality,
             "stream_type": "DMSS / RTSP",
             "stream_url": rtsp_stream_url,
-            "latency_ms": latency_ms,
+            "latency_ms": real_latency,
             "resolution": "2560x1440" if ch == 1 else "1920x1080",
             "fps": 30 if ch != 3 else 25,
             "opencv_ai_mode": "BYPASSED_LIGHTWEIGHT",
@@ -269,7 +304,7 @@ def test_all_nvr_channels(
         "status": "SUCCESS",
         "nvr_serial": sn_clean,
         "tunnel_socket_online": tunnel_online,
-        "tunnel_port": 1554,
+        "tunnel_port": DEFAULT_RTSP_TUNNEL_PORT,
         "opencv_ai_mode": "PAUSED_LIGHTWEIGHT",
         "cpu_ram_impact": "ZERO_EXHAUSTION",
         "total_channels_tested": len(channel_reports),

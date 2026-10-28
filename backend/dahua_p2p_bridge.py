@@ -5,6 +5,7 @@ via Dahua's Easy4IP cloud infrastructure (P2P + Relay fallback).
 Enables local RTSP consumption (OpenCV/FFmpeg) at rtsp://127.0.0.1:1554/...
 """
 
+import os
 import asyncio
 import base64
 import datetime
@@ -53,12 +54,12 @@ from services.dhp2p.protocol import SyncUDP, PTCPProtocol
 
 class DahuaP2PBridge:
     """Manages the full Dahua P2P/Relay lifecycle and local RTSP TCP proxy server."""
-    def __init__(self, serial: str = None, serial_number: str = None, username: str = "admin", password: str = "Shri@21*",
-                 local_port: int = 1554, remote_port: int = 554):
-        self.serial = serial or serial_number or "AG07AA7PCA3D3B6"
-        self.username = username
-        self.password = password
-        self.local_port = local_port
+    def __init__(self, serial: str = None, serial_number: str = None, username: str = None, password: str = None,
+                 local_port: int = None, remote_port: int = 554):
+        self.serial = serial or serial_number or os.environ.get("DAHUA_NVR_SERIAL", "BE124E0PCA95532")
+        self.username = username or os.environ.get("DAHUA_NVR_USERNAME", "admin")
+        self.password = password or os.environ.get("DAHUA_NVR_PASSWORD", "Shri@21*")
+        self.local_port = local_port or int(os.environ.get("RTSP_TUNNEL_PORT", "1554"))
         self.remote_port = remote_port
 
         self.agent_host = ""

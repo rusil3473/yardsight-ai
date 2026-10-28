@@ -27,16 +27,18 @@ class IndustrialCameraStreamer:
         self.frame_counters: Dict[str, int] = {}
         self.pool = HardwareCapturePool()
         self._frame_cache: Dict[str, tuple] = {}
+        self._channel_fixed_frames: Dict[int, np.ndarray] = {}
 
     def generate_live_frame(self, camera_dict: dict, is_hd: bool = False) -> bytes:
         cam_id = camera_dict.get("id", "CAM-01")
         now = time.time()
 
-        # 0. Frame Cache: Return pre-encoded JPEG within 65ms TTL (saves 85%+ CPU across concurrent clients)
+        # 0. Frame Cache: Return pre-encoded JPEG within 35ms TTL (enables smooth ~28 FPS real-time streaming)
         cache_key = f"{cam_id}_{is_hd}"
         cached = self._frame_cache.get(cache_key)
-        if cached and (now - cached[0]) < 0.065:
+        if cached and (now - cached[0]) < 0.035:
             return cached[1]
+
 
         name = camera_dict.get("name", "CCTV Camera")
         stream_type = camera_dict.get("stream_type", "DMSS")
@@ -61,6 +63,7 @@ class IndustrialCameraStreamer:
                 ret, raw = cap.read()
                 if ret and raw is not None:
                     frame = raw
+                    self._channel_fixed_frames[channel] = frame.copy()
                 else:
                     self.pool.release(cam_id)
 
@@ -68,16 +71,27 @@ class IndustrialCameraStreamer:
         eff_ch = channel if channel > 0 else (
             int(cam_id.split("-")[-1]) if ("-" in cam_id and cam_id.split("-")[-1].isdigit()) else 1
         )
-        target_sn = sn or "BE124E0PCA95532"
+        target_sn = sn or os.environ.get("DAHUA_NVR_SERIAL", "BE124E0PCA95532")
         if frame is None:
             from services.dhp2p import dhp2p_service
-            frame = dhp2p_service.get_latest_optical_frame(target_sn, channel=eff_ch, max_age_seconds=60.0)
+            direct_frame = dhp2p_service.get_latest_optical_frame(target_sn, channel=eff_ch)
+            if direct_frame is not None:
+                self._channel_fixed_frames[eff_ch] = direct_frame.copy()
+                frame = direct_frame
 
         # 3. Dedicated DoLynk sensor fallback for standalone IPC camera (AG07AA7PCA3D3B6)
         if frame is None and eff_ch == 1 and (sn or "").upper().startswith("AG"):
-            frame = dolynk_service.get_latest_optical_frame(dolynk_service.default_device_sn, 0)
+            ipc_frame = dolynk_service.get_latest_optical_frame(dolynk_service.default_device_sn, 0)
+            if ipc_frame is not None:
+                self._channel_fixed_frames[eff_ch] = ipc_frame.copy()
+                frame = ipc_frame
 
-        # 4. Authentic CCTV No-Signal / Diagnostic Card for unassigned or offline NVR channels (Zero Duplication)
+        # 4. Fixed Channel Persistence: Strictly lock to channel's own optical frame
+        # NEVER cross-pollinate or switch to another channel's scene dynamically
+        if frame is None and eff_ch in self._channel_fixed_frames:
+            frame = self._channel_fixed_frames[eff_ch].copy()
+
+        # 5. Authentic CCTV Diagnostic Card if this channel has no physical camera attached
         if frame is None:
             card = render_offline_cctv_card(w, h, cam_id, display_name, target_sn, eff_ch, stream_type, stream_url, t)
             _, buf = cv2.imencode('.jpg', card, [int(cv2.IMWRITE_JPEG_QUALITY), jpeg_quality])

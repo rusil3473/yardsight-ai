@@ -24,6 +24,18 @@ class CameraHealthWatchdog:
     def is_privacy_mode(self) -> bool:
         return self.privacy_mode_enabled
 
+    @staticmethod
+    def measure_endpoint_rtt(host: str, port: int = 554, timeout: float = 0.8) -> tuple[bool, float]:
+        """Measures real TCP connection round-trip latency to a camera or NVR endpoint."""
+        t0 = time.perf_counter()
+        try:
+            with socket.create_connection((host, int(port)), timeout=timeout):
+                rtt_ms = round((time.perf_counter() - t0) * 1000, 2)
+                return True, rtt_ms
+        except Exception:
+            rtt_ms = round((time.perf_counter() - t0) * 1000, 2)
+            return False, rtt_ms
+
     def record_heartbeat(self, camera_id: str, is_online: bool, latency_ms: float = 0.0, details: str = ""):
         now = time.time()
         prev = self.health_cache.get(camera_id, {})

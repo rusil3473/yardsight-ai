@@ -8,6 +8,7 @@ import type { CameraFeed } from '../../types';
 import type { LiveDetectionEntity, MatrixStatus } from './types';
 import { WebRtcVideoPlayer } from '../WebRtcVideoPlayer';
 import { CctvInspectControls } from './CctvInspectControls';
+import { API_BASE_URL } from '../../config/env';
 
 interface CctvInspectModalProps {
   feed: CameraFeed;
@@ -78,7 +79,7 @@ export const CctvInspectModal: React.FC<CctvInspectModalProps> = ({
     setIsFlushingBuffer(true);
     setConnectionStatusMsg('Flushing hardware capture socket buffer...');
     try {
-      const resp = await fetch(`http://127.0.0.1:8001/api/cameras/${feed.id.toUpperCase()}/refresh-buffer`, {
+      const resp = await fetch(`${API_BASE_URL}/api/cameras/${feed.id.toUpperCase()}/refresh-buffer`, {
         method: 'POST',
       });
       const data = await resp.json();
@@ -102,11 +103,11 @@ export const CctvInspectModal: React.FC<CctvInspectModalProps> = ({
     setTestingConnection(true);
     setConnectionStatusMsg(null);
     try {
-      const resp = await fetch('http://127.0.0.1:8001/api/cameras/test-stream', {
+      const resp = await fetch(`${API_BASE_URL}/api/cameras/test-stream`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          stream_url: `http://127.0.0.1:8001/api/cameras/${feed.id.toUpperCase()}/stream`,
+          stream_url: `${API_BASE_URL}/api/cameras/${feed.id.toUpperCase()}/stream`,
           stream_type: feed.id.toUpperCase() === 'CAM-01' ? 'DMSS' : 'RTSP',
           dmss_serial: matrixStatus.nvr_serial || 'BE124E0PCA95532',
           dmss_channel: parseInt(feed.id.replace(/\D/g, ''), 10) || 1,
@@ -129,7 +130,7 @@ export const CctvInspectModal: React.FC<CctvInspectModalProps> = ({
     if (!editedName.trim()) return;
     setIsSavingName(true);
     try {
-      const resp = await fetch(`http://127.0.0.1:8001/api/cameras/${feed.id.toUpperCase()}`, {
+      const resp = await fetch(`${API_BASE_URL}/api/cameras/${feed.id.toUpperCase()}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: editedName.trim() }),
@@ -239,7 +240,7 @@ export const CctvInspectModal: React.FC<CctvInspectModalProps> = ({
           >
             <WebRtcVideoPlayer
               cameraId={feed.id}
-              fallbackStreamUrl={`http://127.0.0.1:8001/api/cameras/${feed.id.toUpperCase()}/stream`}
+              fallbackStreamUrl={`${API_BASE_URL}/api/cameras/${feed.id.toUpperCase()}/stream`}
               retryKey={webRtcRetryKey}
               subtype={1}
               className="w-full h-full object-cover"

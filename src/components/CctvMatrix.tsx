@@ -12,6 +12,7 @@ import { CctvInspectModal } from './cctv/CctvInspectModal';
 import { CctvAddCameraModal } from './cctv/CctvAddCameraModal';
 import { CctvAddNvrModal } from './cctv/CctvAddNvrModal';
 import { CctvSyncChannelsModal } from './cctv/CctvSyncChannelsModal';
+import { API_BASE_URL } from '../config/env';
 
 export const CctvMatrix: React.FC<CctvMatrixProps> = ({
   feeds,
@@ -21,8 +22,8 @@ export const CctvMatrix: React.FC<CctvMatrixProps> = ({
   onRefreshCameras,
   onOpenNimbus,
 }) => {
-  // Navigation & Layout (Default to '4' for clear industrial multi-view)
-  const [layoutMode, setLayoutMode] = useState<CctvLayoutMode>('4');
+  // Navigation & Layout (Default to 'all' so all 32 channels are displayed simultaneously)
+  const [layoutMode, setLayoutMode] = useState<CctvLayoutMode>('all');
   const [currentPage, setCurrentPage] = useState<number>(1);
 
   // Modals
@@ -31,8 +32,8 @@ export const CctvMatrix: React.FC<CctvMatrixProps> = ({
   const [isAddNvrModalOpen, setIsAddNvrModalOpen] = useState<boolean>(false);
   const [isSyncModalOpen, setIsSyncModalOpen] = useState<boolean>(false);
 
-  // Streaming & Health State
-  const [streamingFeedIds, setStreamingFeedIds] = useState<Set<string>>(new Set());
+  // Streaming & Health State (Live streaming enabled by default for all visible channels)
+  const [pausedFeedIds, setPausedFeedIds] = useState<Set<string>>(new Set());
   const [streamErrorMap, setStreamErrorMap] = useState<Record<string, boolean>>({});
   const [retryKey, setRetryKey] = useState<number>(0);
   const [liveDetections, setLiveDetections] = useState<Record<string, LiveDetectionEntity[]>>({});
@@ -65,7 +66,7 @@ export const CctvMatrix: React.FC<CctvMatrixProps> = ({
   useEffect(() => {
     const fetchMatrixStatus = async () => {
       try {
-        const resp = await fetch('http://127.0.0.1:8001/api/cameras/matrix/status');
+        const resp = await fetch(`${API_BASE_URL}/api/cameras/matrix/status`);
         if (resp.ok) {
           const data = await resp.json();
           if (data && typeof data === 'object') {
@@ -128,14 +129,14 @@ export const CctvMatrix: React.FC<CctvMatrixProps> = ({
 
   const getSnapshotUrl = useCallback(
     (feedId: string, tick?: number) => {
-      const base = `http://127.0.0.1:8001/api/cameras/${feedId.toUpperCase()}/snapshot`;
+      const base = `${API_BASE_URL}/api/cameras/${feedId.toUpperCase()}/snapshot`;
       return tick ? `${base}?t=${tick}` : base;
     },
     []
   );
 
   const handleToggleStream = (feedId: string) => {
-    setStreamingFeedIds((prev) => {
+    setPausedFeedIds((prev) => {
       const next = new Set(prev);
       if (next.has(feedId)) next.delete(feedId);
       else next.add(feedId);
@@ -197,7 +198,7 @@ export const CctvMatrix: React.FC<CctvMatrixProps> = ({
           <CctvFeedViewport
             key={feed.id}
             feed={feed}
-            isStreaming={streamingFeedIds.has(feed.id)}
+            isStreaming={!pausedFeedIds.has(feed.id)}
             isSelected={selectedCamera?.id === feed.id}
             streamError={!!streamErrorMap[feed.id]}
             currentTime={currentTime}

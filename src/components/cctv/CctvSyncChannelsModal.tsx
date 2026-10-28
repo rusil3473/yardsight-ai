@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Server, RefreshCw, CheckCircle, X } from 'lucide-react';
+import { API_BASE_URL } from '../../config/env';
 
 interface CctvSyncChannelsModalProps {
   isOpen: boolean;
@@ -24,7 +25,7 @@ export const CctvSyncChannelsModal: React.FC<CctvSyncChannelsModalProps> = ({
     setSyncResultMsg(null);
     try {
       const resp = await fetch(
-        `http://127.0.0.1:8001/api/cameras/nvr/sync-channels?serial_number=${encodeURIComponent(
+        `${API_BASE_URL}/api/cameras/nvr/sync-channels?serial_number=${encodeURIComponent(
           syncSerial
         )}&total_channels=${syncTotalChannels}`,
         { method: 'POST' }

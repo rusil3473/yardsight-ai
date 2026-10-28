@@ -12,6 +12,7 @@ import {
 import { DockTurnaroundTracker } from './DockTurnaroundTracker';
 import { TruckModal, type TruckFormData } from './TruckModal';
 import { useAuth } from '../context/AuthContext';
+import { API_BASE_URL } from '../config/env';
 
 interface FleetTrackViewProps {
   trucks: any[];
@@ -50,7 +51,7 @@ export const FleetTrackView: React.FC<FleetTrackViewProps> = ({
   }>>([]);
 
   React.useEffect(() => {
-    fetch('http://127.0.0.1:8001/api/trucks/carriers/summary')
+    fetch(`${API_BASE_URL}/api/trucks/carriers/summary`)
       .then(res => res.json())
       .then(data => {
         if (data.status === 'SUCCESS' && Array.isArray(data.carriers)) {
@@ -66,7 +67,7 @@ export const FleetTrackView: React.FC<FleetTrackViewProps> = ({
       try {
         const headers: Record<string, string> = { 'Content-Type': 'application/json' };
         if (token) headers['Authorization'] = `Bearer ${token}`;
-        const res = await fetch(`http://127.0.0.1:8001/api/trucks/${data.id}`, {
+        const res = await fetch(`${API_BASE_URL}/api/trucks/${data.id}`, {
           method: 'PUT',
           headers,
           body: JSON.stringify(data)

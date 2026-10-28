@@ -5,8 +5,9 @@
 
 import { StandardApiClient } from '@packages/standards';
 import type { YardCamera } from '../schemas/yardSchemas';
+import { API_BASE_URL } from '../config/env';
 
-const API_BASE = (import.meta as any).env?.VITE_API_URL || 'http://127.0.0.1:8001';
+export const API_BASE = API_BASE_URL;
 const TOKEN_KEY = 'yardsight_auth_token';
 
 let memoryToken: string | null = null;

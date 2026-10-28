@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import type { TabId } from './Sidebar';
+import { API_BASE_URL } from '../config/env';
 import {
   YardKpisGrid,
   DockBaysGrid,
@@ -57,7 +58,7 @@ export const HomeOverviewView: React.FC<HomeOverviewViewProps> = ({
 
   useEffect(() => {
     const tid = tenant?.tenant_id || (tenant as any)?.id || 'TENANT-MY-HUB';
-    fetch(`http://127.0.0.1:8001/api/cameras?tenant_id=${tid}`)
+    fetch(`${API_BASE_URL}/api/cameras?tenant_id=${tid}`)
       .then(res => res.json())
       .then(data => setCameraCount(data.cameras?.length || 0))
       .catch(() => setCameraCount(0));
@@ -87,7 +88,7 @@ export const HomeOverviewView: React.FC<HomeOverviewViewProps> = ({
   ]);
 
   useEffect(() => {
-    fetch('http://127.0.0.1:8001/api/dwell/hourly')
+    fetch(`${API_BASE_URL}/api/dwell/hourly`)
       .then(res => res.json())
       .then(data => {
         if (data.status === 'SUCCESS' && Array.isArray(data.metrics)) {
@@ -108,7 +109,7 @@ export const HomeOverviewView: React.FC<HomeOverviewViewProps> = ({
 
   const handleSendDispatchAlert = async (dock: DockBay) => {
     try {
-      await fetch('http://127.0.0.1:8001/api/dispatch/alert', {
+      await fetch(`${API_BASE_URL}/api/dispatch/alert`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

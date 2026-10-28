@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Bot, Sparkles, X, Send, RefreshCw } from 'lucide-react';
+import { API_BASE_URL } from '../config/env';
 
 interface NimbusFloatingCopilotProps {
   activeCameraId?: string;
@@ -31,7 +32,7 @@ export const NimbusFloatingCopilot: React.FC<NimbusFloatingCopilotProps> = ({ ac
     setIsSending(true);
 
     try {
-      const resp = await fetch('http://127.0.0.1:8001/api/nimbus/chat', {
+      const resp = await fetch(`${API_BASE_URL}/api/nimbus/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

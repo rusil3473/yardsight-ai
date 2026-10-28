@@ -11,19 +11,21 @@ from schemas.camera import (
     CameraTestRequest, CameraTestResponse
 )
 from services.camera_tester import test_camera_connectivity
+from config import DEFAULT_NVR_SERIAL, RTSP_TUNNEL_PORT, GO2RTC_API_URL
 
 class CameraService:
     """Service encapsulating CCTV camera database management, testing, and optical streaming."""
 
     @staticmethod
     def list_cameras(tenant_id: str, db: Session) -> CameraListResponse:
-        cams = db.query(CCTVCamera).filter(CCTVCamera.tenant_id == tenant_id).all()
-        if not cams:
-            cams = db.query(CCTVCamera).all()
-        if not cams:
+        query = db.query(CCTVCamera)
+        if tenant_id and tenant_id.upper() not in ("ALL", "*"):
+            query = query.filter(CCTVCamera.tenant_id == tenant_id)
+        cams = query.all()
+        if not cams and (not tenant_id or tenant_id == "TENANT-MY-HUB"):
             from routers.camera_nvr_router import sync_nvr_channels
-            sync_nvr_channels(serial_number="BE124E0PCA95532", total_channels=32, nvr_name="Dahua Godown Main NVR", db=db)
-            cams = db.query(CCTVCamera).all()
+            sync_nvr_channels(serial_number=DEFAULT_NVR_SERIAL, total_channels=32, nvr_name="Dahua Godown Main NVR", db=db)
+            cams = db.query(CCTVCamera).filter(CCTVCamera.tenant_id == "TENANT-MY-HUB").all()
         response_list = [CameraResponse.model_validate(c) for c in cams]
         return CameraListResponse(cameras=response_list, count=len(response_list))
 
@@ -39,10 +41,10 @@ class CameraService:
         stream_url = payload.stream_url
         if payload.stream_type == "DMSS" and not stream_url:
             ch = payload.dmss_channel if payload.dmss_channel is not None else 1
-            sn = (payload.dmss_serial or "BE124E0PCA95532").strip()
-            stream_url = f"rtsp://127.0.0.1:1554/cam/realmonitor?channel={ch}&subtype=1"
+            sn = (payload.dmss_serial or DEFAULT_NVR_SERIAL).strip()
+            stream_url = f"rtsp://127.0.0.1:{RTSP_TUNNEL_PORT}/cam/realmonitor?channel={ch}&subtype=1"
         elif payload.stream_type == "WEBRTC" and not stream_url:
-            stream_url = "http://127.0.0.1:1984/api/webrtc?src=ipc_live"
+            stream_url = f"{GO2RTC_API_URL}/api/webrtc?src=ipc_live"
 
         brand = payload.brand
         if not brand or brand == "Dahua":

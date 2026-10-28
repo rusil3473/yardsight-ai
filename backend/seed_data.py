@@ -11,6 +11,7 @@ from models import (
     UserCorrectionMemory, ContextMemorySummary, SupportTicket, TenantSetting,
     ANPRScanRecord
 )
+from config import DEFAULT_NVR_SERIAL, DEFAULT_NVR_USERNAME, DEFAULT_NVR_PASSWORD
 
 def migrate_schema():
     """Ensure newly added columns exist in existing tables if using SQLite."""
@@ -117,7 +118,7 @@ def seed_cameras(db):
     Strictly ZERO fake images. Real hardware devices only.
     """
     from services.streamer.zones import CHANNEL_ZONE_DEFS
-    nvr_sn = "BE124E0PCA95532"
+    nvr_sn = DEFAULT_NVR_SERIAL
 
     cameras_def = []
     for ch in range(1, 33):
@@ -143,8 +144,8 @@ def seed_cameras(db):
             "status": "ONLINE" if ch in {1, 2, 3, 4, 5, 6, 7, 8, 9, 23, 24, 25} else "OFFLINE",
             "dmss_serial": nvr_sn,
             "dmss_channel": ch,
-            "dmss_username": "admin",
-            "dmss_password": "Shri@21*"
+            "dmss_username": DEFAULT_NVR_USERNAME,
+            "dmss_password": DEFAULT_NVR_PASSWORD
         })
 
     for cdef in cameras_def:

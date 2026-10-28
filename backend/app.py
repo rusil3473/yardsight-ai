@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from seed_data import init_db
 from scale_engine import rate_limiter
 from routers import api_router
+from config import DEFAULT_NVR_SERIAL, CORS_ORIGINS
 
 # 1. Initialize Database Schema & Core Tables
 init_db()
@@ -28,17 +29,15 @@ if cv2.ocl.haveOpenCL():
 
 # 1.2 Live Video Stream & WebRTC Ingestion (Active) with Heavy AI Vision Paused for Low-RAM
 DISABLE_VIDEO_STREAM = os.environ.get("DISABLE_VIDEO_STREAM", "0").lower() in ("true", "1", "yes")
-DISABLE_CV_AI = os.environ.get("DISABLE_CV_AI", "1").lower() in ("true", "1", "yes")
+DISABLE_CV_AI = os.environ.get("DISABLE_CV_AI", "0").lower() in ("true", "1", "yes")
+
 
 if not DISABLE_VIDEO_STREAM:
     from services.dolynk_service import dolynk_service
     dolynk_service.start_background_worker()
 
     from services.dhp2p import dhp2p_service
-    import time
-    for ch in [1, 2, 3, 4]:
-        dhp2p_service.worker.start_worker("BE124E0PCA95532", channel=ch)
-        time.sleep(0.5)
+    dhp2p_service.worker.refetch_all_channels(DEFAULT_NVR_SERIAL)
 
     from services.webrtc_service import webrtc_service
     webrtc_service.ensure_running()
@@ -92,7 +91,7 @@ async def security_headers_middleware(request: Request, call_next):
     return response
 
 # 4. Enterprise Hardened CORS Configuration
-ALLOWED_ORIGINS = [
+DEFAULT_LOCAL_ORIGINS = [
     "http://localhost:5173",
     "http://localhost:5174",
     "http://localhost:5175",
@@ -105,11 +104,14 @@ ALLOWED_ORIGINS = [
     "http://127.0.0.1:5177",
 ]
 
+is_wildcard = "*" in CORS_ORIGINS
+ALLOWED_ORIGINS = ["*"] if is_wildcard else list(set(DEFAULT_LOCAL_ORIGINS + CORS_ORIGINS))
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
-    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
-    allow_credentials=True,
+    allow_origin_regex=None if is_wildcard else r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
+    allow_credentials=not is_wildcard,
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["X-RateLimit-Limit", "X-RateLimit-Remaining"]
@@ -150,4 +152,5 @@ def root_index():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8001)
+    from config import BACKEND_HOST, BACKEND_PORT
+    uvicorn.run(app, host=BACKEND_HOST, port=BACKEND_PORT)
