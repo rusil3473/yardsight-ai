@@ -22,8 +22,8 @@ export const CctvMatrix: React.FC<CctvMatrixProps> = ({
   onRefreshCameras,
   onOpenNimbus,
 }) => {
-  // Navigation & Layout (Default to 8-channel multi grid)
-  const [layoutMode, setLayoutMode] = useState<CctvLayoutMode>('8');
+  // Navigation & Layout (Default to 16-channel 4x4 matrix grid)
+  const [layoutMode, setLayoutMode] = useState<CctvLayoutMode>('16');
   const [currentPage, setCurrentPage] = useState<number>(1);
 
   // Modals
@@ -51,7 +51,7 @@ export const CctvMatrix: React.FC<CctvMatrixProps> = ({
   const [matrixStatus, setMatrixStatus] = useState<MatrixStatus>({
     nvr_online: true,
     nvr_serial: 'BE124E0PCA95532',
-    total_channels: 8,
+    total_channels: 32,
     cameras: {},
   });
 
@@ -164,14 +164,14 @@ export const CctvMatrix: React.FC<CctvMatrixProps> = ({
     layoutMode === 'single'
       ? 'grid-cols-1 max-w-4xl mx-auto'
       : layoutMode === '4'
-      ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'
+      ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 max-w-5xl mx-auto'
       : layoutMode === '8'
       ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4'
       : layoutMode === '9'
       ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
       : layoutMode === '16'
-      ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4'
-      : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 2xl:grid-cols-8';
+      ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4'
+      : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4';
 
   return (
     <div className="space-y-4">

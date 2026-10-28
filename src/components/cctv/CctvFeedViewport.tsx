@@ -139,24 +139,37 @@ export const CctvFeedViewport: React.FC<CctvFeedViewportProps> = ({
     };
   }, [feed.id, getSnapshotUrl, chNum, isStreaming]);
 
-  const handleLoad = () => {
-    if (isStreaming) return;
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
-      if (isMountedRef.current && !isStreaming) {
+  // Active streaming watchdog: ensures the image never gets stuck on a static frame
+  useEffect(() => {
+    if (!isStreaming) return;
+
+    const interval = setInterval(() => {
+      if (isMountedRef.current && !wsFrameSrc) {
         setSnapshotSrc(buildSnapshotUrl(feed.id));
       }
     }, refreshDelay);
+
+    return () => clearInterval(interval);
+  }, [isStreaming, wsFrameSrc, feed.id, refreshDelay]);
+
+  const handleLoad = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    if (!wsFrameSrc) {
+      timerRef.current = setTimeout(() => {
+        if (isMountedRef.current && !wsFrameSrc) {
+          setSnapshotSrc(buildSnapshotUrl(feed.id));
+        }
+      }, refreshDelay);
+    }
   };
 
   const handleError = () => {
-    if (isStreaming) return;
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
-      if (isMountedRef.current && !isStreaming) {
+      if (isMountedRef.current && !wsFrameSrc) {
         setSnapshotSrc(buildSnapshotUrl(feed.id));
       }
-    }, 2000);
+    }, 1500);
   };
 
   const detectionsToRender = liveDetections || feed.detections || [];

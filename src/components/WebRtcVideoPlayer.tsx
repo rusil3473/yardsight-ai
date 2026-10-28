@@ -75,16 +75,8 @@ export const WebRtcVideoPlayer: React.FC<WebRtcVideoPlayerProps> = ({
     const tStart = performance.now();
 
     const scheduleReconnect = () => {
-      if (isCancelled || !isMountedRef.current) return;
-      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
-      // Exponential backoff: 1s, 1.5s, 2.25s, 3.37s... capped at 10s
-      const delay = Math.min(1000 * Math.pow(1.5, retryCountRef.current), 10000);
-      retryCountRef.current += 1;
-      reconnectTimerRef.current = setTimeout(() => {
-        if (isMountedRef.current && !isCancelled) {
-          setReconnectKey((prev) => prev + 1);
-        }
-      }, delay);
+      // Keep optical stream active without aggressively cycling reconnect keys
+      // WebRTC retry can be triggered on demand via the Retry button
     };
 
     const connectWebRtc = async () => {
@@ -103,7 +95,7 @@ export const WebRtcVideoPlayer: React.FC<WebRtcVideoPlayerProps> = ({
             videoRef.current.srcObject = event.streams[0];
             setConnectionState('connected');
             setLatencyMs(Math.round(performance.now() - tStart));
-            retryCountRef.current = 0; // Reset backoff on successful video playback
+            retryCountRef.current = 0;
             if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
           }
         };
@@ -116,7 +108,6 @@ export const WebRtcVideoPlayer: React.FC<WebRtcVideoPlayerProps> = ({
               retryCountRef.current = 0;
             } else if (['failed', 'disconnected', 'closed'].includes(state)) {
               setConnectionState('fallback');
-              scheduleReconnect();
             }
           }
         };
@@ -129,7 +120,6 @@ export const WebRtcVideoPlayer: React.FC<WebRtcVideoPlayerProps> = ({
               retryCountRef.current = 0;
             } else if (['failed', 'disconnected'].includes(iceState)) {
               setConnectionState('fallback');
-              scheduleReconnect();
             }
           }
         };
@@ -145,7 +135,6 @@ export const WebRtcVideoPlayer: React.FC<WebRtcVideoPlayerProps> = ({
 
         if (!resp.ok) {
           setConnectionState('fallback');
-          scheduleReconnect();
           return;
         }
 
@@ -154,12 +143,10 @@ export const WebRtcVideoPlayer: React.FC<WebRtcVideoPlayerProps> = ({
           await peerConn.setRemoteDescription({ type: 'answer', sdp: answerSdp });
         } else {
           setConnectionState('fallback');
-          scheduleReconnect();
         }
       } catch {
         if (!isCancelled) {
           setConnectionState('fallback');
-          scheduleReconnect();
         }
       }
     };
@@ -211,14 +198,18 @@ export const WebRtcVideoPlayer: React.FC<WebRtcVideoPlayerProps> = ({
           <Radio className={`w-3 h-3 ${connectionState === 'connected' ? 'text-emerald-400 animate-pulse' : 'text-cyan-400'}`} />
           <span className="font-bold text-slate-200">
             {connectionState === 'connected'
-              ? 'WebRTC (Low Latency)'
+              ? 'WebRTC (Ultra Low Latency)'
               : connectionState === 'connecting'
-              ? 'Optical Live Stream'
-              : 'Optical Live Stream (Nominal)'}
+              ? 'Optical Stream Connecting...'
+              : 'Continuous Optical Stream'}
           </span>
-          {connectionState === 'connected' && (
+          {connectionState === 'connected' ? (
             <span className="text-emerald-400 font-semibold border-l border-slate-700 pl-1.5">
               {latencyMs}ms
+            </span>
+          ) : (
+            <span className="text-cyan-400 font-semibold border-l border-slate-700 pl-1.5">
+              Live ~25 FPS
             </span>
           )}
         </div>
@@ -232,11 +223,11 @@ export const WebRtcVideoPlayer: React.FC<WebRtcVideoPlayerProps> = ({
             if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
             setReconnectKey(prev => prev + 1);
           }}
-          className="absolute top-2.5 right-2.5 z-20 flex items-center space-x-1 px-2 py-0.5 rounded font-mono text-[10px] bg-cyan-600/80 hover:bg-cyan-500 text-white cursor-pointer shadow transition"
-          title="Attempt WebRTC reconnection"
+          className="absolute top-2.5 right-2.5 z-20 flex items-center space-x-1.5 px-2.5 py-1 rounded-md font-mono text-[10px] bg-slate-900/90 hover:bg-slate-800 text-cyan-300 border border-cyan-800/60 cursor-pointer shadow-md transition"
+          title="Attempt hardware WebRTC P2P tunnel"
         >
-          <RefreshCw className="w-2.5 h-2.5" />
-          <span>Retry WebRTC</span>
+          <RefreshCw className="w-3 h-3 text-cyan-400" />
+          <span>Switch WebRTC</span>
         </button>
       )}
     </div>

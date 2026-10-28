@@ -70,7 +70,7 @@ const MainAppContent: React.FC = () => {
         const data = await res.json();
         if (data.cameras && Array.isArray(data.cameras) && data.cameras.length > 0) {
           setCameras(
-            data.cameras.slice(0, 8).map((c: any) => ({
+            data.cameras.map((c: any) => ({
               id: c.id,
               name: c.name,
               location: c.location,
@@ -199,7 +199,7 @@ const MainAppContent: React.FC = () => {
                 <div>
                   <h2 className="text-xl font-bold font-mono text-slate-900 dark:text-white flex items-center space-x-2">
                     <Camera className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
-                    <span>SURVEILLANCE MATRIX: DAHUA NVR MULTI-CHANNEL (8 CHANNELS)</span>
+                    <span>SURVEILLANCE MATRIX: DAHUA NVR MULTI-CHANNEL ({cameras.length} CHANNELS)</span>
                   </h2>
                   <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">
                     Enterprise NVR multi-channel ingestion with zero mock frames & live optical hardware capture
@@ -207,7 +207,7 @@ const MainAppContent: React.FC = () => {
                 </div>
                 <span className="px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30 flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                  <span>DAHUA NVR (BE124E0PCA95532): 8 CH ONLINE</span>
+                  <span>DAHUA NVR (BE124E0PCA95532): {cameras.length} CH ONLINE</span>
                 </span>
               </div>
               <CctvMatrix

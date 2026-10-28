@@ -131,19 +131,28 @@ async def camera_websocket_stream(websocket: WebSocket, camera_id: str):
     Dual-plane WebSocket streaming endpoint delivering:
     1. Binary JPEG frames directly to browser canvas/ImageBitmap.
     2. JSON text telemetry packets containing real-time bounding boxes and velocities.
-    Offloads synchronous OpenCV work to worker threads to keep async event loop responsive.
+    High-performance in-memory stream with zero per-frame DB overhead.
     """
     await websocket.accept()
-    from database import SessionLocal
-    db = SessionLocal()
-    frame_count = 0
+    from camera_streamer import camera_streamer
+    from services.streamer.vision_tracker import vision_tracker
     cam_id = camera_id.upper()
+    ch_num = int(cam_id.split("-")[-1]) if ("-" in cam_id and cam_id.split("-")[-1].isdigit()) else 1
+    cam_dict = {
+        "id": cam_id,
+        "name": f"Channel {ch_num:02d}",
+        "brand": "Dahua",
+        "stream_type": "DMSS",
+        "dmss_serial": "BE124E0PCA95532",
+        "dmss_channel": ch_num
+    }
+    frame_count = 0
     try:
         while True:
-            frame_bytes = await asyncio.to_thread(camera_service.get_snapshot, cam_id, db)
+            frame_bytes = await asyncio.to_thread(camera_streamer.generate_live_frame, cam_dict, False)
 
-            if frame_count % 3 == 0:
-                dets = camera_service.get_live_telemetry(cam_id)
+            if frame_count % 4 == 0:
+                dets = vision_tracker.get_latest_telemetry(cam_id)
                 telemetry_packet = {
                     "type": "TELEMETRY",
                     "camera_id": cam_id,
@@ -154,10 +163,6 @@ async def camera_websocket_stream(websocket: WebSocket, camera_id: str):
 
             await websocket.send_bytes(frame_bytes)
             frame_count += 1
-            await asyncio.sleep(0.04)  # ~25 FPS target
-    except WebSocketDisconnect:
+            await asyncio.sleep(0.065)  # ~15 FPS target for grid matrices
+    except (WebSocketDisconnect, Exception):
         pass
-    except Exception:
-        pass
-    finally:
-        db.close()

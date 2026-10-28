@@ -1,6 +1,6 @@
 import type { CameraFeed, VlmChatMessage } from '../../types';
 
-export const INITIAL_CAMERAS: CameraFeed[] = Array.from({ length: 8 }, (_, i) => {
+export const INITIAL_CAMERAS: CameraFeed[] = Array.from({ length: 32 }, (_, i) => {
   const ch = i + 1;
   const pad = String(ch).padStart(2, '0');
   return {
