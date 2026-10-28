@@ -317,26 +317,27 @@ export const CctvFeedViewport: React.FC<CctvFeedViewportProps> = ({
           );
         })}
 
-        {/* 5. Top-Left HUD Pill: Timestamp & FPS matching reference */}
+        {/* 5. Top-Left HUD Pill: Optical Recording Status & FPS */}
         <div className="absolute top-2 left-2 z-20 flex items-center gap-1.5 bg-black/75 backdrop-blur-md px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md border border-white/10 text-[9px] sm:text-[11px] font-mono text-slate-100 shadow-md pointer-events-none">
-          <span>{currentTime ? currentTime.split(' ')[1] : '14:32:15'}</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+          <span className="font-bold text-rose-300">REC</span>
           <span className="text-slate-400">|</span>
           <span className="font-semibold text-slate-200">{feed.fps || 30} FPS</span>
         </div>
 
-        {/* 6. Top-Right HUD Pill: FPS, Codec, Resolution matching reference */}
-        <div className={`absolute top-2 right-2 z-20 items-center gap-1.5 bg-black/75 backdrop-blur-md px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md border border-white/10 text-[9px] sm:text-[11px] font-mono text-slate-100 shadow-md pointer-events-none ${layoutMode === 'all' ? 'hidden sm:flex' : 'flex'}`}>
-          <span className="hidden md:inline">{feed.fps || 30} FPS</span>
-          <span className="hidden md:inline text-slate-400">|</span>
-          <span className="text-slate-300 font-semibold">H.265</span>
-          <span className="text-slate-400">|</span>
-          <span className="text-slate-200">{feed.resolution || '1080p'}</span>
+        {/* 6. Top-Right HUD Pill: Date and Time (CCTV Standard) */}
+        <div className="absolute top-2 right-2 z-20 flex items-center gap-1.5 bg-black/75 backdrop-blur-md px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md border border-white/10 text-[9px] sm:text-[11px] font-mono text-slate-100 shadow-md pointer-events-none">
+          <span className="font-semibold tracking-wider text-slate-100">{currentTime || '2026-10-28 17:15:00'}</span>
         </div>
 
-        {/* 7. Bottom-Left Status Pill with Vertical Green Indicator Bar */}
+        {/* 7. Bottom-Left Camera Name Pill (CCTV Standard) */}
         <div className="absolute bottom-2 left-2 z-20 flex items-center gap-1.5 sm:gap-2 bg-black/80 backdrop-blur-md px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md border border-white/10 shadow-lg pointer-events-none max-w-[90%] truncate">
           <span className={`w-1 h-3 sm:h-3.5 rounded-sm shrink-0 ${barColor}`} />
-          <span className={`text-[9px] sm:text-[10px] font-mono font-black tracking-wider uppercase truncate ${statusColor}`}>
+          <span className="text-[10px] sm:text-[11px] font-mono font-black tracking-wider text-cyan-300 uppercase truncate">
+            {feed.name || `Channel ${String(chNum).padStart(2, '0')}`}
+          </span>
+          <span className="text-slate-500 hidden sm:inline">•</span>
+          <span className={`text-[9px] sm:text-[10px] font-mono tracking-wider uppercase truncate hidden sm:inline ${statusColor}`}>
             {statusText}
           </span>
         </div>

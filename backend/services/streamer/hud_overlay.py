@@ -81,21 +81,21 @@ def apply_dahua_hud_telemetry(frame: np.ndarray, ch_idx: int, display_name: str,
     cv2.rectangle(overlay, (0, h - 22), (w, h), (10, 15, 20), -1)
     cv2.addWeighted(overlay, 0.45, frame, 0.55, 0, frame)
 
-    # Top-Left Channel Label (Yellow Dahua OSD style)
-    cv2.putText(frame, ch_label, (10, 17), font, scale, (20, 20, 20), thick + 1, cv2.LINE_AA)
-    cv2.putText(frame, ch_label, (10, 17), font, scale, (0, 230, 255), thick, cv2.LINE_AA)
+    # Top-Left REC Indicator (Optical Recording Status)
+    cv2.putText(frame, rec_label, (10, 17), font, scale - 0.05, (20, 20, 20), thick + 1, cv2.LINE_AA)
+    cv2.putText(frame, rec_label, (10, 17), font, scale - 0.05, (50, 255, 50), thick, cv2.LINE_AA)
 
-    # Top-Right NVR Serial (Cyan)
-    (tw, _), _ = cv2.getTextSize(nvr_tag, font, scale - 0.05, thick)
-    cv2.putText(frame, nvr_tag, (w - tw - 10, 17), font, scale - 0.05, (20, 20, 20), thick + 1, cv2.LINE_AA)
-    cv2.putText(frame, nvr_tag, (w - tw - 10, 17), font, scale - 0.05, (230, 200, 50), thick, cv2.LINE_AA)
-
-    # Bottom-Left REC indicator
-    cv2.putText(frame, rec_label, (10, h - 6), font, scale - 0.05, (20, 20, 20), thick + 1, cv2.LINE_AA)
-    cv2.putText(frame, rec_label, (10, h - 6), font, scale - 0.05, (50, 255, 50), thick, cv2.LINE_AA)
-
-    # Bottom-Right Timestamp (Green Dahua time)
+    # Top-Right Date and Time (CCTV Standard White OSD)
     (time_w, _), _ = cv2.getTextSize(time_label, font, scale, thick)
-    cv2.putText(frame, time_label, (w - time_w - 10, h - 6), font, scale, (20, 20, 20), thick + 1, cv2.LINE_AA)
-    cv2.putText(frame, time_label, (w - time_w - 10, h - 6), font, scale, (50, 255, 120), thick, cv2.LINE_AA)
+    cv2.putText(frame, time_label, (w - time_w - 10, 17), font, scale, (20, 20, 20), thick + 1, cv2.LINE_AA)
+    cv2.putText(frame, time_label, (w - time_w - 10, 17), font, scale, (255, 255, 255), thick, cv2.LINE_AA)
+
+    # Bottom-Left Camera / Channel Name (CCTV Standard Yellow/Cyan OSD)
+    cv2.putText(frame, ch_label, (10, h - 6), font, scale, (20, 20, 20), thick + 1, cv2.LINE_AA)
+    cv2.putText(frame, ch_label, (10, h - 6), font, scale, (0, 230, 255), thick, cv2.LINE_AA)
+
+    # Bottom-Right NVR Hardware Tag
+    (tw, _), _ = cv2.getTextSize(nvr_tag, font, scale - 0.05, thick)
+    cv2.putText(frame, nvr_tag, (w - tw - 10, h - 6), font, scale - 0.05, (20, 20, 20), thick + 1, cv2.LINE_AA)
+    cv2.putText(frame, nvr_tag, (w - tw - 10, h - 6), font, scale - 0.05, (230, 200, 50), thick, cv2.LINE_AA)
 
