@@ -3,6 +3,7 @@ import os
 import json
 import time
 import subprocess
+import shutil
 from playwright.sync_api import sync_playwright
 import edge_tts
 
@@ -16,72 +17,88 @@ BGM_PATH = os.path.join(r"C:\Users\Rusil\.gemini\config\skills\brag\skills\brag\
 
 VOICEOVER_SEGMENTS = [
     {
-        "id": "intro",
-        "text": "Welcome to YardSight AI, the autonomous Physical AI copilot engineered for high-throughput logistics yards, warehouses, and godown facilities.",
-        "duration_hint": 9.0
+        "id": "01_intro",
+        "title": "Welcome to YardSight AI",
+        "text": "Welcome to YardSight AI, the autonomous Physical AI copilot engineered for high-throughput logistics yards, godown warehouses, and freight terminals. Designed for the Nebius and NVIDIA Global AI Hackathon, YardSight bridges digital intelligence with real-world physical operations.",
     },
     {
-        "id": "theme_switch",
-        "text": "YardSight is built with complete adaptive theme intelligence. With a single click on the top-right toggle, users can switch instantly between industrial Dark Mode and clean, high-contrast Light Mode, with perfectly balanced contrast across all cards and telemetry.",
-        "duration_hint": 14.0
+        "id": "02_theme_switch",
+        "title": "Adaptive Light & Dark Modes",
+        "text": "A critical feature of YardSight is our fully adaptive theme intelligence. Built for twenty-four seven logistics centers, operators can switch instantly between our sleek industrial Dark Mode and a crisp, high-contrast Light Mode via the top-right toggle. Notice how every card, telemetry chart, and status indicator automatically recalibrates its contrast and typography for optimal visibility in any lighting environment.",
     },
     {
-        "id": "dashboard",
-        "text": "On the Logistics Command Center, operators monitor key operational metrics in real-time, including active loading bays, dwell time compliance against the sixty-minute SLA, and live gate queues.",
-        "duration_hint": 12.0
+        "id": "03_command_center",
+        "title": "Logistics Command Center & Digital Twin",
+        "text": "The Logistics Command Center gives dispatchers real-time visibility over the entire yard. Eight digital twin loading bays track live turnaround times, automatically accruing detention fees when vehicles exceed the sixty-minute SLA threshold, while active gate queues and dwell compliance update continuously.",
     },
     {
-        "id": "cctv_8ch",
-        "text": "Our multi-channel surveillance matrix streams eight primary Dahua NVR channels over peer-to-peer WebRTC with sub-second latency. Integrated OpenCV neural models execute real-time YOLO detection to identify trucks, personnel, and vehicles directly on live optical frames.",
-        "duration_hint": 17.0
+        "id": "04_cctv_matrix",
+        "title": "8-Channel Surveillance Matrix & OpenCV YOLOv8",
+        "text": "Our surveillance matrix streams eight primary Dahua NVR optical channels over peer-to-peer WebRTC with sub-second latency. Embedded OpenCV neural models execute real-time YOLOv8 object detection directly on live optical frames to instantly identify trucks, personnel, and vehicles across all physical yard zones.",
     },
     {
-        "id": "anpr",
-        "text": "At the access gate, our automated ANPR engine utilizes perspective homography and OCR to extract vehicle license plates in under one hundred milliseconds, linking drivers directly with manifest records.",
-        "duration_hint": 13.0
+        "id": "05_anpr_gate",
+        "title": "OpenCV 4.10 ANPR Gate Scanner",
+        "text": "At the access gate, our automated ANPR engine uses four-corner perspective homography to unwarp tilted camera angles, extracting vehicle license plates with OCR in under one hundred milliseconds to automate gate check-ins and driver manifests.",
     },
     {
-        "id": "nimbus",
-        "text": "Powered by Nebius AI Cloud and NVIDIA Nemotron open models, the Nimbus Copilot performs spatial reasoning across physical camera feeds, diagnosing bottlenecks and answering natural language yard queries.",
-        "duration_hint": 14.0
+        "id": "06_fleet_dwell",
+        "title": "Fleet Turnaround & Dwell SLA Engine",
+        "text": "Our fleet tracking engine monitors container turnarounds in real time. Bay detention clocks trigger automated WhatsApp notifications to freight drivers and transport carrier agencies before penalties accrue.",
     },
     {
-        "id": "leak",
-        "text": "For facility safety, our specular albedo fluid detection engine continuously identifies hazardous chemical spills and roof leaks before water damage occurs.",
-        "duration_hint": 11.0
+        "id": "07_nimbus_ai",
+        "title": "Nimbus AI Copilot (Nebius x NVIDIA Nemotron)",
+        "text": "Powered by the Nebius Token Factory and NVIDIA Nemotron seventy-B open-source model, the Nimbus AI Copilot performs multimodal spatial reasoning across camera feeds, answering complex logistical queries and flagging yard safety anomalies.",
     },
     {
-        "id": "compliance",
-        "text": "Finally, complete E-Way bill reconciliation and cryptographic audit logging provide enterprise security and automated PDF compliance reports.",
-        "duration_hint": 10.0
+        "id": "08_leak_physics",
+        "title": "Specular Albedo Fluid Leak & Spill Detection",
+        "text": "Facility safety is maintained with our physics-informed fluid leak detection. By analyzing specular albedo reflectance on concrete surfaces, YardSight detects roof moisture leaks and chemical spills before cargo damage occurs.",
     },
     {
-        "id": "outro",
-        "text": "YardSight AI: Autonomous Physical AI transforming real-world logistics. Built for the Nebius and NVIDIA Global AI Hackathon.",
-        "duration_hint": 9.0
+        "id": "09_compliance_audit",
+        "title": "E-Way Bills & Cryptographic Audit Reports",
+        "text": "YardSight integrates seamlessly with GST E-Way bill APIs and digital bills of lading, automating statutory tax reconciliation, detention dispute logs, and one-click PDF compliance audit exports.",
+    },
+    {
+        "id": "10_future_scope",
+        "title": "Future Scope & Autonomous Roadmap",
+        "text": "Looking ahead, our roadmap includes multi-facility edge cluster mesh networking, autonomous drone yard patrol integration, and predictive gate dispatch powered by NVIDIA Cosmos world models. YardSight AI is revolutionizing physical logistics for the global supply chain.",
     }
 ]
 
-async def generate_narration():
-    full_audio_path = os.path.join(WORK_DIR, "narration_full.mp3")
-    if os.path.exists(full_audio_path) and os.path.getsize(full_audio_path) > 100000:
-        print(f"Reusing existing full narration: {full_audio_path}")
-        return full_audio_path
-        
-    segment_files = []
-    print("Generating voiceover narration using Edge-TTS (en-US-ChristopherNeural)...")
+def get_media_duration(file_path):
+    cmd = [FFMPEG_EXE, "-i", file_path]
+    res = subprocess.run(cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+    import re
+    m = re.search(r"Duration:\s*(\d+):(\d+):(\d+\.\d+)", res.stderr)
+    if m:
+        h, mn, s = m.groups()
+        return int(h) * 3600 + int(mn) * 60 + float(s)
+    return 10.0
+
+async def generate_narration_tracks():
+    print("Generating voiceover narration tracks using Edge-TTS (en-US-ChristopherNeural)...")
+    segment_data = []
+    
     for i, seg in enumerate(VOICEOVER_SEGMENTS):
-        seg_path = os.path.join(WORK_DIR, f"seg_{i}_{seg['id']}.mp3")
+        seg_file = os.path.join(WORK_DIR, f"{seg['id']}.mp3")
         communicate = edge_tts.Communicate(seg["text"], voice="en-US-ChristopherNeural", rate="+2%", pitch="+0Hz")
-        await communicate.save(seg_path)
-        segment_files.append(seg_path)
-        print(f"  Generated segment {i+1}/{len(VOICEOVER_SEGMENTS)}: {seg['id']}")
+        await communicate.save(seg_file)
+        dur = get_media_duration(seg_file)
+        segment_data.append({
+            **seg,
+            "file": seg_file,
+            "duration": dur
+        })
+        print(f"  [{i+1}/{len(VOICEOVER_SEGMENTS)}] {seg['id']}: {dur:.2f}s - {seg['title']}")
         
-    # Concatenate all audio segments into one track
+    full_audio_path = os.path.join(WORK_DIR, "narration_master.mp3")
     concat_list = os.path.join(WORK_DIR, "audio_concat.txt")
     with open(concat_list, "w", encoding="utf-8") as f:
-        for p in segment_files:
-            f.write(f"file '{p.replace(chr(92), '/')}'\n")
+        for s in segment_data:
+            f.write(f"file '{s['file'].replace(chr(92), '/')}'\n")
             
     cmd = [
         FFMPEG_EXE, "-y", "-f", "concat", "-safe", "0",
@@ -90,14 +107,17 @@ async def generate_narration():
         full_audio_path
     ]
     subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    print(f"Full narration generated: {full_audio_path}")
-    return full_audio_path
+    total_audio_dur = get_media_duration(full_audio_path)
+    print(f"\n Master Voiceover Generated: {total_audio_dur:.2f}s ({full_audio_path})")
+    return full_audio_path, segment_data, total_audio_dur
 
-def record_browser_walkthrough():
-    raw_video_dir = os.path.join(WORK_DIR, "browser_record")
+def record_synchronized_walkthrough(segment_data, target_total_duration):
+    raw_video_dir = os.path.join(WORK_DIR, "sync_browser_record")
+    if os.path.exists(raw_video_dir):
+        shutil.rmtree(raw_video_dir, ignore_errors=True)
     os.makedirs(raw_video_dir, exist_ok=True)
     
-    print("Starting Playwright browser recording...")
+    print(f"\n Starting Synchronized Playwright Recording (Target Duration: {target_total_duration:.2f}s)...")
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         context = browser.new_context(
@@ -110,128 +130,129 @@ def record_browser_walkthrough():
             localStorage.setItem('yardsight_theme', 'dark');
         """)
         page = context.new_page()
+        start_time = time.time()
         
-        # 1. Intro - Dashboard in Dark Mode
-        print("Recording: Dashboard Intro (Dark Mode)")
+        # 1. Intro - Dashboard (Dark Mode)
+        dur_01 = segment_data[0]["duration"]
+        print(f"  [1/10] Intro ({dur_01:.1f}s)")
         page.goto("http://localhost:5173", wait_until="networkidle")
-        page.wait_for_timeout(4000)
+        page.wait_for_timeout(int(dur_01 * 1000))
         
-        # 2. Theme Switching Demonstration
-        print("Recording: Light / Dark Mode Switching")
+        # 2. Adaptive Light & Dark Mode
+        dur_02 = segment_data[1]["duration"]
+        print(f"  [2/10] Adaptive Light & Dark Modes ({dur_02:.1f}s)")
         theme_btn = page.locator("#theme-toggle-button")
-        if theme_btn.count() > 0:
-            theme_btn.click()
-            page.wait_for_timeout(3500)  # Show Light mode
-            page.mouse.wheel(0, 300)
-            page.wait_for_timeout(2000)
-            page.mouse.wheel(0, -300)
-            page.wait_for_timeout(2000)
-            theme_btn.click()  # Switch back to Dark mode
-            page.wait_for_timeout(3000)
-        else:
-            page.wait_for_timeout(5000)
-            
-        # 3. Dashboard KPI Hover & Dock Bays
-        print("Recording: Dashboard KPI hover & Dwell Chart")
-        page.mouse.move(400, 250)
+        # Click to Light Mode
+        theme_btn.click()
+        page.wait_for_timeout(2500)
+        # Scroll down in Light Mode to show white cards and crisp text
+        page.mouse.wheel(0, 350)
+        page.wait_for_timeout(int((dur_02 - 7.5) * 500))
+        # Scroll up in Light Mode
+        page.mouse.wheel(0, -350)
         page.wait_for_timeout(2000)
-        page.mouse.move(700, 250)
+        # Click back to Dark Mode
+        theme_btn.click()
+        page.wait_for_timeout(3000)
+        
+        # 3. Command Center & Digital Twin Bays
+        dur_03 = segment_data[2]["duration"]
+        print(f"  [3/10] Command Center & Digital Twin ({dur_03:.1f}s)")
+        page.mouse.move(300, 260)
         page.wait_for_timeout(2000)
-        page.mouse.wheel(0, 450)
-        page.wait_for_timeout(4000)
-        page.mouse.wheel(0, -450)
+        page.mouse.move(650, 260)
+        page.wait_for_timeout(2000)
+        page.mouse.wheel(0, 400)
+        page.wait_for_timeout(int((dur_03 - 6.0) * 1000))
+        page.mouse.wheel(0, -400)
         page.wait_for_timeout(2000)
         
-        # 4. CCTV Matrix (8 Channels)
-        print("Recording: CCTV Matrix (8 Channels)")
+        # 4. CCTV Matrix (8 Channels) & OpenCV YOLOv8
+        dur_04 = segment_data[3]["duration"]
+        print(f"  [4/10] 8-Channel CCTV Matrix & YOLOv8 ({dur_04:.1f}s)")
         page.locator("aside button:has-text('Live CCTV Matrix')").first.click()
-        page.wait_for_timeout(6000)
-        # Hover over camera 1 and inspect
+        page.wait_for_timeout(3500)
         inspect_btn = page.locator("button[title*='Inspect'], button:has-text('Inspect')").first
         if inspect_btn.count() > 0:
             inspect_btn.click()
             page.wait_for_timeout(4000)
-            # Close inspect modal
             close_btn = page.locator("#close-inspect-modal")
             if close_btn.count() > 0:
                 close_btn.click()
             else:
                 page.keyboard.press("Escape")
-            page.wait_for_timeout(2000)
-        page.wait_for_timeout(4000)
+            page.wait_for_timeout(1500)
+        remaining_04 = max(1.0, dur_04 - 9.0)
+        page.wait_for_timeout(int(remaining_04 * 1000))
         
-        # 5. ANPR Gate Scanner
-        print("Recording: ANPR Gate Scanner")
+        # 5. OpenCV ANPR Gate Scanner
+        dur_05 = segment_data[4]["duration"]
+        print(f"  [5/10] OpenCV 4.10 ANPR Gate ({dur_05:.1f}s)")
         page.locator("aside button:has-text('OpenCV 4.10 ANPR')").first.click()
-        page.wait_for_timeout(6000)
+        page.wait_for_timeout(int(dur_05 * 1000))
         
-        # 6. Fleet Track Tab
-        print("Recording: Fleet Track & Dwell SLA")
+        # 6. Fleet Turnaround & Dwell SLA
+        dur_06 = segment_data[5]["duration"]
+        print(f"  [6/10] Fleet Dwell SLA Engine ({dur_06:.1f}s)")
         page.locator("aside button:has-text('Fleet & Dock Dwell')").first.click()
-        page.wait_for_timeout(5000)
+        page.wait_for_timeout(int(dur_06 * 1000))
         
-        # 7. Nimbus Copilot
-        print("Recording: Nimbus Copilot (Nebius x NVIDIA)")
+        # 7. Nimbus AI Copilot (Nebius x NVIDIA Nemotron)
+        dur_07 = segment_data[6]["duration"]
+        print(f"  [7/10] Nimbus AI Copilot ({dur_07:.1f}s)")
         page.locator("aside button:has-text('Nimbus AI Hub')").first.click()
-        page.wait_for_timeout(6000)
+        page.wait_for_timeout(int(dur_07 * 1000))
         
-        # 8. Leak & Spill Workbench
-        print("Recording: Fluid Leak & Spill Detection")
+        # 8. Specular Albedo Leak & Spill Physics
+        dur_08 = segment_data[7]["duration"]
+        print(f"  [8/10] Specular Albedo Leak Detection ({dur_08:.1f}s)")
         page.locator("aside button:has-text('Concrete Specular Leaks')").first.click()
-        page.wait_for_timeout(5000)
+        page.wait_for_timeout(int(dur_08 * 1000))
         
-        # 9. E-Way Bills & Tax Compliance
-        print("Recording: E-Way Bills & Audit Reports")
+        # 9. E-Way Bills & Tax Reconciliation
+        dur_09 = segment_data[8]["duration"]
+        print(f"  [9/10] E-Way Bills & Audit Reports ({dur_09:.1f}s)")
         page.locator("aside button:has-text('E-Way Bills & eBOL')").first.click()
-        page.wait_for_timeout(4000)
+        page.wait_for_timeout(int(dur_09 * 1000))
         
-        # Outro - Return to Dashboard
-        print("Recording: Final Command Center view")
+        # 10. Future Scope & Outro
+        dur_10 = segment_data[9]["duration"]
+        print(f"  [10/10] Future Scope & Command Center Outro ({dur_10:.1f}s)")
         page.locator("aside button:has-text('Logistics Command')").first.click()
-        page.wait_for_timeout(5000)
+        page.wait_for_timeout(2000)
+        # Pad slightly to ensure video covers audio completely
+        page.wait_for_timeout(int(max(2.0, dur_10) * 1000) + 2000)
         
+        elapsed = time.time() - start_time
+        print(f"Playwright recording completed in {elapsed:.2f}s")
         context.close()
         browser.close()
         
-    # Find generated webm
     recorded_files = [os.path.join(raw_video_dir, f) for f in os.listdir(raw_video_dir) if f.endswith(".webm")]
     if not recorded_files:
         raise RuntimeError("No recorded video found from Playwright!")
     latest_video = max(recorded_files, key=os.path.getctime)
-    print(f"Browser recording saved: {latest_video}")
     return latest_video
 
-def get_media_duration(file_path):
-    cmd = [
-        FFMPEG_EXE, "-i", file_path
-    ]
-    res = subprocess.run(cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
-    import re
-    m = re.search(r"Duration:\s*(\d+):(\d+):(\d+\.\d+)", res.stderr)
-    if m:
-        h, mn, s = m.groups()
-        return int(h) * 3600 + int(mn) * 60 + float(s)
-    return 60.0
-
-def build_final_master_walkthrough(video_path, audio_path):
+def compile_master_video(raw_video_path, audio_path, target_duration):
     desktop_output = r"c:\Users\Rusil\Desktop\YardSight_Detailed_Walkthrough.mp4"
     local_output = os.path.join(BASE_DIR, "brag-output", "YardSight_Detailed_Walkthrough.mp4")
     
+    video_dur = get_media_duration(raw_video_path)
     audio_dur = get_media_duration(audio_path)
-    video_dur = get_media_duration(video_path)
-    print(f"Audio duration: {audio_dur:.2f}s | Video duration: {video_dur:.2f}s")
+    print(f"\nFinal Assembly: Video Dur={video_dur:.2f}s, Audio Dur={audio_dur:.2f}s")
     
-    # We mix voiceover narration (at 1.0 volume) with background music (at 0.12 volume, ducked)
-    # And conform video speed or pad to match the full narration
+    # Use exact audio duration as master timeline, loop background music, and fade out at end
+    fade_start = max(1.0, audio_dur - 4.0)
     filter_complex = (
-        "[1:a]volume=1.0[voice]; "
-        "[2:a]volume=0.10,afade=t=out:st=100:d=4[bgm]; "
-        "[voice][bgm]amix=inputs=2:duration=first:dropout_transition=2[aout]"
+        f"[1:a]volume=1.0[voice]; "
+        f"[2:a]volume=0.10,afade=t=out:st={fade_start:.1f}:d=4[bgm]; "
+        f"[voice][bgm]amix=inputs=2:duration=first:dropout_transition=2[aout]"
     )
     
     cmd = [
         FFMPEG_EXE, "-y",
-        "-i", video_path,
+        "-i", raw_video_path,
         "-i", audio_path,
         "-stream_loop", "-1", "-i", BGM_PATH,
         "-filter_complex", filter_complex,
@@ -239,25 +260,41 @@ def build_final_master_walkthrough(video_path, audio_path):
         "-map", "[aout]",
         "-c:v", "libx264",
         "-preset", "medium",
-        "-crf", "20",
+        "-crf", "19",
         "-pix_fmt", "yuv420p",
         "-c:a", "aac",
         "-b:a", "192k",
-        "-shortest",
+        "-t", f"{audio_dur:.2f}",
         desktop_output
     ]
     
-    print("Rendering final master walkthrough video with FFmpeg...")
+    print("Muxing final high-definition master walkthrough with FFmpeg...")
     subprocess.run(cmd, check=True)
     
-    # Also copy to project brag-output
-    import shutil
     shutil.copyfile(desktop_output, local_output)
-    print(f"\n Master Walkthrough Rendered Successfully!")
-    print(f"Desktop Path: {desktop_output} (Size: {os.path.getsize(desktop_output)/(1024*1024):.2f} MB)")
-    print(f"Project Path: {local_output}")
+    
+    # Also extract high-res thumbnail poster
+    poster_desktop = r"c:\Users\Rusil\Desktop\YardSight_Detailed_Poster.jpg"
+    poster_local = os.path.join(BASE_DIR, "brag-output", "YardSight_Detailed_Poster.jpg")
+    thumb_cmd = [
+        FFMPEG_EXE, "-y",
+        "-ss", "00:00:12",
+        "-i", desktop_output,
+        "-vframes", "1",
+        "-q:v", "2",
+        poster_desktop
+    ]
+    subprocess.run(thumb_cmd, check=True)
+    shutil.copyfile(poster_desktop, poster_local)
+    
+    print("\n" + "="*60)
+    print(" MASTER WALKTHROUGH RENDERED PERFECTLY!")
+    print(f" Master Video: {desktop_output} ({os.path.getsize(desktop_output)/(1024*1024):.2f} MB)")
+    print(f" Video Poster: {poster_desktop}")
+    print(f" Exact Matched Duration: {audio_dur:.2f}s")
+    print("="*60)
 
 if __name__ == "__main__":
-    audio_file = asyncio.run(generate_narration())
-    raw_video = record_browser_walkthrough()
-    build_final_master_walkthrough(raw_video, audio_file)
+    audio_path, segment_data, total_audio_dur = asyncio.run(generate_narration_tracks())
+    raw_video = record_synchronized_walkthrough(segment_data, total_audio_dur)
+    compile_master_video(raw_video, audio_path, total_audio_dur)
