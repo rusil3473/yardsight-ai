@@ -50,7 +50,11 @@ export const CctvInspectModal: React.FC<CctvInspectModalProps> = ({
     };
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        setIsFullscreen(false);
+        if (document.fullscreenElement) {
+          setIsFullscreen(false);
+        } else {
+          onClose();
+        }
       }
     };
     document.addEventListener('fullscreenchange', handleFsChange);

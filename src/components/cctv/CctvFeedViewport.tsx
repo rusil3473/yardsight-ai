@@ -270,25 +270,6 @@ export const CctvFeedViewport: React.FC<CctvFeedViewportProps> = ({
           />
         )}
 
-
-        {/* 3. Calibrated Red Perimeter Security Boundary Fence Line */}
-        <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" preserveAspectRatio="none" viewBox="0 0 100 100">
-          <line
-            x1="0"
-            y1="46"
-            x2="100"
-            y2="33"
-            stroke="#ef4444"
-            strokeWidth="1.2"
-            strokeOpacity="0.85"
-            style={{ filter: 'drop-shadow(0px 0px 3px rgba(239, 68, 68, 0.7))' }}
-          />
-          <polygon
-            points="0,46 100,33 100,78 0,78"
-            fill="rgba(239, 68, 68, 0.03)"
-          />
-        </svg>
-
         {/* 4. Tactical HUD Bounding Boxes */}
         {detectionsToRender.map((det: any, dIdx: number) => {
           const isPerson = (det.label || '').toUpperCase().includes('PERSON');

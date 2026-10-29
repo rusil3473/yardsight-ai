@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AlertTriangle, Droplets, X, ShieldAlert, Calculator, Zap, CheckCircle2 } from 'lucide-react';
 import type { SpillIncident } from '../types';
 import { analyzeSpecularReflection } from '../engine/spillDetector';
@@ -25,6 +25,14 @@ export const SpillAnalysisModal: React.FC<SpillAnalysisModalProps> = ({
   const [testLuminance, setTestLuminance] = useState(165);
   const [actuatorMessage, setActuatorMessage] = useState<string | null>(null);
   const [isActuating, setIsActuating] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   if (!isOpen || !spill) return null;
 

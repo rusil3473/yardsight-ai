@@ -24,7 +24,7 @@ def apply_ai_pipeline_overlays(frame: np.ndarray, ch_idx: int, pipeline: str, w:
         return
 
     import os
-    if os.environ.get("DISABLE_CV_AI", "1").lower() in ("true", "1", "yes"):
+    if os.environ.get("DISABLE_CV_AI", "0").lower() in ("true", "1", "yes"):
         return
 
     import time

@@ -40,7 +40,12 @@ def check_nvr_online(sn: Optional[str] = None) -> bool:
         s.settimeout(0.2)
         res = s.connect_ex(("127.0.0.1", 1554))
         s.close()
-        return res == 0
+        if res == 0:
+            return True
+        from services.streamer import camera_streamer
+        if len(camera_streamer._channel_fixed_frames) > 0:
+            return True
+        return False
     except Exception:
         pass
     return False

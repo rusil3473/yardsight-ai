@@ -88,6 +88,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           return (
             <button
               key={item.id}
+              data-tab={item.id}
               type="button"
               onClick={() => onSelectTab(item.id)}
               title={isCollapsed ? item.label : undefined}

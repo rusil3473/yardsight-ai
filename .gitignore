@@ -14,3 +14,8 @@ backend/temp/
 !brag-output/*.jpg
 brag-output/walkthrough_work/
 brag-output/*.mp4
+brag-output/verification_frames/
+brag-output/*.wav
+
+client_secrets*.json
+token*.json

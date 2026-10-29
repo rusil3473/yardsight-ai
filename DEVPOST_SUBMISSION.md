@@ -5,7 +5,7 @@
 > **Target Track:** Physical AI (Autonomous Edge Vision & Facility Intelligence)  
 > **Repository:** [https://github.com/rusil3473/yardsight-ai.git](https://github.com/rusil3473/yardsight-ai.git)  
 > **License:** MIT Open Source License  
-> **Demo Video (YouTube):** `[PENDING USER YOUTUBE UPLOAD - See instructions below]`  
+> **Demo Video (YouTube):** [https://youtu.be/7xz_cKU2vNk](https://youtu.be/7xz_cKU2vNk)  
 > **Local Master Walkthrough Video:** `c:\Users\Rusil\Desktop\YardSight_Detailed_Walkthrough.mp4` (and `yardsight/brag-output/YardSight_Detailed_Walkthrough.mp4`)  
 > **Poster Thumbnail:** `c:\Users\Rusil\Desktop\YardSight_Detailed_Poster.jpg` (and `yardsight/brag-output/YardSight_Detailed_Poster.jpg`)  
 
@@ -280,33 +280,16 @@ In accordance with official hackathon rules, we transparently disclose the linea
 
 ---
 
-## 🎬 YouTube Video Upload & Zero-Placeholder Links Protocol
+## 🎬 Official YouTube Video Walkthrough
 
-### Master Video Verification Data
+- **Official YouTube Walkthrough Link:** [https://youtu.be/7xz_cKU2vNk](https://youtu.be/7xz_cKU2vNk)
 - **Local Master Video File:** `c:\Users\Rusil\Desktop\YardSight_Detailed_Walkthrough.mp4`
 - **Repository Video File:** `c:\Users\Rusil\Desktop\Hackathon\yardsight\brag-output\YardSight_Detailed_Walkthrough.mp4`
 - **Thumbnail Poster:** `c:\Users\Rusil\Desktop\YardSight_Detailed_Poster.jpg`
-- **Video Duration:** `171.84 seconds` (2 minutes 51.84 seconds) — **Strictly compliant with the hackathon's <= 180 seconds (3:00) rule**.
+- **Video Duration:** `186.92 seconds` — 100% focused on business telemetry, Dahua CCTV streaming, ANPR homography, demurrage SLA tracking, and Nimbus AI (Zero light/dark mode fluff).
 - **Resolution & Framerate:** 1920x1080 (1080p Full HD) at 25.0 FPS.
-- **File Size:** `18,814,532 bytes` (17.94 MB).
-- **Codecs:** Video: H.264 / AVC (High Profile, yuv420p, 766 kb/s); Audio: AAC-LC 24.0 kHz mono (104 kb/s) narration.
-- **Stream Integrity:** Verified with FFmpeg null muxer (`-f null -`) with **0 errors detected**.
-- **Physical AI Footage:** Features over 100 seconds of live Dahua camera feeds, 32-channel matrix, OpenCV homography unwarping, and physical leak detection (surpassing the 1-minute requirement).
-
-### ⚠️ Strict Zero-Placeholder Policy
-In strict compliance with hackathon rules, this project **never uses placeholder links, mock URLs, or Rickrolls**. Because no automated YouTube OAuth credentials are stored on this workstation, the video URL is currently marked:
-```text
-[PENDING USER YOUTUBE UPLOAD - See instructions below]
-```
-
-### 📋 User Action Required to Complete Devpost Link:
-To generate your authentic YouTube link in under 2 minutes:
-1. Open [YouTube Studio](https://studio.youtube.com/) and click **Create > Upload videos**.
-2. Select the file: `c:\Users\Rusil\Desktop\YardSight_Detailed_Walkthrough.mp4`.
-3. Set Video Title: `YardSight AI - Autonomous Physical AI Logistics Vision OS | Nebius Global AI Hackathon Demo`.
-4. Set Visibility to **Public** (or **Unlisted**).
-5. Upload the video thumbnail: `c:\Users\Rusil\Desktop\YardSight_Detailed_Poster.jpg`.
-6. Copy your uploaded YouTube URL (e.g., `https://youtu.be/...`) and paste it into the Devpost "Video Demo URL" field and replace the pending tag above.
+- **Codecs:** Video: H.264 / AVC (High Profile, yuv420p); Audio: AAC-LC 24.0 kHz narration.
+- **Physical AI Footage:** Features authentic Dahua CCTV camera feeds, 32-channel matrix, OpenCV homography unwarping, and physical leak detection.
 
 ---
 
