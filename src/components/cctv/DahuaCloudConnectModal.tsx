@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Cloud, ShieldCheck, AlertCircle, X, RefreshCw, Key, CheckCircle2,
-  ExternalLink, Lock, QrCode, FileText, Ban
+  Cloud, ShieldCheck, AlertCircle, X, RefreshCw, CheckCircle2,
+  Lock, QrCode, FileText, Ban
 } from 'lucide-react';
 import { API_BASE_URL } from '../../config/env';
 

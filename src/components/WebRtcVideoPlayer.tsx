@@ -75,10 +75,6 @@ export const WebRtcVideoPlayer: React.FC<WebRtcVideoPlayerProps> = ({
     let fallbackTimer: any = null;
     const tStart = performance.now();
 
-    const scheduleReconnect = () => {
-      // Keep optical stream active without aggressively cycling reconnect keys
-      // WebRTC retry can be triggered on demand via the Retry button
-    };
 
     const connectWebRtc = async () => {
       setConnectionState('connecting');

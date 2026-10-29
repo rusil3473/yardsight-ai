@@ -1,9 +1,8 @@
+import { WS_BASE_URL } from '../../config/env';
 import React, { useState, useEffect, useRef } from 'react';
 import { Camera, AlertTriangle, Maximize2, Radio, RefreshCw } from 'lucide-react';
 import type { CameraFeed } from '../../types';
 import type { LiveDetectionEntity, CctvLayoutMode } from './types';
-import { API_BASE_URL, WS_BASE_URL } from '../../config/env';
-import { WebRtcVideoPlayer } from '../WebRtcVideoPlayer';
 
 interface CctvFeedViewportProps {
   feed: CameraFeed;
@@ -27,7 +26,7 @@ export const CctvFeedViewport: React.FC<CctvFeedViewportProps> = ({
   isStreaming,
   isSelected,
   streamError,
-  currentTime,
+  currentTime: _currentTime,
   layoutMode = 'all',
   liveDetections,
   onToggleStream,
@@ -54,8 +53,6 @@ export const CctvFeedViewport: React.FC<CctvFeedViewportProps> = ({
     return `${raw}${sep}t=${Date.now()}`;
   };
 
-  const liveStreamUrl = `${API_BASE_URL}/api/cameras/${feed.id.toUpperCase()}/stream`;
-  const useLiveStream = isStreaming;
   const [snapshotSrc, setSnapshotSrc] = useState<string>(() => buildSnapshotUrl(feed.id));
   const [wsFrameSrc, setWsFrameSrc] = useState<string | null>(null);
   const timerRef = useRef<any>(null);
@@ -214,7 +211,7 @@ export const CctvFeedViewport: React.FC<CctvFeedViewportProps> = ({
         <div className="flex items-center gap-1.5 shrink-0">
           {feed.status === 'ONLINE' && !streamError ? (
             <span className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-950/70 border border-emerald-500/40 text-[10px] font-bold tracking-widest text-emerald-300 uppercase shadow-[0_0_8px_rgba(16,185,129,0.2)]">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className={`w-1.5 h-1.5 rounded-full ${barColor}`} />
               LIVE STREAM
             </span>
           ) : feed.status === 'CONNECTING' ? (
@@ -300,10 +297,10 @@ export const CctvFeedViewport: React.FC<CctvFeedViewportProps> = ({
 
         {/* 5. Sleek Top-Left Status Indicator (Does not obstruct Top-Right Date or Bottom-Left Name) */}
         <div className="absolute top-2 left-2 z-20 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm px-2 py-0.5 rounded text-[9px] font-mono text-slate-200 pointer-events-none border border-white/10">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          <span className={`w-1.5 h-1.5 rounded-full ${barColor}`} />
           <span>{feed.fps || 30} FPS</span>
           <span className="text-slate-500">•</span>
-          <span className="text-slate-300 uppercase">{statusText}</span>
+          <span className={`${statusColor} uppercase`}>{statusText}</span>
         </div>
 
         {/* 8. Hover Controls Overlay */}
