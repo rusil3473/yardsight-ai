@@ -1,0 +1,195 @@
+{
+  "files": {
+    "desktop_video": {
+      "exists": true,
+      "path": "c:\\Users\\Rusil\\Desktop\\YardSight_Detailed_Walkthrough.mp4",
+      "size_bytes": 18814532,
+      "sha256": "3b18ac2898078f7921833679f52a77a38db0ef11bf802484349bfa8d03d97bea"
+    },
+    "local_video": {
+      "exists": true,
+      "path": "c:\\Users\\Rusil\\Desktop\\Hackathon\\yardsight\\brag-output\\YardSight_Detailed_Walkthrough.mp4",
+      "size_bytes": 18814532,
+      "sha256": "3b18ac2898078f7921833679f52a77a38db0ef11bf802484349bfa8d03d97bea"
+    },
+    "poster": {
+      "exists": true,
+      "path": "c:\\Users\\Rusil\\Desktop\\YardSight_Detailed_Poster.jpg",
+      "size_bytes": 242203,
+      "sha256": "8684b12023b8465990c07fef14004affb094ae320066a817c8fa15a93ac678a5"
+    }
+  },
+  "bounds_check": {
+    "container_duration_s": 171.84,
+    "cv2_duration_s": 171.84,
+    "actual_frame_count": 4296,
+    "fps_opencv": 25.0,
+    "fps_ffmpeg": 25.0,
+    "timebase_tbn": 12800,
+    "pts_dts_clean": true,
+    "strict_limit_s": 180.0,
+    "under_limit": true,
+    "margin_s": 8.159999999999997
+  },
+  "codec_check": {
+    "video_codec": "h264",
+    "pixel_format": "yuv420p",
+    "width": 1920,
+    "height": 1080,
+    "aspect_ratio": "1920:1080",
+    "is_16_9": true,
+    "total_bitrate_kbps": 875,
+    "audio_codec": "aac",
+    "audio_sample_rate_hz": 24000,
+    "audio_channels": "mono",
+    "audio_bitrate_kbps": 104
+  },
+  "audio_check": {
+    "audio_duration_s": 171.81868480725623,
+    "sample_rate_hz": 44100,
+    "channels": 2,
+    "peak_amp": 0.2978515625,
+    "peak_dbfs": -10.520002345860522,
+    "rms_amp": 0.03268145024776459,
+    "rms_dbfs": -29.713973595652412,
+    "clipped_samples_count": 0,
+    "clipped_percentage": 0.0,
+    "silent_seconds": 0,
+    "integrated_lufs": -26.7,
+    "loudness_range_lu": 2.9,
+    "true_peak_dbfs": null
+  },
+  "scene_sync_check": {
+    "detected_cuts_count": 8,
+    "scene_cut_timestamps_s": [
+      1.2,
+      19.8,
+      31.6,
+      40.8,
+      53.4,
+      59.8,
+      64.2,
+      78.0
+    ]
+  },
+  "hardware_footage_audit": {
+    "required_minimum_seconds": 60.0,
+    "pure_optical_camera_duration_s": 65.45,
+    "total_physical_ai_hardware_duration_s": 119.93,
+    "pure_optical_meets_requirement": true,
+    "total_hardware_meets_requirement": true,
+    "segments": [
+      {
+        "id": "01_intro",
+        "title": "Welcome to YardSight AI",
+        "start_s": 0.0,
+        "end_s": 18.34,
+        "duration_s": 18.34,
+        "is_pure_optical_camera": false,
+        "is_physical_ai_hardware": true,
+        "feature": "Logistics Command Center & 8 Digital Twin Loading Bays (live turnaround telemetry)"
+      },
+      {
+        "id": "02_theme_switch",
+        "title": "Adaptive Light & Dark Modes",
+        "start_s": 18.34,
+        "end_s": 44.07,
+        "duration_s": 25.73,
+        "is_pure_optical_camera": false,
+        "is_physical_ai_hardware": false,
+        "feature": "UI Theme Switcher (Dark Mode <-> High Contrast Light Mode)"
+      },
+      {
+        "id": "03_command_center",
+        "title": "Logistics Command Center & Digital Twin",
+        "start_s": 44.07,
+        "end_s": 62.69,
+        "duration_s": 18.62,
+        "is_pure_optical_camera": false,
+        "is_physical_ai_hardware": true,
+        "feature": "8 Digital Twin Bays tracking live turnaround times, 60m SLA thresholds & detention fees"
+      },
+      {
+        "id": "04_cctv_matrix",
+        "title": "8-Channel Surveillance Matrix & OpenCV YOLOv8",
+        "start_s": 62.69,
+        "end_s": 83.79,
+        "duration_s": 21.1,
+        "is_pure_optical_camera": true,
+        "is_physical_ai_hardware": true,
+        "feature": "8 Dahua NVR optical channels streaming over WebRTC, YOLOv8 detections & Inspect modal RTSP telemetry"
+      },
+      {
+        "id": "05_anpr_gate",
+        "title": "OpenCV 4.10 ANPR Gate Scanner",
+        "start_s": 83.79,
+        "end_s": 98.74,
+        "duration_s": 14.95,
+        "is_pure_optical_camera": true,
+        "is_physical_ai_hardware": true,
+        "feature": "Gate camera feed, 4-corner perspective homography unwarping, vehicle license plate OCR"
+      },
+      {
+        "id": "06_fleet_dwell",
+        "title": "Fleet Turnaround & Dwell SLA Engine",
+        "start_s": 98.74,
+        "end_s": 111.48,
+        "duration_s": 12.74,
+        "is_pure_optical_camera": false,
+        "is_physical_ai_hardware": false,
+        "feature": "Container dwell SLA clocks, WhatsApp alert logs"
+      },
+      {
+        "id": "07_nimbus_ai",
+        "title": "Nimbus AI Copilot (Nebius x NVIDIA Nemotron)",
+        "start_s": 111.48,
+        "end_s": 126.29,
+        "duration_s": 14.81,
+        "is_pure_optical_camera": true,
+        "is_physical_ai_hardware": true,
+        "feature": "Multimodal spatial reasoning over optical camera feeds, Nemotron 70B vision QA"
+      },
+      {
+        "id": "08_leak_physics",
+        "title": "Specular Albedo Fluid Leak & Spill Detection",
+        "start_s": 126.29,
+        "end_s": 140.88,
+        "duration_s": 14.59,
+        "is_pure_optical_camera": true,
+        "is_physical_ai_hardware": true,
+        "feature": "Physics-informed fluid leak detection analyzing concrete surface reflectance on camera feed"
+      },
+      {
+        "id": "09_compliance_audit",
+        "title": "E-Way Bills & Cryptographic Audit Reports",
+        "start_s": 140.88,
+        "end_s": 154.3,
+        "duration_s": 13.42,
+        "is_pure_optical_camera": false,
+        "is_physical_ai_hardware": false,
+        "feature": "GST E-Way bill API integration, tax reconciliation, PDF audit reports"
+      },
+      {
+        "id": "10_future_scope",
+        "title": "Future Scope & Autonomous Roadmap",
+        "start_s": 154.3,
+        "end_s": 171.82,
+        "duration_s": 17.52,
+        "is_pure_optical_camera": false,
+        "is_physical_ai_hardware": true,
+        "feature": "Return to Command Center overview, multi-facility edge cluster mesh roadmap"
+      }
+    ]
+  },
+  "verdict": "PASS",
+  "failures": [],
+  "warnings": [],
+  "poster_check": {
+    "exists": true,
+    "width": 1920,
+    "height": 1080,
+    "aspect_ratio": 1.778,
+    "is_16_9": true,
+    "size_bytes": 242203
+  }
+}
