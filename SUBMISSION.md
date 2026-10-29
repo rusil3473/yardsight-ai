@@ -5,7 +5,7 @@
 > **Target Track:** Physical AI (Autonomous Edge Vision & Facility Intelligence)  
 > **Repository:** [https://github.com/rusil3473/yardsight-ai.git](https://github.com/rusil3473/yardsight-ai.git)  
 > **License:** MIT Open Source License  
-> **Demo Video (YouTube):** [https://youtu.be/7xz_cKU2vNk](https://youtu.be/7xz_cKU2vNk)  
+> **Demo Video (YouTube):** [https://youtu.be/DVBm023QEDk](https://youtu.be/DVBm023QEDk)  
 > **Local Master Walkthrough Video:** `c:\Users\Rusil\Desktop\YardSight_Detailed_Walkthrough.mp4` (and `yardsight/brag-output/YardSight_Detailed_Walkthrough.mp4`)  
 > **Poster Thumbnail:** `c:\Users\Rusil\Desktop\YardSight_Detailed_Poster.jpg` (and `yardsight/brag-output/YardSight_Detailed_Poster.jpg`)  
 
@@ -282,11 +282,11 @@ In accordance with official hackathon rules, we transparently disclose the linea
 
 ## 🎬 Official YouTube Video Walkthrough
 
-- **Official YouTube Walkthrough Link:** [https://youtu.be/7xz_cKU2vNk](https://youtu.be/7xz_cKU2vNk)
+- **Official YouTube Walkthrough Link:** [https://youtu.be/DVBm023QEDk](https://youtu.be/DVBm023QEDk)
 - **Local Master Video File:** `c:\Users\Rusil\Desktop\YardSight_Detailed_Walkthrough.mp4`
 - **Repository Video File:** `c:\Users\Rusil\Desktop\Hackathon\yardsight\brag-output\YardSight_Detailed_Walkthrough.mp4`
 - **Thumbnail Poster:** `c:\Users\Rusil\Desktop\YardSight_Detailed_Poster.jpg`
-- **Video Duration:** `186.92 seconds` — 100% focused on business telemetry, Dahua CCTV streaming, ANPR homography, demurrage SLA tracking, and Nimbus AI (Zero light/dark mode fluff).
+- **Video Duration:** `177.22 seconds (2 minutes 57.22 seconds) — Strictly compliant with the <= 180.0s (3:00) rule` — 100% focused on business telemetry, Dahua CCTV streaming, ANPR homography, demurrage SLA tracking, and Nimbus AI (Zero light/dark mode fluff).
 - **Resolution & Framerate:** 1920x1080 (1080p Full HD) at 25.0 FPS.
 - **Codecs:** Video: H.264 / AVC (High Profile, yuv420p); Audio: AAC-LC 24.0 kHz narration.
 - **Physical AI Footage:** Features authentic Dahua CCTV camera feeds, 32-channel matrix, OpenCV homography unwarping, and physical leak detection.

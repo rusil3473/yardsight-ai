@@ -3,33 +3,33 @@
     "desktop_video": {
       "exists": true,
       "path": "c:\\Users\\Rusil\\Desktop\\YardSight_Detailed_Walkthrough.mp4",
-      "size_bytes": 18814532,
-      "sha256": "3b18ac2898078f7921833679f52a77a38db0ef11bf802484349bfa8d03d97bea"
+      "size_bytes": 17933117,
+      "sha256": "06c102d4d398f4f07667f0573bece28e7fb0f717e76eef41e5dbef25b63b655f"
     },
     "local_video": {
       "exists": true,
       "path": "c:\\Users\\Rusil\\Desktop\\Hackathon\\yardsight\\brag-output\\YardSight_Detailed_Walkthrough.mp4",
-      "size_bytes": 18814532,
-      "sha256": "3b18ac2898078f7921833679f52a77a38db0ef11bf802484349bfa8d03d97bea"
+      "size_bytes": 17933117,
+      "sha256": "06c102d4d398f4f07667f0573bece28e7fb0f717e76eef41e5dbef25b63b655f"
     },
     "poster": {
       "exists": true,
       "path": "c:\\Users\\Rusil\\Desktop\\YardSight_Detailed_Poster.jpg",
-      "size_bytes": 242203,
-      "sha256": "8684b12023b8465990c07fef14004affb094ae320066a817c8fa15a93ac678a5"
+      "size_bytes": 81102,
+      "sha256": "dd7e0be6248b3b33a084c931f9efe687be928eef1d558df25e9e4cf6f3d6da60"
     }
   },
   "bounds_check": {
-    "container_duration_s": 171.84,
-    "cv2_duration_s": 171.84,
-    "actual_frame_count": 4296,
+    "container_duration_s": 177.24,
+    "cv2_duration_s": 177.2,
+    "actual_frame_count": 4430,
     "fps_opencv": 25.0,
     "fps_ffmpeg": 25.0,
     "timebase_tbn": 12800,
     "pts_dts_clean": true,
     "strict_limit_s": 180.0,
     "under_limit": true,
-    "margin_s": 8.159999999999997
+    "margin_s": 2.759999999999991
   },
   "codec_check": {
     "video_codec": "h264",
@@ -38,38 +38,38 @@
     "height": 1080,
     "aspect_ratio": "1920:1080",
     "is_16_9": true,
-    "total_bitrate_kbps": 875,
+    "total_bitrate_kbps": 809,
     "audio_codec": "aac",
     "audio_sample_rate_hz": 24000,
     "audio_channels": "mono",
     "audio_bitrate_kbps": 104
   },
   "audio_check": {
-    "audio_duration_s": 171.81868480725623,
+    "audio_duration_s": 177.19467120181406,
     "sample_rate_hz": 44100,
     "channels": 2,
-    "peak_amp": 0.2978515625,
-    "peak_dbfs": -10.520002345860522,
-    "rms_amp": 0.03268145024776459,
-    "rms_dbfs": -29.713973595652412,
+    "peak_amp": 0.276214599609375,
+    "peak_dbfs": -11.175067401301341,
+    "rms_amp": 0.03271964192390442,
+    "rms_dbfs": -29.703829155835408,
     "clipped_samples_count": 0,
     "clipped_percentage": 0.0,
     "silent_seconds": 0,
     "integrated_lufs": -26.7,
-    "loudness_range_lu": 2.9,
+    "loudness_range_lu": 2.6,
     "true_peak_dbfs": null
   },
   "scene_sync_check": {
     "detected_cuts_count": 8,
     "scene_cut_timestamps_s": [
-      1.2,
-      19.8,
+      24.8,
       31.6,
-      40.8,
-      53.4,
-      59.8,
-      64.2,
-      78.0
+      47.8,
+      53.2,
+      57.2,
+      73.2,
+      80.0,
+      94.2
     ]
   },
   "hardware_footage_audit": {
@@ -190,6 +190,6 @@
     "height": 1080,
     "aspect_ratio": 1.778,
     "is_16_9": true,
-    "size_bytes": 242203
+    "size_bytes": 81102
   }
 }

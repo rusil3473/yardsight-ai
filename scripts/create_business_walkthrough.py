@@ -83,11 +83,11 @@ async def generate_narration_tracks():
     os.makedirs(WORK_DIR, exist_ok=True)
     segment_data = []
     
-    print("\n Generating voiceover narration tracks using Edge-TTS (en-US-ChristopherNeural at +9% rate)...")
+    print("\n Generating voiceover narration tracks using Edge-TTS (en-US-ChristopherNeural at +15% rate)...")
     for idx, seg in enumerate(SEGMENTS):
         seg_id = seg["id"]
         out_mp3 = os.path.join(WORK_DIR, f"{seg_id}.mp3")
-        comm = edge_tts.Communicate(seg["text"], voice="en-US-ChristopherNeural", rate="+9%")
+        comm = edge_tts.Communicate(seg["text"], voice="en-US-ChristopherNeural", rate="+15%")
         await comm.save(out_mp3)
         dur = get_media_duration(out_mp3)
         segment_data.append({

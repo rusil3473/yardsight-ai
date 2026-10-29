@@ -14,9 +14,9 @@
 
 ## 📺 Official Walkthrough Demo Video
 
-[![YardSight AI Video Walkthrough](https://img.youtube.com/vi/7xz_cKU2vNk/maxresdefault.jpg)](https://youtu.be/7xz_cKU2vNk)
+[![YardSight AI Video Walkthrough](https://img.youtube.com/vi/DVBm023QEDk/maxresdefault.jpg)](https://youtu.be/DVBm023QEDk)
 
-> 🎥 **Watch the Full Master Demo on YouTube:** **[https://youtu.be/7xz_cKU2vNk](https://youtu.be/7xz_cKU2vNk)**  
+> 🎥 **Watch the Full Master Demo on YouTube:** **[https://youtu.be/DVBm023QEDk](https://youtu.be/DVBm023QEDk)**  
 > *1080p Full HD Walkthrough: 32-channel Dahua optical CCTV streaming (<100ms latency), OpenCV 4.10 perspective homography ANPR, physics-informed specular hydrocarbon leak detection, automated detention SLA demurrage tracking, and Nimbus AI spatial reasoning.*
 
 ---
