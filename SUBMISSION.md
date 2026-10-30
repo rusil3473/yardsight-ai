@@ -5,7 +5,7 @@
 > **Target Track:** Physical AI (Autonomous Edge Vision & Facility Intelligence)  
 > **Repository:** [https://github.com/rusil3473/yardsight-ai.git](https://github.com/rusil3473/yardsight-ai.git)  
 > **License:** MIT Open Source License  
-> **Demo Video (YouTube):** [https://youtu.be/DVBm023QEDk](https://youtu.be/DVBm023QEDk)  
+> **Demo Video (YouTube):** [https://youtu.be/L58nQtqdYKk](https://youtu.be/L58nQtqdYKk)  
 > **Local Master Walkthrough Video:** `c:\Users\Rusil\Desktop\YardSight_Detailed_Walkthrough.mp4` (and `yardsight/brag-output/YardSight_Detailed_Walkthrough.mp4`)  
 > **Poster Thumbnail:** `c:\Users\Rusil\Desktop\YardSight_Detailed_Poster.jpg` (and `yardsight/brag-output/YardSight_Detailed_Poster.jpg`)  
 
@@ -282,7 +282,7 @@ In accordance with official hackathon rules, we transparently disclose the linea
 
 ## 🎬 Official YouTube Video Walkthrough
 
-- **Official YouTube Walkthrough Link:** [https://youtu.be/DVBm023QEDk](https://youtu.be/DVBm023QEDk)
+- **Official YouTube Walkthrough Link:** [https://youtu.be/L58nQtqdYKk](https://youtu.be/L58nQtqdYKk)
 - **Local Master Video File:** `c:\Users\Rusil\Desktop\YardSight_Detailed_Walkthrough.mp4`
 - **Repository Video File:** `c:\Users\Rusil\Desktop\Hackathon\yardsight\brag-output\YardSight_Detailed_Walkthrough.mp4`
 - **Thumbnail Poster:** `c:\Users\Rusil\Desktop\YardSight_Detailed_Poster.jpg`
